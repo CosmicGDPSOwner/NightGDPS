@@ -285,6 +285,76 @@
 
         #maintenanceOverlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:9999; background:#04050d; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:20px; }
 
+        /* ===== MOD LOGIN PAGE ===== */
+        #modLoginPage {
+            display: none;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 8000; background: var(--bg);
+            flex-direction: column; justify-content: center; align-items: center;
+            padding: 20px;
+        }
+        .mod-login-box {
+            width: 100%; max-width: 420px;
+            background: rgba(10,12,28,0.98);
+            border: 1px solid rgba(167,139,250,0.25);
+            border-radius: 24px;
+            padding: 40px 32px;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.7), 0 0 60px rgba(167,139,250,0.08);
+            animation: fadeInPage 0.4s ease;
+        }
+        .mod-login-moon { font-size: 2.8rem; text-align: center; margin-bottom: 10px; }
+        .mod-login-title {
+            font-family: 'Orbitron'; font-size: 1.5rem; font-weight: 900;
+            text-align: center; margin: 0 0 6px;
+            background: var(--main-grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .mod-login-sub {
+            text-align: center; color: var(--text-main); font-size: 0.85rem;
+            margin: 0 0 30px; line-height: 1.5;
+        }
+        .mod-login-label {
+            display: block; font-size: 0.78rem; font-weight: 700;
+            color: var(--accent); text-transform: uppercase; letter-spacing: 1px;
+            margin: 0 0 6px;
+        }
+        .mod-login-input {
+            width: 100%; padding: 14px 16px; margin-bottom: 16px;
+            background: rgba(4,5,13,0.8); border: 1px solid rgba(167,139,250,0.18);
+            color: white; border-radius: 12px; font-size: 0.95rem; outline: none;
+            transition: 0.3s; font-family: 'Nunito';
+        }
+        .mod-login-input:focus { border-color: var(--accent); box-shadow: 0 0 12px rgba(167,139,250,0.15); }
+        .mod-login-btn {
+            width: 100%; padding: 15px; margin-top: 6px;
+            background: linear-gradient(135deg, #7b5ea7, #3d85c8);
+            color: #fff; border: none; border-radius: 12px;
+            font-weight: 900; font-size: 1rem; text-transform: uppercase;
+            cursor: pointer; font-family: 'Nunito'; transition: 0.3s;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+        }
+        .mod-login-btn:hover { filter: brightness(1.12); transform: translateY(-2px); box-shadow: 0 10px 25px rgba(123,94,167,0.4); }
+        .mod-login-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .mod-login-error {
+            background: rgba(231,76,60,0.1); border: 1px solid rgba(231,76,60,0.3);
+            color: #ff6868; border-radius: 10px; padding: 10px 14px;
+            font-size: 0.85rem; text-align: center; margin-top: 12px;
+            display: none;
+        }
+        .mod-login-back {
+            display: block; text-align: center; margin-top: 20px;
+            color: #555; font-size: 0.82rem; cursor: pointer;
+            transition: 0.2s; background: none; border: none; font-family: 'Nunito';
+            width: 100%;
+        }
+        .mod-login-back:hover { color: var(--text-main); }
+        .mod-login-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: rgba(167,139,250,0.08); border: 1px solid rgba(167,139,250,0.2);
+            border-radius: 20px; padding: 5px 14px; color: var(--accent);
+            font-size: 0.75rem; font-weight: 700; letter-spacing: 1px;
+            margin: 0 auto 24px; display: flex; justify-content: center;
+        }
+
         @media (max-width: 768px) {
             .navbar { padding: 0 14px; height: 60px; flex-wrap: nowrap; }
             .logo { font-size: 1rem; }
@@ -561,6 +631,35 @@
     </div>
 
     <div id="detailModal" class="modal"><div class="modal-content" id="modalData"></div></div>
+
+    <!-- ===== MOD LOGIN PAGE ===== -->
+    <div id="modLoginPage">
+        <div class="mod-login-box">
+            <div class="mod-login-moon">🌙</div>
+            <h2 class="mod-login-title">ВХОД ДЛЯ КОМАНДЫ</h2>
+            <p class="mod-login-sub">Страница входа для модераторов и администраторов Night GDPS</p>
+            <div class="mod-login-badge"><i class="fas fa-shield-alt"></i> STAFF ONLY</div>
+
+            <label class="mod-login-label">Email</label>
+            <input type="email" id="modLoginEmail" class="mod-login-input" placeholder="your@email.com" autocomplete="email">
+
+            <label class="mod-login-label">Пароль</label>
+            <div style="position:relative;">
+                <input type="password" id="modLoginPass" class="mod-login-input" placeholder="••••••••" autocomplete="current-password" style="padding-right:44px;" onkeydown="if(event.key==='Enter') doModLogin()">
+                <button onclick="toggleModPassVis()" style="position:absolute;right:12px;top:50%;transform:translateY(-60%);background:none;border:none;color:#555;cursor:pointer;font-size:1rem;padding:0;" id="modPassEyeBtn">
+                    <i class="fas fa-eye" id="modPassEyeIcon"></i>
+                </button>
+            </div>
+
+            <button class="mod-login-btn" id="modLoginBtn" onclick="doModLogin()">
+                <i class="fas fa-sign-in-alt"></i> ВОЙТИ
+            </button>
+            <div class="mod-login-error" id="modLoginError"></div>
+            <button class="mod-login-back" onclick="closeModLoginPage()">
+                <i class="fas fa-arrow-left"></i> Вернуться на главную
+            </button>
+        </div>
+    </div>
 
     <div id="maintenanceOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:9999; background:#04050d; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:20px;">
         <div style="font-size:4rem; margin-bottom:20px;">🌙</div>
@@ -1150,6 +1249,93 @@
             if (on && !isModerator) { overlay.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
             else { overlay.style.display = 'none'; document.body.style.overflow = ''; }
         });
+
+        // ===== MOD LOGIN PAGE =====
+        function openModLoginPage() {
+            document.getElementById('modLoginPage').style.display = 'flex';
+            document.getElementById('modLoginEmail').value = '';
+            document.getElementById('modLoginPass').value = '';
+            document.getElementById('modLoginError').style.display = 'none';
+            document.body.style.overflow = 'hidden';
+            setTimeout(() => document.getElementById('modLoginEmail').focus(), 200);
+        }
+
+        function closeModLoginPage() {
+            document.getElementById('modLoginPage').style.display = 'none';
+            document.body.style.overflow = '';
+            // Clear hash without reload
+            history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
+
+        function toggleModPassVis() {
+            const inp = document.getElementById('modLoginPass');
+            const icon = document.getElementById('modPassEyeIcon');
+            if (inp.type === 'password') {
+                inp.type = 'text';
+                icon.className = 'fas fa-eye-slash';
+            } else {
+                inp.type = 'password';
+                icon.className = 'fas fa-eye';
+            }
+        }
+
+        async function doModLogin() {
+            const email = document.getElementById('modLoginEmail').value.trim();
+            const pass  = document.getElementById('modLoginPass').value;
+            const errEl = document.getElementById('modLoginError');
+            const btn   = document.getElementById('modLoginBtn');
+
+            errEl.style.display = 'none';
+            if (!email || !pass) {
+                errEl.textContent = 'Введи email и пароль';
+                errEl.style.display = 'block';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Входим...';
+
+            try {
+                await auth.signInWithEmailAndPassword(email, pass);
+                // Auth state listener will handle the rest
+                document.getElementById('modLoginPage').style.display = 'none';
+                document.body.style.overflow = '';
+                history.replaceState(null, '', window.location.pathname + window.location.search);
+                showToast('✅ Добро пожаловать в команду!');
+            } catch(e) {
+                let msg = 'Неверный email или пароль';
+                if (e.code === 'auth/too-many-requests') msg = 'Слишком много попыток. Подожди немного.';
+                if (e.code === 'auth/user-disabled') msg = 'Аккаунт заблокирован.';
+                errEl.textContent = msg;
+                errEl.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> ВОЙТИ';
+            }
+        }
+
+        // ===== HASH ROUTING =====
+        function checkHash() {
+            if (window.location.hash === '#mod-login') {
+                // Only show if not already logged in
+                if (!isModerator) {
+                    openModLoginPage();
+                } else {
+                    // Already logged in — just go to list
+                    history.replaceState(null, '', window.location.pathname + window.location.search);
+                    showToast('Ты уже вошёл как ' + (currentUserRole === 'admin' ? 'администратор' : 'модератор'));
+                }
+            }
+        }
+
+        // Check on load and on hash change
+        window.addEventListener('hashchange', checkHash);
+        window.addEventListener('load', checkHash);
+        // Also check immediately (for when page loads with hash already set)
+        if (window.location.hash === '#mod-login') {
+            // Wait a tick for Firebase auth to initialize
+            setTimeout(checkHash, 300);
+        }
     </script>
 </body>
 </html>
