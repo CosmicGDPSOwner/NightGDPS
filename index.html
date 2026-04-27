@@ -202,6 +202,7 @@
         .btn-up { background-color: #2ecc71 !important; }
         .btn-down { background-color: #3498db !important; }
         .btn-del { background-color: #e74c3c !important; }
+        .btn-edit { background-color: #f39c12 !important; }
         .ctrl-btn:hover { transform: scale(1.1); filter: brightness(1.2); }
 
         #admin-trigger { position: fixed; bottom: 20px; left: 20px; opacity: 0.2; cursor: pointer; font-size: 1.5rem; background: none; border: none; color: white; z-index: 1000; transition: 0.3s; display: none; }
@@ -211,6 +212,45 @@
         .admin-form h2 { margin-top: 0; font-size: 1.5rem; color: white; text-align: center; font-family: Orbitron; background: var(--main-grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .admin-form input, .admin-form select { width: 100%; padding: 14px; margin: 10px 0; background: #0f1225; border: 1px solid rgba(167,139,250,0.2); color: white; border-radius: 12px; font-size: 0.95rem; outline: none; transition: 0.3s; font-family: 'Nunito'; }
         .admin-form input:focus, .admin-form select:focus { border-color: var(--accent); box-shadow: 0 0 10px rgba(167,139,250,0.15); }
+
+        /* ===== EDIT DEMON MODAL ===== */
+        .edit-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); z-index: 4000; backdrop-filter: blur(20px); overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .edit-modal-content { background: rgba(10,12,28,0.99); margin: 20px auto 50px; padding: 28px 22px; max-width: 500px; width: calc(100% - 28px); border-radius: 20px; border: 1px solid rgba(167,139,250,0.3); position: relative; box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 40px rgba(167,139,250,0.1); }
+        .edit-modal-content h2 { font-family: 'Orbitron'; font-size: 1.3rem; margin: 0 40px 20px 0; background: var(--main-grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .edit-field-label { font-size: 0.8rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin: 14px 0 4px; display: block; }
+        .edit-field-input { width: 100%; padding: 13px 15px; background: #0a0d1e; border: 1px solid rgba(167,139,250,0.18); color: white; border-radius: 12px; font-size: 0.92rem; outline: none; transition: 0.3s; font-family: 'Nunito'; }
+        .edit-field-input:focus { border-color: var(--accent); box-shadow: 0 0 10px rgba(167,139,250,0.15); }
+        .edit-img-preview { width: 100%; height: 140px; object-fit: cover; border-radius: 10px; margin-top: 10px; border: 1px solid rgba(167,139,250,0.15); display: block; }
+        .edit-btn-row { display: flex; gap: 10px; margin-top: 20px; }
+        .edit-btn-save { flex: 1; padding: 14px; background: linear-gradient(135deg, #7b5ea7, #3d85c8); color: #fff; border: none; border-radius: 12px; font-weight: 900; font-size: 0.9rem; text-transform: uppercase; cursor: pointer; font-family: 'Nunito'; transition: 0.3s; }
+        .edit-btn-save:hover { filter: brightness(1.15); transform: translateY(-2px); }
+        .edit-btn-cancel { flex: 1; padding: 14px; background: transparent; color: #888; border: 1px solid #333; border-radius: 12px; font-weight: 700; font-size: 0.9rem; text-transform: uppercase; cursor: pointer; font-family: 'Nunito'; transition: 0.3s; }
+        .edit-btn-cancel:hover { border-color: #555; color: #aaa; }
+
+        /* ===== MODERATORS PANEL ===== */
+        .mod-panel { display: none; background: #090b18; padding: 25px 18px; border-radius: 20px; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 3500; width: calc(100% - 28px); max-width: 480px; max-height: calc(100vh - 40px); overflow-y: auto; border: 1px solid rgba(167,139,250,0.4); box-shadow: 0 0 50px rgba(0,0,0,0.8), 0 0 30px rgba(167,139,250,0.1); }
+        .mod-panel h2 { margin-top: 0; font-size: 1.4rem; text-align: center; font-family: 'Orbitron'; background: var(--main-grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .mod-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); padding: 4px 12px; border-radius: 20px; color: var(--accent); font-size: 0.75rem; font-weight: 700; letter-spacing: 1px; }
+        .mod-badge.admin-badge { background: rgba(244,114,182,0.1); border-color: rgba(244,114,182,0.3); color: var(--accent3); }
+        .mod-list-item { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 12px 16px; margin-bottom: 10px; gap: 10px; }
+        .mod-item-info { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+        .mod-item-email { font-size: 0.85rem; color: #c4b5fd; font-weight: 700; word-break: break-all; }
+        .mod-item-name { font-size: 0.78rem; color: #666; }
+        .mod-item-actions { display: flex; gap: 6px; flex-shrink: 0; }
+        .mod-del-btn { width: 30px; height: 30px; border-radius: 8px; background: rgba(231,76,60,0.15); border: 1px solid rgba(231,76,60,0.3); color: #e74c3c; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .mod-del-btn:hover { background: rgba(231,76,60,0.3); }
+        .mod-add-form { background: rgba(167,139,250,0.05); border: 1px solid rgba(167,139,250,0.15); border-radius: 14px; padding: 16px; margin-top: 16px; }
+        .mod-add-form h3 { margin: 0 0 12px; font-size: 1rem; color: white; font-family: 'Orbitron'; }
+        .mod-add-form input, .mod-add-form select { width: 100%; padding: 12px 14px; margin: 6px 0; background: #0a0d1e; border: 1px solid rgba(167,139,250,0.18); color: white; border-radius: 10px; font-size: 0.9rem; outline: none; font-family: 'Nunito'; transition: 0.3s; }
+        .mod-add-form input:focus, .mod-add-form select:focus { border-color: var(--accent); }
+        .mod-add-btn { width: 100%; padding: 13px; background: linear-gradient(135deg, #7b5ea7, #3d85c8); color: #fff; border: none; border-radius: 10px; font-weight: 900; font-size: 0.88rem; text-transform: uppercase; cursor: pointer; font-family: 'Nunito'; margin-top: 8px; transition: 0.3s; }
+        .mod-add-btn:hover { filter: brightness(1.1); }
+        .mod-role-badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; font-weight: 700; }
+        .mod-role-mod { background: rgba(96,165,250,0.15); color: #60a5fa; border: 1px solid rgba(96,165,250,0.3); }
+        .mod-role-admin { background: rgba(244,114,182,0.15); color: #f472b6; border: 1px solid rgba(244,114,182,0.3); }
+
+        /* Moderator indicator in navbar */
+        .mod-indicator { display: none; align-items: center; gap: 6px; background: rgba(96,165,250,0.1); border: 1px solid rgba(96,165,250,0.25); padding: 5px 12px; border-radius: 20px; color: #60a5fa; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; }
 
         .drag-indicator { position: fixed; top: 100px; right: 20px; background: linear-gradient(135deg, #7b5ea7, #3d85c8); color: #fff; padding: 10px 20px; border-radius: 30px; font-weight: 900; z-index: 1000; box-shadow: 0 0 20px rgba(167,139,250,0.5); animation: pulse 1.5s infinite; display: flex; align-items: center; gap: 8px; font-family: 'Nunito'; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
@@ -310,9 +350,9 @@
                 <i class="fas fa-download"></i> <span id="navDownloadText">Скачать</span>
             </button>
             <div class="nav-socials">
+                <div class="mod-indicator" id="modIndicator"><i class="fas fa-shield-alt"></i> <span id="modIndicatorText">Модератор</span></div>
                 <a href="https://t.me/nightgdps2" target="_blank" class="tg-icon" title="Telegram"><i class="fab fa-telegram"></i></a>
                 <a href="https://www.youtube.com/@lichigmdj98" target="_blank" class="yt-icon" title="YouTube"><i class="fab fa-youtube"></i></a>
-                <!-- Discord -->
                 <a href="https://discord.gg/cBv5ueunB" target="_blank" class="dc-icon" title="Discord"><i class="fab fa-discord"></i></a>
                 <button onclick="toggleLang()" id="langBtn" style="background:none; border:1px solid rgba(167,139,250,0.4); color:var(--accent); padding:5px 12px; cursor:pointer; border-radius:8px; font-weight:700; margin-left:10px; font-family:'Nunito';">RU</button>
             </div>
@@ -338,7 +378,6 @@
         <div class="m-socials">
             <a href="https://t.me/nightgdps2" target="_blank" style="color:#00a2ed;"><i class="fab fa-telegram"></i></a>
             <a href="https://www.youtube.com/@lichigmdj98" target="_blank" style="color:#ff0000;"><i class="fab fa-youtube"></i></a>
-            <!-- Discord mobile -->
             <a href="https://discord.gg/cBv5ueunB" target="_blank" style="color:#5865F2;"><i class="fab fa-discord"></i></a>
         </div>
         <button class="m-lang" onclick="toggleLang()">RU / EN</button>
@@ -418,6 +457,7 @@
 
     <button id="admin-trigger" onclick="openAdmin()"><i class="fas fa-cog"></i></button>
 
+    <!-- ===== ADMIN PANEL ===== -->
     <div id="adminPanel" class="admin-form">
         <button onclick="closeAdmin()" style="position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:8px;background:rgba(255,70,70,0.13);border:1px solid rgba(255,70,70,0.3);color:#ff6868;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">
             <i class="fas fa-times"></i>
@@ -435,6 +475,8 @@
                 <option value="add_creator">Добавить Креатора</option>
                 <option value="add_victor">Добавить Рекорд</option>
                 <option value="delete_mode">Удаление / Движение</option>
+                <option value="edit_demon_mode">✏️ Режим редактирования</option>
+                <option value="manage_mods">👥 Управление модераторами</option>
                 <option value="delete_all_demons">🗑️ Удалить ВСЕХ демонов</option>
                 <option value="maintenance">🔧 Техперерыв вкл/выкл</option>
                 <option value="drag_drop">🖱️ Drag & Drop режим</option>
@@ -459,6 +501,63 @@
             <button class="btn-more" style="background:linear-gradient(135deg,#7b5ea7,#3d85c8);color:#fff;margin-top:15px;border:none;" onclick="processAdmin()">ВЫПОЛНИТЬ</button>
             <button class="btn-more" style="background:transparent;border:1px solid #e74c3c;color:#e74c3c;margin-top:10px;" onclick="adminLogout()">ВЫЙТИ ИЗ АККАУНТА</button>
         </div>
+    </div>
+
+    <!-- ===== EDIT DEMON MODAL ===== -->
+    <div id="editDemonModal" class="edit-modal">
+        <div class="edit-modal-content">
+            <button class="modal-close-pin" onclick="closeEditModal()"><i class="fas fa-times"></i></button>
+            <h2>✏️ РЕДАКТИРОВАТЬ ДЕМОНА</h2>
+            <input type="hidden" id="editDemonKey">
+
+            <label class="edit-field-label">Название уровня</label>
+            <input type="text" id="editName" class="edit-field-input" placeholder="Название уровня">
+
+            <label class="edit-field-label">Автор</label>
+            <input type="text" id="editAuthor" class="edit-field-input" placeholder="Автор">
+
+            <label class="edit-field-label">Верифер</label>
+            <input type="text" id="editVerifier" class="edit-field-input" placeholder="Верифер">
+
+            <label class="edit-field-label">ID Уровня</label>
+            <input type="text" id="editLevelID" class="edit-field-input" placeholder="ID уровня">
+
+            <label class="edit-field-label">Тег (напр. Top 1)</label>
+            <input type="text" id="editTag" class="edit-field-input" placeholder="Тег">
+
+            <label class="edit-field-label">Ссылка на картинку</label>
+            <input type="text" id="editImg" class="edit-field-input" placeholder="https://..." oninput="updateImgPreview()">
+            <img id="editImgPreview" class="edit-img-preview" src="" alt="Preview" onerror="this.style.display='none'" style="display:none;">
+
+            <label class="edit-field-label">Ссылка на YouTube</label>
+            <input type="text" id="editVid" class="edit-field-input" placeholder="https://youtube.com/...">
+
+            <div class="edit-btn-row">
+                <button class="edit-btn-cancel" onclick="closeEditModal()">Отмена</button>
+                <button class="edit-btn-save" onclick="saveDemonEdit()"><i class="fas fa-save"></i> Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODERATORS PANEL ===== -->
+    <div id="modPanel" class="mod-panel">
+        <button onclick="closeModPanel()" style="position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:8px;background:rgba(255,70,70,0.13);border:1px solid rgba(255,70,70,0.3);color:#ff6868;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;"><i class="fas fa-times"></i></button>
+        <h2>👥 МОДЕРАТОРЫ</h2>
+
+        <div id="modListContainer" style="margin-bottom:8px;"></div>
+
+        <div class="mod-add-form">
+            <h3>➕ Добавить модератора</h3>
+            <input type="email" id="newModEmail" placeholder="Email аккаунта Firebase">
+            <input type="password" id="newModPass" placeholder="Пароль для нового аккаунта">
+            <input type="text" id="newModNick" placeholder="Никнейм (для отображения)">
+            <select id="newModRole">
+                <option value="moderator">Модератор (редактирование, рекорды)</option>
+                <option value="admin">Администратор (полный доступ)</option>
+            </select>
+            <button class="mod-add-btn" onclick="addModerator()"><i class="fas fa-user-plus"></i> Создать аккаунт модератора</button>
+        </div>
+        <p style="color:#555;font-size:0.75rem;text-align:center;margin-top:12px;line-height:1.5;">Модераторы могут редактировать карточки демонов и добавлять рекорды.<br>Администраторы имеют полный доступ.</p>
     </div>
 
     <div id="detailModal" class="modal"><div class="modal-content" id="modalData"></div></div>
@@ -486,12 +585,16 @@
 
         let currentLang = 'RU';
         let isAdmin = false;
+        let isModerator = false;
+        let currentUserRole = null; // 'admin' | 'moderator' | null
         let isDeleteMode = false;
+        let isEditMode = false;
         let isDragDropMode = false;
         let searchMode = 'main';
         let currentTab = 'demons';
         let demons = [];
         let creators = [];
+        let moderators = [];
         let draggedItem = null;
         let draggedIndex = -1;
 
@@ -499,32 +602,242 @@
             document.getElementById('admin-trigger').style.display = 'block';
         }
 
+        // ===== AUTH STATE =====
         auth.onAuthStateChanged(user => {
-            isAdmin = !!user;
-            const trigger = document.getElementById('admin-trigger');
-            if (isAdmin) { localStorage.setItem('mxAdmin', '1'); trigger.style.display = 'block'; }
-            else { localStorage.removeItem('mxAdmin'); trigger.style.display = 'none'; isDeleteMode = false; isDragDropMode = false; render(); }
+            if (user) {
+                // Check role in DB
+                db.ref('moderators/' + user.uid).once('value', snap => {
+                    const modData = snap.val();
+                    if (modData) {
+                        currentUserRole = modData.role || 'moderator';
+                        isModerator = true;
+                        isAdmin = (currentUserRole === 'admin');
+                    } else {
+                        // Legacy: if user exists but not in moderators node → treat as admin
+                        currentUserRole = 'admin';
+                        isAdmin = true;
+                        isModerator = true;
+                    }
+                    updateUIForRole();
+                });
+            } else {
+                isAdmin = false;
+                isModerator = false;
+                currentUserRole = null;
+                isDeleteMode = false;
+                isEditMode = false;
+                isDragDropMode = false;
+                updateUIForRole();
+                render();
+            }
         });
 
+        function updateUIForRole() {
+            const trigger = document.getElementById('admin-trigger');
+            const modInd = document.getElementById('modIndicator');
+            const modText = document.getElementById('modIndicatorText');
+
+            if (isModerator) {
+                localStorage.setItem('mxAdmin', '1');
+                trigger.style.display = isAdmin ? 'block' : 'none'; // only full admins see the gear
+                modInd.style.display = 'flex';
+                if (currentUserRole === 'admin') {
+                    modText.textContent = 'Администратор';
+                    modInd.style.color = '#f472b6';
+                    modInd.style.borderColor = 'rgba(244,114,182,0.3)';
+                    modInd.style.background = 'rgba(244,114,182,0.1)';
+                } else {
+                    modText.textContent = 'Модератор';
+                    modInd.style.color = '#60a5fa';
+                    modInd.style.borderColor = 'rgba(96,165,250,0.25)';
+                    modInd.style.background = 'rgba(96,165,250,0.1)';
+                }
+            } else {
+                localStorage.removeItem('mxAdmin');
+                trigger.style.display = 'none';
+                modInd.style.display = 'none';
+            }
+            render();
+        }
+
+        // ===== MODERATOR PANEL (for admins only) =====
+        db.ref('moderators').on('value', s => {
+            const val = s.val();
+            moderators = val ? Object.entries(val).map(([k, v]) => ({ uid: k, ...v })) : [];
+            renderModList();
+        });
+
+        function renderModList() {
+            const container = document.getElementById('modListContainer');
+            if (!container) return;
+            if (moderators.length === 0) {
+                container.innerHTML = '<p style="color:#555;text-align:center;font-size:0.85rem;">Модераторов пока нет</p>';
+                return;
+            }
+            container.innerHTML = moderators.map(m => `
+                <div class="mod-list-item">
+                    <div class="mod-item-info">
+                        <div class="mod-item-email">${m.email || '—'}</div>
+                        <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+                            <span class="mod-item-name">${m.nick || 'Без ника'}</span>
+                            <span class="mod-role-badge ${m.role === 'admin' ? 'mod-role-admin' : 'mod-role-mod'}">
+                                ${m.role === 'admin' ? '⭐ Админ' : '🛡️ Мод'}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="mod-item-actions">
+                        <button class="mod-del-btn" onclick="removeModerator('${m.uid}', '${m.email || ''}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openModPanel() {
+            if (!isAdmin) return;
+            document.getElementById('modPanel').style.display = 'block';
+            renderModList();
+        }
+        function closeModPanel() {
+            document.getElementById('modPanel').style.display = 'none';
+        }
+
+        async function addModerator() {
+            if (!isAdmin) return;
+            const email = document.getElementById('newModEmail').value.trim();
+            const pass = document.getElementById('newModPass').value;
+            const nick = document.getElementById('newModNick').value.trim();
+            const role = document.getElementById('newModRole').value;
+
+            if (!email || !pass || pass.length < 6) {
+                showToast('Заполни email и пароль (мин. 6 символов)');
+                return;
+            }
+
+            // We create user via Firebase Auth REST API (secondary app trick)
+            // to avoid signing out current admin
+            try {
+                const secondaryApp = firebase.initializeApp(firebaseConfig, 'secondary_' + Date.now());
+                const secondaryAuth = secondaryApp.auth();
+                const cred = await secondaryAuth.createUserWithEmailAndPassword(email, pass);
+                const uid = cred.user.uid;
+                await secondaryAuth.signOut();
+                secondaryApp.delete();
+
+                await db.ref('moderators/' + uid).set({ email, nick, role, createdAt: Date.now() });
+                showToast('Модератор успешно добавлен!');
+                document.getElementById('newModEmail').value = '';
+                document.getElementById('newModPass').value = '';
+                document.getElementById('newModNick').value = '';
+            } catch (e) {
+                console.error(e);
+                showToast('Ошибка: ' + (e.message || 'неизвестная ошибка'));
+            }
+        }
+
+        async function removeModerator(uid, email) {
+            if (!isAdmin) return;
+            if (!confirm(`Удалить модератора ${email}?\n\nАккаунт Firebase останется, но права будут убраны.`)) return;
+            await db.ref('moderators/' + uid).remove();
+            showToast('Права модератора убраны');
+        }
+
+        // ===== ADMIN AUTH =====
         function adminLogin() {
             const email = document.getElementById('adminEmail').value.trim();
             const pass = document.getElementById('adminPass').value;
             const errEl = document.getElementById('loginError');
             errEl.style.display = 'none';
             auth.signInWithEmailAndPassword(email, pass)
-                .then(() => { document.getElementById('loginBlock').style.display = 'none'; document.getElementById('adminControls').style.display = 'block'; toggleAdmFields(); })
+                .then(() => {
+                    document.getElementById('loginBlock').style.display = 'none';
+                    document.getElementById('adminControls').style.display = 'block';
+                    toggleAdmFields();
+                })
                 .catch(() => { errEl.style.display = 'block'; });
         }
         function adminLogout() { auth.signOut(); closeAdmin(); }
 
         function openAdmin() {
-            document.getElementById('loginBlock').style.display = isAdmin ? 'none' : 'block';
-            document.getElementById('adminControls').style.display = isAdmin ? 'block' : 'none';
+            document.getElementById('loginBlock').style.display = isModerator ? 'none' : 'block';
+            document.getElementById('adminControls').style.display = isModerator ? 'block' : 'none';
             document.getElementById('loginError').style.display = 'none';
             document.getElementById('adminPanel').style.display = 'block';
+            // Hide admin-only options for moderators
+            const sel = document.getElementById('admAction');
+            if (sel) {
+                Array.from(sel.options).forEach(opt => {
+                    if (['delete_all_demons','manage_mods','maintenance','drag_drop','delete_mode'].includes(opt.value)) {
+                        opt.disabled = !isAdmin;
+                        opt.style.color = isAdmin ? '' : '#555';
+                    }
+                });
+            }
             toggleAdmFields();
         }
 
+        // ===== EDIT DEMON =====
+        function openEditModal(key) {
+            if (!isModerator) return;
+            const d = demons.find(x => x.key === key);
+            if (!d) return;
+            document.getElementById('editDemonKey').value = key;
+            document.getElementById('editName').value = d.name || '';
+            document.getElementById('editAuthor').value = d.author || '';
+            document.getElementById('editVerifier').value = d.verifier || '';
+            document.getElementById('editLevelID').value = d.levelID || '';
+            document.getElementById('editTag').value = d.tag || '';
+            document.getElementById('editImg').value = d.img || '';
+            document.getElementById('editVid').value = d.vid ? `https://youtube.com/watch?v=${d.vid}` : '';
+            updateImgPreview();
+            document.getElementById('editDemonModal').style.display = 'block';
+            document.getElementById('editDemonModal').scrollTop = 0;
+        }
+
+        function closeEditModal() {
+            document.getElementById('editDemonModal').style.display = 'none';
+        }
+
+        function updateImgPreview() {
+            const url = document.getElementById('editImg').value.trim();
+            const preview = document.getElementById('editImgPreview');
+            if (url) {
+                preview.src = url;
+                preview.style.display = 'block';
+                preview.onerror = () => { preview.style.display = 'none'; };
+            } else {
+                preview.style.display = 'none';
+            }
+        }
+
+        function saveDemonEdit() {
+            const key = document.getElementById('editDemonKey').value;
+            const name = document.getElementById('editName').value.trim();
+            const author = document.getElementById('editAuthor').value.trim();
+            const verifier = document.getElementById('editVerifier').value.trim();
+            const levelID = document.getElementById('editLevelID').value.trim();
+            const tag = document.getElementById('editTag').value.trim();
+            const img = document.getElementById('editImg').value.trim();
+            let vidRaw = document.getElementById('editVid').value.trim();
+
+            if (!name) { showToast('Введи название уровня'); return; }
+
+            // Parse YouTube ID
+            let vid = vidRaw;
+            if (vidRaw.includes('v=')) vid = vidRaw.split('v=')[1].split('&')[0];
+            else if (vidRaw.includes('youtu.be/')) vid = vidRaw.split('youtu.be/')[1].split('?')[0];
+
+            const updates = { name, author, verifier, levelID, tag, img, vid };
+            db.ref('demons/' + key).update(updates)
+                .then(() => {
+                    showToast('Демон обновлён!');
+                    closeEditModal();
+                })
+                .catch(e => { showToast('Ошибка: ' + e.message); });
+        }
+
+        // ===== NAVIGATION =====
         function toggleBurger() {
             const menu = document.getElementById('mobileMenu');
             const btn  = document.getElementById('burgerBtn');
@@ -560,6 +873,7 @@
             }
         }
 
+        // ===== FIREBASE LISTENERS =====
         db.ref('demons').on('value', s => {
             const val = s.val();
             demons = val ? Object.entries(val).map(([k, d]) => ({ key: k, ...d })).sort((a,b)=>(a.order||0)-(b.order||0)) : [];
@@ -573,6 +887,7 @@
             render();
         });
 
+        // ===== SEARCH =====
         function setSearchMode(m) {
             searchMode = m;
             document.getElementById('searchModeMain').classList.toggle('active', m === 'main');
@@ -580,6 +895,7 @@
             render();
         }
 
+        // ===== DRAG & DROP =====
         function handleDragStart(index, event) {
             if (!isDragDropMode) { event.preventDefault(); return; }
             draggedIndex = index; draggedItem = demons[index];
@@ -614,7 +930,7 @@
         function showToast(message) {
             const toast = document.getElementById('copyToast');
             toast.innerText = message; toast.className = 'show';
-            setTimeout(() => toast.className = '', 2000);
+            setTimeout(() => toast.className = '', 2500);
         }
 
         function toggleDragDropMode() {
@@ -625,6 +941,7 @@
             showToast(isDragDropMode ? 'Drag & Drop режим включён' : 'Drag & Drop режим выключён');
         }
 
+        // ===== RENDER =====
         function render() {
             const container = document.getElementById('mainContainer');
             const isDem = (currentTab === 'demons');
@@ -633,6 +950,9 @@
             container.innerHTML = '';
             document.getElementById('txtHero').innerText = isDem ? (currentLang==='EN'?'DEMON LIST':'СПИСОК ДЕМОНОВ') : (currentLang==='EN'?'CREATOR TOP':'ТОП КРЕАТОРОВ');
             topBanner.style.display = isDem ? 'block' : 'none';
+
+            const canEdit = isModerator; // moderators and admins can edit
+            const canDelete = isAdmin;   // only admins can delete
 
             if(isDem) {
                 const filtered = demons.filter(d => {
@@ -651,12 +971,24 @@
                         card.ondrop = (e) => handleDrop(i, e);
                         card.ondragend = handleDragEnd;
                     }
-                    card.innerHTML = `
-                        ${isDeleteMode ? `<div class="admin-controls">
+
+                    // Admin controls: show edit btn for mods, plus delete/move for admins
+                    let adminHtml = '';
+                    if (isDeleteMode && canDelete) {
+                        adminHtml = `<div class="admin-controls">
                             <button class="ctrl-btn btn-up" onclick="moveItem(${i}, -1)"><i class="fas fa-arrow-up"></i></button>
                             <button class="ctrl-btn btn-down" onclick="moveItem(${i}, 1)"><i class="fas fa-arrow-down"></i></button>
+                            <button class="ctrl-btn btn-edit" onclick="openEditModal('${d.key}')"><i class="fas fa-pen"></i></button>
                             <button class="ctrl-btn btn-del" onclick="deleteItem('${d.key}','demons')"><i class="fas fa-trash"></i></button>
-                        </div>` : ''}
+                        </div>`;
+                    } else if (isEditMode && canEdit) {
+                        adminHtml = `<div class="admin-controls">
+                            <button class="ctrl-btn btn-edit" onclick="openEditModal('${d.key}')"><i class="fas fa-pen"></i></button>
+                        </div>`;
+                    }
+
+                    card.innerHTML = `
+                        ${adminHtml}
                         ${isDragDropMode && isAdmin ? `<div style="position:absolute;top:10px;left:10px;background:rgba(167,139,250,0.2);padding:4px 8px;border-radius:5px;font-size:0.7rem;color:var(--accent);z-index:50;"><i class="fas fa-grip-vertical"></i> Drag me</div>` : ''}
                         ${d.tag ? `<div class="demon-tag">${d.tag}</div>` : ''}
                         <img src="${d.img}" class="card-img" onerror="this.src='https://via.placeholder.com/600x300/0c1026/a78bfa?text=Night+GDPS'">
@@ -672,7 +1004,7 @@
                 const filtered = creators.filter(c => c.name.toLowerCase().includes(query));
                 filtered.forEach((c, i) => {
                     container.innerHTML += `<div class="card">
-                        ${isDeleteMode ? `<div class="admin-controls">
+                        ${isDeleteMode && canDelete ? `<div class="admin-controls">
                             <button class="ctrl-btn btn-del" onclick="deleteItem('${c.key}','creators')"><i class="fas fa-trash"></i></button>
                         </div>` : ''}
                         <div class="card-body" style="display:flex;justify-content:space-between;align-items:center;padding:35px 40px;">
@@ -684,20 +1016,49 @@
             }
         }
 
+        // ===== PROCESS ADMIN ACTIONS =====
         function processAdmin() {
-            if (!isAdmin) { alert('Нет доступа!'); return; }
             const act = document.getElementById('admAction').value;
+
+            // Moderator-allowed actions
+            if (act === 'add_victor') {
+                if (!isModerator) { alert('Нет доступа!'); return; }
+                const dKey = document.getElementById('selectDemon').value;
+                db.ref(`demons/${dKey}/victors`).push({
+                    name: document.getElementById('vicName').value,
+                    perc: document.getElementById('vicPerc').value,
+                    att: document.getElementById('vicAtt').value
+                });
+                closeAdmin();
+                return;
+            }
+            if (act === 'edit_demon_mode') {
+                if (!isModerator) { alert('Нет доступа!'); return; }
+                isEditMode = !isEditMode;
+                if (isEditMode) isDeleteMode = false;
+                render();
+                showToast(isEditMode ? '✏️ Режим редактирования включён' : '✏️ Режим редактирования выключён');
+                closeAdmin();
+                return;
+            }
+
+            // Admin-only actions
+            if (!isAdmin) { alert('Только администратор!'); return; }
+
             if(act === 'add_demon') {
                 let r = document.getElementById('itemVid').value;
                 let v = r.includes('v=') ? r.split('v=')[1].split('&')[0] : r.includes('youtu.be/') ? r.split('youtu.be/')[1].split('?')[0] : r;
                 db.ref('demons').push({ name: document.getElementById('itemName').value, author: document.getElementById('itemVal').value, levelID: document.getElementById('itemID').value, tag: document.getElementById('itemTag').value, verifier: document.getElementById('itemVerifier').value, img: document.getElementById('itemImgURL').value, vid: v, order: demons.length });
             } else if(act === 'add_creator') {
                 db.ref('creators').push({ name: document.getElementById('itemName').value, points: parseInt(document.getElementById('itemVal').value) || 0 });
-            } else if(act === 'add_victor') {
-                const dKey = document.getElementById('selectDemon').value;
-                db.ref(`demons/${dKey}/victors`).push({ name: document.getElementById('vicName').value, perc: document.getElementById('vicPerc').value, att: document.getElementById('vicAtt').value });
             } else if(act === 'delete_mode') {
-                isDeleteMode = !isDeleteMode; render();
+                isDeleteMode = !isDeleteMode;
+                if (isDeleteMode) isEditMode = false;
+                render();
+            } else if(act === 'manage_mods') {
+                closeAdmin();
+                openModPanel();
+                return;
             } else if(act === 'delete_all_demons') {
                 if(confirm('⚠️ Удалить ВСЕХ демонов из списка? Это действие необратимо!')) { db.ref('demons').remove(); }
             } else if(act === 'maintenance') {
@@ -712,6 +1073,7 @@
             closeAdmin();
         }
 
+        // ===== LANGUAGE =====
         function toggleLang() {
             currentLang = currentLang === 'RU' ? 'EN' : 'RU';
             document.getElementById('langBtn').innerText = currentLang;
@@ -741,12 +1103,13 @@
             render();
         }
 
+        // ===== DETAIL MODAL =====
         function showInfoByKey(key) {
             const d = demons.find(x => x.key === key);
             const vics = d.victors ? Object.entries(d.victors).map(([vk, v]) => `
                 <div class="record-item">
                     <span><b style="color:#fff;">${v.name}</b> — <span style="color:var(--accent); font-weight:700;">${v.perc || '100%'}</span> <span style="color:#888;">(${v.att || '0'} att)</span></span>
-                    ${isDeleteMode ? `<i class="fas fa-times" style="color:#ff4d4d; cursor:pointer; flex-shrink:0;" onclick="deleteVictor('${d.key}', '${vk}')"></i>` : ''}
+                    ${isDeleteMode && isAdmin ? `<i class="fas fa-times" style="color:#ff4d4d; cursor:pointer; flex-shrink:0;" onclick="deleteVictor('${d.key}', '${vk}')"></i>` : ''}
                 </div>`).join('') : `<p style='color:#555;'>${currentLang==='EN'?'No records yet':'Рекордов пока нет'}</p>`;
             document.getElementById('modalData').innerHTML = `
                 <button class="modal-close-pin" onclick="document.getElementById('detailModal').style.display='none'">
@@ -754,6 +1117,7 @@
                 </button>
                 <h2 style="font-family:Orbitron; font-size:clamp(1.1rem,4vw,1.7rem); margin:0 44px 4px 0; color:#fff; background:var(--main-grad); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">${d.name}</h2>
                 <p style="color:#888; font-size:0.9rem; margin:0 0 14px;">by <span style="color:var(--accent);">${d.author}</span> ${d.verifier ? '| Verified by ' + d.verifier : ''}</p>
+                ${isModerator ? `<button onclick="document.getElementById('detailModal').style.display='none'; openEditModal('${d.key}')" style="margin-bottom:14px; padding:8px 18px; background:rgba(243,156,18,0.12); border:1px solid rgba(243,156,18,0.3); color:#f39c12; border-radius:10px; cursor:pointer; font-size:0.82rem; font-weight:700; font-family:'Nunito'; text-transform:uppercase; transition:0.2s;"><i class="fas fa-pen"></i> Редактировать</button>` : ''}
                 <iframe style="width:100%; aspect-ratio:16/9; border-radius:14px; margin:0 0 18px; border:1px solid rgba(167,139,250,0.2);" src="https://www.youtube.com/embed/${d.vid}" frameborder="0" allowfullscreen></iframe>
                 <h3 style="margin-bottom:12px; font-size:1rem; color:#fff; font-family:Orbitron;">Victors & Records:</h3>
                 <div style="max-height:220px; overflow-y:auto; padding-right:6px;">${vics}</div>
@@ -762,6 +1126,7 @@
             document.getElementById('detailModal').scrollTop = 0;
         }
 
+        // ===== UTILS =====
         function deleteVictor(dk, vk) {
             if(confirm(currentLang==='EN'?"Delete record?":"Удалить рекорд?")) {
                 db.ref(`demons/${dk}/victors/${vk}`).remove().then(() => { document.getElementById('detailModal').style.display='none'; });
@@ -769,7 +1134,12 @@
         }
         function copyID(id) { navigator.clipboard.writeText(id); const t = document.getElementById("copyToast"); t.className = "show"; setTimeout(() => t.className = "", 3000); }
         function moveItem(index, dir) { let target = index + dir; if (target < 0 || target >= demons.length) return; const updates = {}; updates[`/demons/${demons[index].key}/order`] = target; updates[`/demons/${demons[target].key}/order`] = index; db.ref().update(updates); }
-        function toggleAdmFields() { const a = document.getElementById('admAction').value; document.getElementById('fields_main').style.display = (a === 'add_demon' || a === 'add_creator') ? 'block' : 'none'; document.getElementById('fields_demon').style.display = a === 'add_demon' ? 'block' : 'none'; document.getElementById('fields_victor').style.display = a === 'add_victor' ? 'block' : 'none'; }
+        function toggleAdmFields() {
+            const a = document.getElementById('admAction').value;
+            document.getElementById('fields_main').style.display = (a === 'add_demon' || a === 'add_creator') ? 'block' : 'none';
+            document.getElementById('fields_demon').style.display = a === 'add_demon' ? 'block' : 'none';
+            document.getElementById('fields_victor').style.display = a === 'add_victor' ? 'block' : 'none';
+        }
         function closeAdmin() { document.getElementById('adminPanel').style.display='none'; }
         function switchTab(t) { currentTab = t; render(); }
         function deleteItem(k, p) { if(confirm("Delete item?")) db.ref(p+'/'+k).remove(); }
@@ -777,7 +1147,7 @@
         db.ref('maintenance').on('value', s => {
             const on = s.val() === true;
             const overlay = document.getElementById('maintenanceOverlay');
-            if (on && !isAdmin) { overlay.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+            if (on && !isModerator) { overlay.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
             else { overlay.style.display = 'none'; document.body.style.overflow = ''; }
         });
     </script>
