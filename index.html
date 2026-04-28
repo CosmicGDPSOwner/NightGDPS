@@ -702,62 +702,69 @@
         }
 
         // ===== AUTH STATE =====
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                // Check role in DB
-                db.ref('moderators/' + user.uid).once('value', snap => {
-                    const modData = snap.val();
-                    if (modData) {
-                        currentUserRole = modData.role || 'moderator';
-                        isModerator = true;
-                        isAdmin = (currentUserRole === 'admin');
-                    } else {
-                        // Legacy: if user exists but not in moderators node → treat as admin
-                        currentUserRole = 'admin';
-                        isAdmin = true;
-                        isModerator = true;
-                    }
-                    updateUIForRole();
-                });
+       // Исправленный слушатель авторизации
+auth.onAuthStateChanged(user => {
+    if (user) {
+        db.ref('moderators/' + user.uid).once('value', s => {
+            const data = s.val();
+            if (data) {
+                // Если пользователь найден в базе
+                isModerator = true;
+                isAdmin = data.role === 'admin';
+                currentUserRole = data.role;
             } else {
-                isAdmin = false;
+                // БАГ ИСПРАВЛЕН: Если вошел, но в базе модераторов его НЕТ
                 isModerator = false;
-                currentUserRole = null;
-                isDeleteMode = false;
-                isEditMode = false;
-                isDragDropMode = false;
-                updateUIForRole();
-                render();
+                isAdmin = false;
+                currentUserRole = 'user';
+                // Опционально: можно сразу разлогинить такого "самозванца"
+                // auth.signOut(); 
             }
+            updateUIForRole();
+            render();
         });
+    } else {
+        // Если вышел из аккаунта
+        isModerator = false;
+        isAdmin = false;
+        currentUserRole = 'user';
+        isEditMode = false;
+        isDragDropMode = false;
+        updateUIForRole();
+        render();
+    }
+});
 
         function updateUIForRole() {
-            const trigger = document.getElementById('admin-trigger');
-            const modInd = document.getElementById('modIndicator');
-            const modText = document.getElementById('modIndicatorText');
+    const trigger = document.getElementById('admin-trigger');
+    const modInd = document.getElementById('modIndicator');
+    const modText = document.getElementById('modIndicatorText');
 
-            if (isModerator) {
-                localStorage.setItem('mxAdmin', '1');
-                trigger.style.display = isAdmin ? 'block' : 'none'; // only full admins see the gear
-                modInd.style.display = 'flex';
-                if (currentUserRole === 'admin') {
-                    modText.textContent = 'Администратор';
-                    modInd.style.color = '#f472b6';
-                    modInd.style.borderColor = 'rgba(244,114,182,0.3)';
-                    modInd.style.background = 'rgba(244,114,182,0.1)';
-                } else {
-                    modText.textContent = 'Модератор';
-                    modInd.style.color = '#60a5fa';
-                    modInd.style.borderColor = 'rgba(96,165,250,0.25)';
-                    modInd.style.background = 'rgba(96,165,250,0.1)';
-                }
-            } else {
-                localStorage.removeItem('mxAdmin');
-                trigger.style.display = 'none';
-                modInd.style.display = 'none';
-            }
-            render();
+    if (isModerator) {
+        localStorage.setItem('mxAdmin', '1');
+        
+        // ШЕСТЕРЕНКУ видит ТОЛЬКО админ. Модератор управляет через кнопку в профиле или отдельную панель.
+        trigger.style.display = isAdmin ? 'block' : 'none'; 
+        
+        modInd.style.display = 'flex';
+        if (isAdmin) {
+            modText.textContent = 'Администратор';
+            modInd.style.color = '#f472b6';
+            modInd.style.borderColor = 'rgba(244,114,182,0.3)';
+            modInd.style.background = 'rgba(244,114,182,0.1)';
+        } else {
+            modText.textContent = 'Модератор';
+            modInd.style.color = '#60a5fa';
+            modInd.style.borderColor = 'rgba(96,165,250,0.25)';
+            modInd.style.background = 'rgba(96,165,250,0.1)';
         }
+    } else {
+        localStorage.removeItem('mxAdmin');
+        trigger.style.display = 'none';
+        modInd.style.display = 'none';
+    }
+    render();
+}
 
         // ===== MODERATOR PANEL (for admins only) =====
         db.ref('moderators').on('value', s => {
@@ -858,23 +865,28 @@
         }
         function adminLogout() { auth.signOut(); closeAdmin(); }
 
-        function openAdmin() {
-            document.getElementById('loginBlock').style.display = isModerator ? 'none' : 'block';
-            document.getElementById('adminControls').style.display = isModerator ? 'block' : 'none';
-            document.getElementById('loginError').style.display = 'none';
-            document.getElementById('adminPanel').style.display = 'block';
-            // Hide admin-only options for moderators
-            const sel = document.getElementById('admAction');
-            if (sel) {
-                Array.from(sel.options).forEach(opt => {
-                    if (['delete_all_demons','manage_mods','maintenance','drag_drop','delete_mode'].includes(opt.value)) {
-                        opt.disabled = !isAdmin;
-                        opt.style.color = isAdmin ? '' : '#555';
-                    }
-                });
-            }
-            toggleAdmFields();
-        }
+       function openAdmin() {
+    // Если это вообще не модератор и не админ — показываем окно логина
+    if (!isModerator) {
+        document.getElementById('loginBlock').style.display = 'block';
+        document.getElementById('adminControls').style.display = 'none';
+        document.getElementById('adminPanel').style.display = 'block';
+        return;
+    }
+
+    // Если это МОДЕРАТОР (но не админ) — не пускаем его в это окно вообще
+    if (isModerator && !isAdmin) {
+        showToast('Доступ в Admin Panel только для администраторов!', 'error');
+        return; 
+    }
+
+    // Если это АДМИН — показываем управление
+    document.getElementById('loginBlock').style.display = 'none';
+    document.getElementById('adminControls').style.display = 'block';
+    document.getElementById('adminPanel').style.display = 'block';
+    
+    toggleAdmFields();
+}
 
         // ===== EDIT DEMON =====
         function openEditModal(key) {
