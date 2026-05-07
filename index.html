@@ -527,6 +527,55 @@
 
     <button id="admin-trigger" onclick="openAdmin()"><i class="fas fa-cog"></i></button>
 
+    <!-- Кнопка для модератора -->
+    <button id="mod-trigger" onclick="openModQuickPanel()" style="display:none; position:fixed; bottom:20px; left:20px; z-index:1000; background:linear-gradient(135deg,#3d85c8,#60a5fa); color:#fff; border:none; border-radius:14px; padding:12px 20px; font-family:Nunito,sans-serif; font-weight:900; font-size:0.9rem; cursor:pointer; box-shadow:0 4px 20px rgba(96,165,250,0.4); align-items:center; gap:8px;">
+        <i class="fas fa-shield-alt"></i> МОД ПАНЕЛЬ
+    </button>
+
+    <!-- MOD QUICK PANEL -->
+    <div id="modQuickPanel" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:2000; background:#090b18; border:1px solid rgba(96,165,250,0.35); border-radius:20px; padding:28px 20px; width:calc(100% - 28px); max-width:380px; max-height:calc(100vh - 40px); overflow-y:auto; box-shadow:0 0 60px rgba(0,0,0,0.8);">
+        <button onclick="document.getElementById('modQuickPanel').style.display='none'" style="position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:8px;background:rgba(255,70,70,0.13);border:1px solid rgba(255,70,70,0.3);color:#ff6868;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;"><i class="fas fa-times"></i></button>
+        <h2 style="margin:0 0 4px;font-family:Orbitron,sans-serif;font-size:1.2rem;text-align:center;background:linear-gradient(135deg,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">🛡️ МОД ПАНЕЛЬ</h2>
+        <p id="modNickDisplay" style="text-align:center;color:#60a5fa;font-size:0.82rem;font-weight:700;margin:0 0 18px;"></p>
+
+        <div style="background:rgba(167,139,250,0.05);border:1px solid rgba(167,139,250,0.12);border-radius:14px;padding:14px;margin-bottom:12px;">
+            <p style="margin:0 0 10px;font-size:0.8rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;">➕ Добавить демона</p>
+            <input type="text" id="mName" placeholder="Название уровня" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
+            <input type="text" id="mAuthor" placeholder="Автор" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
+            <input type="text" id="mID" placeholder="ID уровня" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
+            <input type="text" id="mTag" placeholder="Тег (напр. Top 1)" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
+            <input type="text" id="mVerifier" placeholder="Верифер" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
+            <input type="text" id="mImg" placeholder="Ссылка на картинку" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
+            <input type="text" id="mVid" placeholder="Ссылка на YouTube" style="width:100%;padding:10px 12px;margin:4px 0 10px;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
+            <button onclick="modAddDemon()" style="width:100%;padding:12px;background:linear-gradient(135deg,#7b5ea7,#3d85c8);color:#fff;border:none;border-radius:10px;font-weight:900;font-size:0.85rem;text-transform:uppercase;cursor:pointer;font-family:Nunito;">
+                <i class="fas fa-plus"></i> Добавить
+            </button>
+        </div>
+
+        <button onclick="modToggleEditMode()" id="modEditBtn" style="width:100%;padding:13px;margin-bottom:10px;background:rgba(243,156,18,0.1);border:1px solid rgba(243,156,18,0.3);color:#f39c12;border-radius:12px;cursor:pointer;font-weight:900;font-size:0.85rem;text-transform:uppercase;font-family:Nunito;">
+            <i class="fas fa-pen"></i> <span id="modEditBtnText">Включить редактирование</span>
+        </button>
+
+        <button onclick="showModVictorForm()" style="width:100%;padding:13px;margin-bottom:10px;background:rgba(167,139,250,0.07);border:1px solid rgba(167,139,250,0.2);color:#a78bfa;border-radius:12px;cursor:pointer;font-weight:900;font-size:0.85rem;text-transform:uppercase;font-family:Nunito;">
+            <i class="fas fa-trophy"></i> Добавить рекорд
+        </button>
+
+        <div id="modVictorForm" style="display:none;background:rgba(167,139,250,0.05);border:1px solid rgba(167,139,250,0.12);border-radius:14px;padding:14px;margin-bottom:12px;">
+            <p style="margin:0 0 10px;font-size:0.8rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;">🏆 Добавить рекорд</p>
+            <select id="modVicDemon" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;"></select>
+            <input type="text" id="modVicName" placeholder="Ник игрока" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
+            <input type="text" id="modVicPerc" placeholder="Проценты (напр. 100%)" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
+            <input type="text" id="modVicAtt" placeholder="Попытки" style="width:100%;padding:10px 12px;margin:4px 0 10px;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
+            <button onclick="modAddVictor()" style="width:100%;padding:12px;background:linear-gradient(135deg,#7b5ea7,#3d85c8);color:#fff;border:none;border-radius:10px;font-weight:900;font-size:0.85rem;text-transform:uppercase;cursor:pointer;font-family:Nunito;">
+                <i class="fas fa-save"></i> Сохранить
+            </button>
+        </div>
+
+        <button onclick="auth.signOut(); document.getElementById('modQuickPanel').style.display='none';" style="width:100%;padding:12px;background:transparent;border:1px solid #e74c3c;color:#e74c3c;border-radius:12px;cursor:pointer;font-weight:700;font-size:0.85rem;text-transform:uppercase;font-family:Nunito;">
+            <i class="fas fa-sign-out-alt"></i> Выйти
+        </button>
+    </div>
+
     <!-- ===== ADMIN PANEL ===== -->
     <div id="adminPanel" class="admin-form">
         <button onclick="closeAdmin()" style="position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:8px;background:rgba(255,70,70,0.13);border:1px solid rgba(255,70,70,0.3);color:#ff6868;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">
@@ -733,12 +782,14 @@
 
         function updateUIForRole() {
             const trigger = document.getElementById('admin-trigger');
+            const modTrigger = document.getElementById('mod-trigger');
             const modInd = document.getElementById('modIndicator');
             const modText = document.getElementById('modIndicatorText');
 
             if (isModerator) {
                 localStorage.setItem('mxAdmin', '1');
-                trigger.style.display = isAdmin ? 'block' : 'none'; // only full admins see the gear
+                trigger.style.display = isAdmin ? 'block' : 'none';
+                if (modTrigger) modTrigger.style.display = (currentUserRole === 'moderator') ? 'flex' : 'none';
                 modInd.style.display = 'flex';
                 if (currentUserRole === 'admin') {
                     modText.textContent = 'Администратор';
@@ -751,9 +802,17 @@
                     modInd.style.borderColor = 'rgba(96,165,250,0.25)';
                     modInd.style.background = 'rgba(96,165,250,0.1)';
                 }
+                const user = auth.currentUser;
+                if (user) {
+                    const found = moderators.find(m => m.uid === user.uid);
+                    const nick = found ? (found.nick || found.email) : (user.email || '');
+                    const el = document.getElementById('modNickDisplay');
+                    if (el) el.textContent = '\u{1F464} ' + nick;
+                }
             } else {
                 localStorage.removeItem('mxAdmin');
                 trigger.style.display = 'none';
+                if (modTrigger) modTrigger.style.display = 'none';
                 modInd.style.display = 'none';
             }
             render();
@@ -1255,6 +1314,76 @@
             if (on && !isModerator) { overlay.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
             else { overlay.style.display = 'none'; document.body.style.overflow = ''; }
         });
+
+
+        // ===== MOD QUICK PANEL FUNCTIONS =====
+        function openModQuickPanel() {
+            // Sync demon list in victor form
+            const sel = document.getElementById('modVicDemon');
+            if (sel) sel.innerHTML = demons.map(d => `<option value="${d.key}">${d.name}</option>`).join('');
+            document.getElementById('modQuickPanel').style.display = 'block';
+        }
+
+        function modToggleEditMode() {
+            isEditMode = !isEditMode;
+            if (isEditMode) isDeleteMode = false;
+            const btn = document.getElementById('modEditBtnText');
+            if (btn) btn.textContent = isEditMode ? 'Выключить редактирование' : 'Включить редактирование';
+            const editBtn = document.getElementById('modEditBtn');
+            if (editBtn) {
+                editBtn.style.background = isEditMode ? 'rgba(243,156,18,0.25)' : 'rgba(243,156,18,0.1)';
+                editBtn.style.borderColor = isEditMode ? 'rgba(243,156,18,0.6)' : 'rgba(243,156,18,0.3)';
+            }
+            render();
+            showToast(isEditMode ? '✏️ Режим редактирования включён' : '✏️ Режим редактирования выключён');
+            document.getElementById('modQuickPanel').style.display = 'none';
+        }
+
+        function showModVictorForm() {
+            const form = document.getElementById('modVictorForm');
+            const sel = document.getElementById('modVicDemon');
+            if (sel) sel.innerHTML = demons.map(d => `<option value="${d.key}">${d.name}</option>`).join('');
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function modAddDemon() {
+            const name = document.getElementById('mName').value.trim();
+            if (!name) { showToast('Введи название уровня!'); return; }
+            let r = document.getElementById('mVid').value.trim();
+            let v = r.includes('v=') ? r.split('v=')[1].split('&')[0] : r.includes('youtu.be/') ? r.split('youtu.be/')[1].split('?')[0] : r;
+            db.ref('demons').push({
+                name,
+                author: document.getElementById('mAuthor').value.trim(),
+                levelID: document.getElementById('mID').value.trim(),
+                tag: document.getElementById('mTag').value.trim(),
+                verifier: document.getElementById('mVerifier').value.trim(),
+                img: document.getElementById('mImg').value.trim(),
+                vid: v,
+                order: demons.length
+            }).then(() => {
+                showToast('✅ Демон добавлен!');
+                ['mName','mAuthor','mID','mTag','mVerifier','mImg','mVid'].forEach(id => document.getElementById(id).value = '');
+                document.getElementById('modQuickPanel').style.display = 'none';
+            }).catch(e => showToast('Ошибка: ' + e.message));
+        }
+
+        function modAddVictor() {
+            const dKey = document.getElementById('modVicDemon').value;
+            const name = document.getElementById('modVicName').value.trim();
+            if (!name) { showToast('Введи ник игрока!'); return; }
+            db.ref(`demons/${dKey}/victors`).push({
+                name,
+                perc: document.getElementById('modVicPerc').value.trim(),
+                att: document.getElementById('modVicAtt').value.trim()
+            }).then(() => {
+                showToast('🏆 Рекорд добавлен!');
+                document.getElementById('modVicName').value = '';
+                document.getElementById('modVicPerc').value = '';
+                document.getElementById('modVicAtt').value = '';
+                document.getElementById('modVictorForm').style.display = 'none';
+                document.getElementById('modQuickPanel').style.display = 'none';
+            }).catch(e => showToast('Ошибка: ' + e.message));
+        }
 
         // ===== MOD LOGIN PAGE =====
         function openModLoginPage() {
