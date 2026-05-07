@@ -702,69 +702,62 @@
         }
 
         // ===== AUTH STATE =====
-       // Исправленный слушатель авторизации
-auth.onAuthStateChanged(user => {
-    if (user) {
-        db.ref('moderators/' + user.uid).once('value', s => {
-            const data = s.val();
-            if (data) {
-                // Если пользователь найден в базе
-                isModerator = true;
-                isAdmin = data.role === 'admin';
-                currentUserRole = data.role;
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                // Check role in DB
+                db.ref('moderators/' + user.uid).once('value', snap => {
+                    const modData = snap.val();
+                    if (modData) {
+                        currentUserRole = modData.role || 'moderator';
+                        isModerator = true;
+                        isAdmin = (currentUserRole === 'admin');
+                    } else {
+                        // Legacy: if user exists but not in moderators node → treat as admin
+                        currentUserRole = 'admin';
+                        isAdmin = true;
+                        isModerator = true;
+                    }
+                    updateUIForRole();
+                });
             } else {
-                // БАГ ИСПРАВЛЕН: Если вошел, но в базе модераторов его НЕТ
-                isModerator = false;
                 isAdmin = false;
-                currentUserRole = 'user';
-                // Опционально: можно сразу разлогинить такого "самозванца"
-                // auth.signOut(); 
+                isModerator = false;
+                currentUserRole = null;
+                isDeleteMode = false;
+                isEditMode = false;
+                isDragDropMode = false;
+                updateUIForRole();
+                render();
             }
-            updateUIForRole();
-            render();
         });
-    } else {
-        // Если вышел из аккаунта
-        isModerator = false;
-        isAdmin = false;
-        currentUserRole = 'user';
-        isEditMode = false;
-        isDragDropMode = false;
-        updateUIForRole();
-        render();
-    }
-});
 
         function updateUIForRole() {
-    const trigger = document.getElementById('admin-trigger');
-    const modInd = document.getElementById('modIndicator');
-    const modText = document.getElementById('modIndicatorText');
+            const trigger = document.getElementById('admin-trigger');
+            const modInd = document.getElementById('modIndicator');
+            const modText = document.getElementById('modIndicatorText');
 
-    if (isModerator) {
-        localStorage.setItem('mxAdmin', '1');
-        
-        // ШЕСТЕРЕНКУ видит ТОЛЬКО админ. Модератор управляет через кнопку в профиле или отдельную панель.
-        trigger.style.display = isAdmin ? 'block' : 'none'; 
-        
-        modInd.style.display = 'flex';
-        if (isAdmin) {
-            modText.textContent = 'Администратор';
-            modInd.style.color = '#f472b6';
-            modInd.style.borderColor = 'rgba(244,114,182,0.3)';
-            modInd.style.background = 'rgba(244,114,182,0.1)';
-        } else {
-            modText.textContent = 'Модератор';
-            modInd.style.color = '#60a5fa';
-            modInd.style.borderColor = 'rgba(96,165,250,0.25)';
-            modInd.style.background = 'rgba(96,165,250,0.1)';
+            if (isModerator) {
+                localStorage.setItem('mxAdmin', '1');
+                trigger.style.display = isAdmin ? 'block' : 'none'; // only full admins see the gear
+                modInd.style.display = 'flex';
+                if (currentUserRole === 'admin') {
+                    modText.textContent = 'Администратор';
+                    modInd.style.color = '#f472b6';
+                    modInd.style.borderColor = 'rgba(244,114,182,0.3)';
+                    modInd.style.background = 'rgba(244,114,182,0.1)';
+                } else {
+                    modText.textContent = 'Модератор';
+                    modInd.style.color = '#60a5fa';
+                    modInd.style.borderColor = 'rgba(96,165,250,0.25)';
+                    modInd.style.background = 'rgba(96,165,250,0.1)';
+                }
+            } else {
+                localStorage.removeItem('mxAdmin');
+                trigger.style.display = 'none';
+                modInd.style.display = 'none';
+            }
+            render();
         }
-    } else {
-        localStorage.removeItem('mxAdmin');
-        trigger.style.display = 'none';
-        modInd.style.display = 'none';
-    }
-    render();
-}
 
         // ===== MODERATOR PANEL (for admins only) =====
         db.ref('moderators').on('value', s => {
@@ -865,28 +858,23 @@ auth.onAuthStateChanged(user => {
         }
         function adminLogout() { auth.signOut(); closeAdmin(); }
 
-       function openAdmin() {
-    // Если это вообще не модератор и не админ — показываем окно логина
-    if (!isModerator) {
-        document.getElementById('loginBlock').style.display = 'block';
-        document.getElementById('adminControls').style.display = 'none';
-        document.getElementById('adminPanel').style.display = 'block';
-        return;
-    }
-
-    // Если это МОДЕРАТОР (но не админ) — не пускаем его в это окно вообще
-    if (isModerator && !isAdmin) {
-        showToast('Доступ в Admin Panel только для администраторов!', 'error');
-        return; 
-    }
-
-    // Если это АДМИН — показываем управление
-    document.getElementById('loginBlock').style.display = 'none';
-    document.getElementById('adminControls').style.display = 'block';
-    document.getElementById('adminPanel').style.display = 'block';
-    
-    toggleAdmFields();
-}
+        function openAdmin() {
+            document.getElementById('loginBlock').style.display = isModerator ? 'none' : 'block';
+            document.getElementById('adminControls').style.display = isModerator ? 'block' : 'none';
+            document.getElementById('loginError').style.display = 'none';
+            document.getElementById('adminPanel').style.display = 'block';
+            // Hide admin-only options for moderators
+            const sel = document.getElementById('admAction');
+            if (sel) {
+                Array.from(sel.options).forEach(opt => {
+                    if (['delete_all_demons','manage_mods','maintenance','drag_drop','delete_mode'].includes(opt.value)) {
+                        opt.disabled = !isAdmin;
+                        opt.style.color = isAdmin ? '' : '#555';
+                    }
+                });
+            }
+            toggleAdmFields();
+        }
 
         // ===== EDIT DEMON =====
         function openEditModal(key) {
@@ -1094,6 +1082,8 @@ auth.onAuthStateChanged(user => {
                         </div>`;
                     } else if (isEditMode && canEdit) {
                         adminHtml = `<div class="admin-controls">
+                            <button class="ctrl-btn btn-up" onclick="moveItem(${i}, -1)"><i class="fas fa-arrow-up"></i></button>
+                            <button class="ctrl-btn btn-down" onclick="moveItem(${i}, 1)"><i class="fas fa-arrow-down"></i></button>
                             <button class="ctrl-btn btn-edit" onclick="openEditModal('${d.key}')"><i class="fas fa-pen"></i></button>
                         </div>`;
                     }
@@ -1143,6 +1133,14 @@ auth.onAuthStateChanged(user => {
                 closeAdmin();
                 return;
             }
+            if (act === 'add_demon') {
+                if (!isModerator) { alert('Нет доступа!'); return; }
+                let r = document.getElementById('itemVid').value;
+                let v = r.includes('v=') ? r.split('v=')[1].split('&')[0] : r.includes('youtu.be/') ? r.split('youtu.be/')[1].split('?')[0] : r;
+                db.ref('demons').push({ name: document.getElementById('itemName').value, author: document.getElementById('itemVal').value, levelID: document.getElementById('itemID').value, tag: document.getElementById('itemTag').value, verifier: document.getElementById('itemVerifier').value, img: document.getElementById('itemImgURL').value, vid: v, order: demons.length });
+                closeAdmin();
+                return;
+            }
             if (act === 'edit_demon_mode') {
                 if (!isModerator) { alert('Нет доступа!'); return; }
                 isEditMode = !isEditMode;
@@ -1156,11 +1154,7 @@ auth.onAuthStateChanged(user => {
             // Admin-only actions
             if (!isAdmin) { alert('Только администратор!'); return; }
 
-            if(act === 'add_demon') {
-                let r = document.getElementById('itemVid').value;
-                let v = r.includes('v=') ? r.split('v=')[1].split('&')[0] : r.includes('youtu.be/') ? r.split('youtu.be/')[1].split('?')[0] : r;
-                db.ref('demons').push({ name: document.getElementById('itemName').value, author: document.getElementById('itemVal').value, levelID: document.getElementById('itemID').value, tag: document.getElementById('itemTag').value, verifier: document.getElementById('itemVerifier').value, img: document.getElementById('itemImgURL').value, vid: v, order: demons.length });
-            } else if(act === 'add_creator') {
+            if(act === 'add_creator') {
                 db.ref('creators').push({ name: document.getElementById('itemName').value, points: parseInt(document.getElementById('itemVal').value) || 0 });
             } else if(act === 'delete_mode') {
                 isDeleteMode = !isDeleteMode;
