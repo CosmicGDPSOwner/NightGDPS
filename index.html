@@ -213,6 +213,26 @@
         .admin-form input, .admin-form select { width: 100%; padding: 14px; margin: 10px 0; background: #0f1225; border: 1px solid rgba(167,139,250,0.2); color: white; border-radius: 12px; font-size: 0.95rem; outline: none; transition: 0.3s; font-family: 'Nunito'; }
         .admin-form input:focus, .admin-form select:focus { border-color: var(--accent); box-shadow: 0 0 10px rgba(167,139,250,0.15); }
 
+
+        /* ===== DIFFICULTY POINTS BADGE ===== */
+        .diff-points-badge {
+            position: absolute; top: 15px; right: 15px;
+            background: rgba(4,5,13,0.85);
+            border: 1px solid rgba(167,139,250,0.35);
+            color: var(--accent); padding: 5px 11px;
+            border-radius: 8px; font-weight: 900;
+            font-size: 0.78rem; z-index: 50;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            font-family: 'Orbitron', sans-serif;
+            backdrop-filter: blur(4px);
+            letter-spacing: 0.5px;
+        }
+        .diff-points-badge .diff-label {
+            font-size: 0.6rem; color: #666;
+            text-transform: uppercase; letter-spacing: 1px;
+            display: block; margin-bottom: 1px;
+            font-family: 'Nunito', sans-serif;
+        }
         /* ===== EDIT DEMON MODAL ===== */
         .edit-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); z-index: 4000; backdrop-filter: blur(20px); overflow-y: auto; -webkit-overflow-scrolling: touch; }
         .edit-modal-content { background: rgba(10,12,28,0.99); margin: 20px auto 50px; padding: 28px 22px; max-width: 500px; width: calc(100% - 28px); border-radius: 20px; border: 1px solid rgba(167,139,250,0.3); position: relative; box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 40px rgba(167,139,250,0.1); }
@@ -546,7 +566,8 @@
             <input type="text" id="mTag" placeholder="Тег (напр. Top 1)" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
             <input type="text" id="mVerifier" placeholder="Верифер" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
             <input type="text" id="mImg" placeholder="Ссылка на картинку" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
-            <input type="text" id="mVid" placeholder="Ссылка на YouTube" style="width:100%;padding:10px 12px;margin:4px 0 10px;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
+            <input type="text" id="mVid" placeholder="Ссылка на YouTube" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
+            <input type="text" id="mPoints" placeholder="⚡ Баллы сложности (напр. 0.31)" style="width:100%;padding:10px 12px;margin:4px 0 10px;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
             <button onclick="modAddDemon()" style="width:100%;padding:12px;background:linear-gradient(135deg,#7b5ea7,#3d85c8);color:#fff;border:none;border-radius:10px;font-weight:900;font-size:0.85rem;text-transform:uppercase;cursor:pointer;font-family:Nunito;">
                 <i class="fas fa-plus"></i> Добавить
             </button>
@@ -565,7 +586,8 @@
             <select id="modVicDemon" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;"></select>
             <input type="text" id="modVicName" placeholder="Ник игрока" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
             <input type="text" id="modVicPerc" placeholder="Проценты (напр. 100%)" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
-            <input type="text" id="modVicAtt" placeholder="Попытки" style="width:100%;padding:10px 12px;margin:4px 0 10px;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
+            <input type="text" id="modVicAtt" placeholder="Попытки" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
+            <input type="text" id="modVicVid" placeholder="Ссылка на YouTube (необязательно)" style="width:100%;padding:10px 12px;margin:4px 0 10px;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
             <button onclick="modAddVictor()" style="width:100%;padding:12px;background:linear-gradient(135deg,#7b5ea7,#3d85c8);color:#fff;border:none;border-radius:10px;font-weight:900;font-size:0.85rem;text-transform:uppercase;cursor:pointer;font-family:Nunito;">
                 <i class="fas fa-save"></i> Сохранить
             </button>
@@ -609,6 +631,7 @@
                     <input type="text" id="itemVerifier" placeholder="Верифер">
                     <input type="text" id="itemImgURL" placeholder="Ссылка на картинку">
                     <input type="text" id="itemVid" placeholder="Ссылка на YouTube">
+                    <input type="text" id="itemPoints" placeholder="⚡ Баллы сложности (напр. 0.31)">
                 </div>
             </div>
             <div id="fields_victor" style="display:none;">
@@ -616,6 +639,7 @@
                 <input type="text" id="vicName" placeholder="Ник игрока">
                 <input type="text" id="vicPerc" placeholder="Проценты">
                 <input type="text" id="vicAtt" placeholder="Попытки">
+                <input type="text" id="vicVid" placeholder="Ссылка на YouTube видео (необязательно)">
             </div>
             <button class="btn-more" style="background:linear-gradient(135deg,#7b5ea7,#3d85c8);color:#fff;margin-top:15px;border:none;" onclick="processAdmin()">ВЫПОЛНИТЬ</button>
             <button class="btn-more" style="background:transparent;border:1px solid #e74c3c;color:#e74c3c;margin-top:10px;" onclick="adminLogout()">ВЫЙТИ ИЗ АККАУНТА</button>
@@ -650,6 +674,10 @@
 
             <label class="edit-field-label">Ссылка на YouTube</label>
             <input type="text" id="editVid" class="edit-field-input" placeholder="https://youtube.com/...">
+
+            <label class="edit-field-label">⚡ Баллы сложности</label>
+            <input type="text" id="editPoints" class="edit-field-input" placeholder="напр. 0.31 или 1.50">
+            <p style="color:#555;font-size:0.75rem;margin:4px 0 0;line-height:1.4;">Отображается на карточке демона. Можно оставить пустым.</p>
 
             <div class="edit-btn-row">
                 <button class="edit-btn-cancel" onclick="closeEditModal()">Отмена</button>
@@ -948,6 +976,7 @@
             document.getElementById('editTag').value = d.tag || '';
             document.getElementById('editImg').value = d.img || '';
             document.getElementById('editVid').value = d.vid ? `https://youtube.com/watch?v=${d.vid}` : '';
+            document.getElementById('editPoints').value = d.points || '';
             updateImgPreview();
             document.getElementById('editDemonModal').style.display = 'block';
             document.getElementById('editDemonModal').scrollTop = 0;
@@ -986,7 +1015,8 @@
             if (vidRaw.includes('v=')) vid = vidRaw.split('v=')[1].split('&')[0];
             else if (vidRaw.includes('youtu.be/')) vid = vidRaw.split('youtu.be/')[1].split('?')[0];
 
-            const updates = { name, author, verifier, levelID, tag, img, vid };
+            const points = document.getElementById('editPoints').value.trim();
+            const updates = { name, author, verifier, levelID, tag, img, vid, points };
             db.ref('demons/' + key).update(updates)
                 .then(() => {
                     showToast('Демон обновлён!');
@@ -1151,6 +1181,7 @@
                         ${adminHtml}
                         ${isDragDropMode && isAdmin ? `<div style="position:absolute;top:10px;left:10px;background:rgba(167,139,250,0.2);padding:4px 8px;border-radius:5px;font-size:0.7rem;color:var(--accent);z-index:50;"><i class="fas fa-grip-vertical"></i> Drag me</div>` : ''}
                         ${d.tag ? `<div class="demon-tag">${d.tag}</div>` : ''}
+                        ${d.points ? `<div class="diff-points-badge"><span class="diff-label">Сложность</span>${d.points}</div>` : ''}
                         <img src="${d.img}" class="card-img" onerror="this.src='https://via.placeholder.com/600x300/0c1026/a78bfa?text=Night+GDPS'">
                         <div class="card-body">
                             <h3 style="margin:0; color:var(--accent); font-size:1.2rem; font-family:'Orbitron';">#${i+1} ${d.name}</h3>
@@ -1184,10 +1215,15 @@
             if (act === 'add_victor') {
                 if (!isModerator) { alert('Нет доступа!'); return; }
                 const dKey = document.getElementById('selectDemon').value;
+                const vicVidRaw = document.getElementById('vicVid').value.trim();
+                let vicVid = vicVidRaw;
+                if (vicVidRaw.includes('v=')) vicVid = vicVidRaw.split('v=')[1].split('&')[0];
+                else if (vicVidRaw.includes('youtu.be/')) vicVid = vicVidRaw.split('youtu.be/')[1].split('?')[0];
                 db.ref(`demons/${dKey}/victors`).push({
                     name: document.getElementById('vicName').value,
                     perc: document.getElementById('vicPerc').value,
-                    att: document.getElementById('vicAtt').value
+                    att: document.getElementById('vicAtt').value,
+                    vid: vicVid
                 });
                 closeAdmin();
                 return;
@@ -1196,7 +1232,7 @@
                 if (!isModerator) { alert('Нет доступа!'); return; }
                 let r = document.getElementById('itemVid').value;
                 let v = r.includes('v=') ? r.split('v=')[1].split('&')[0] : r.includes('youtu.be/') ? r.split('youtu.be/')[1].split('?')[0] : r;
-                db.ref('demons').push({ name: document.getElementById('itemName').value, author: document.getElementById('itemVal').value, levelID: document.getElementById('itemID').value, tag: document.getElementById('itemTag').value, verifier: document.getElementById('itemVerifier').value, img: document.getElementById('itemImgURL').value, vid: v, order: demons.length });
+                db.ref('demons').push({ name: document.getElementById('itemName').value, author: document.getElementById('itemVal').value, levelID: document.getElementById('itemID').value, tag: document.getElementById('itemTag').value, verifier: document.getElementById('itemVerifier').value, img: document.getElementById('itemImgURL').value, vid: v, points: document.getElementById('itemPoints').value.trim(), order: demons.length });
                 closeAdmin();
                 return;
             }
@@ -1272,7 +1308,10 @@
             const d = demons.find(x => x.key === key);
             const vics = d.victors ? Object.entries(d.victors).map(([vk, v]) => `
                 <div class="record-item">
-                    <span><b style="color:#fff;">${v.name}</b> — <span style="color:var(--accent); font-weight:700;">${v.perc || '100%'}</span> <span style="color:#888;">(${v.att || '0'} att)</span></span>
+                    <div style="display:flex;flex-direction:column;gap:6px;flex:1;min-width:0;">
+                        <span><b style="color:#fff;">${v.name}</b> — <span style="color:var(--accent); font-weight:700;">${v.perc || '100%'}</span> <span style="color:#888;">(${v.att || '0'} att)</span></span>
+                        ${v.vid ? `<a href="https://youtube.com/watch?v=${v.vid}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,0,0,0.1);border:1px solid rgba(255,0,0,0.25);color:#ff6b6b;padding:4px 10px;border-radius:7px;font-size:0.75rem;font-weight:700;text-decoration:none;width:fit-content;transition:0.2s;" onmouseover="this.style.background='rgba(255,0,0,0.2)'" onmouseout="this.style.background='rgba(255,0,0,0.1)'"><i class="fab fa-youtube"></i> Смотреть видео</a>` : ''}
+                    </div>
                     ${isDeleteMode && isAdmin ? `<i class="fas fa-times" style="color:#ff4d4d; cursor:pointer; flex-shrink:0;" onclick="deleteVictor('${d.key}', '${vk}')"></i>` : ''}
                 </div>`).join('') : `<p style='color:#555;'>${currentLang==='EN'?'No records yet':'Рекордов пока нет'}</p>`;
             document.getElementById('modalData').innerHTML = `
@@ -1359,6 +1398,7 @@
                 verifier: document.getElementById('mVerifier').value.trim(),
                 img: document.getElementById('mImg').value.trim(),
                 vid: v,
+                points: document.getElementById('mPoints').value.trim(),
                 order: demons.length
             }).then(() => {
                 showToast('✅ Демон добавлен!');
@@ -1371,15 +1411,21 @@
             const dKey = document.getElementById('modVicDemon').value;
             const name = document.getElementById('modVicName').value.trim();
             if (!name) { showToast('Введи ник игрока!'); return; }
+            const mVidRaw = document.getElementById('modVicVid').value.trim();
+            let mVid = mVidRaw;
+            if (mVidRaw.includes('v=')) mVid = mVidRaw.split('v=')[1].split('&')[0];
+            else if (mVidRaw.includes('youtu.be/')) mVid = mVidRaw.split('youtu.be/')[1].split('?')[0];
             db.ref(`demons/${dKey}/victors`).push({
                 name,
                 perc: document.getElementById('modVicPerc').value.trim(),
-                att: document.getElementById('modVicAtt').value.trim()
+                att: document.getElementById('modVicAtt').value.trim(),
+                vid: mVid
             }).then(() => {
                 showToast('🏆 Рекорд добавлен!');
                 document.getElementById('modVicName').value = '';
                 document.getElementById('modVicPerc').value = '';
                 document.getElementById('modVicAtt').value = '';
+                document.getElementById('modVicVid').value = '';
                 document.getElementById('modVictorForm').style.display = 'none';
                 document.getElementById('modQuickPanel').style.display = 'none';
             }).catch(e => showToast('Ошибка: ' + e.message));
