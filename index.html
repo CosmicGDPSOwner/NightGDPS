@@ -534,14 +534,19 @@
         <div class="container" id="mainContainer"></div>
     </main>
 
-    <main id="profileSection" class="section-page">
-        <div class="hero-title">
+   <main id="profileSection" class="section-page">
+        <div style="max-width: 1400px; margin: 0 auto; padding: 20px 20px 0; display: flex; justify-content: center;">
+            <button id="btnBackProfile" class="btn-more" style="width: fit-content; padding: 10px 24px; border-radius: 12px; font-size: 0.85rem;" onclick="openSection('listSection'); switchTab('demons');">
+                <i class="fas fa-arrow-left"></i> <span id="textBackProfile">НАЗАД К СПИСКУ</span>
+            </button>
+        </div>
+        <div class="hero-title" style="padding-top: 15px;">
             <h2 id="profileName" style="font-family:'Orbitron'; text-transform:uppercase;">Имя Игрока</h2>
             <div class="top-50-text">ВСЕГО БАЛЛОВ: <span id="profilePoints" style="color:#fff;">0</span></div>
         </div>
         <div class="container" id="profileDemonsContainer"></div>
         <div id="emptyProfileMsg" style="display:none; text-align:center; color:var(--text-main); margin-top:40px; font-size:1.2rem; width:100%;">
-            (здесь, к сожалению, пусто)
+            (здесь, к сожалению пусто)
         </div>
     </main>
 
