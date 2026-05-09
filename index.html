@@ -1436,6 +1436,8 @@
             // Считаем баллы
             let totalPoints = 0;
             completions.forEach(c => {
+                const perc = parseInt((c.victor.perc || '0').replace('%',''));
+                if (perc < 100) return; // баллы только за 100%
                 const pts = parseFloat(c.demon.points);
                 if (!isNaN(pts)) totalPoints += pts;
             });
