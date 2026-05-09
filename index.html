@@ -233,6 +233,33 @@
             display: block; margin-bottom: 1px;
             font-family: 'Nunito', sans-serif;
         }
+
+        /* ===== PLAYER PROFILE MODAL ===== */
+        .profile-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); z-index: 5000; backdrop-filter: blur(20px); overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .profile-modal-content { background: rgba(10,12,28,0.99); margin: 16px auto 50px; padding: 24px 20px; max-width: 700px; width: calc(100% - 28px); border-radius: 22px; border: 1px solid rgba(167,139,250,0.2); position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
+        .profile-header { display: flex; align-items: center; gap: 18px; margin-bottom: 24px; flex-wrap: wrap; }
+        .profile-avatar { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, #7b5ea7, #3d85c8); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; flex-shrink: 0; box-shadow: 0 0 20px rgba(167,139,250,0.3); }
+        .profile-name { font-family: 'Orbitron'; font-size: clamp(1.1rem, 4vw, 1.6rem); font-weight: 900; color: #fff; margin: 0 0 4px; }
+        .profile-points-badge { display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, rgba(123,94,167,0.2), rgba(61,133,200,0.2)); border: 1px solid rgba(167,139,250,0.35); padding: 5px 14px; border-radius: 20px; color: var(--accent); font-size: 0.85rem; font-weight: 900; font-family: 'Orbitron'; }
+        .profile-stats-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 22px; }
+        .profile-stat { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 12px 18px; text-align: center; flex: 1; min-width: 80px; }
+        .profile-stat-val { font-size: 1.3rem; font-weight: 900; color: var(--accent); font-family: 'Orbitron'; }
+        .profile-stat-label { font-size: 0.72rem; color: #555; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+        .profile-section-title { font-size: 0.8rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 2px; margin: 0 0 14px; display: flex; align-items: center; gap: 8px; }
+        .profile-section-title::after { content: ''; flex: 1; height: 1px; background: rgba(167,139,250,0.15); }
+        .profile-completions-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+        .profile-completion-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(167,139,250,0.1); border-radius: 14px; overflow: hidden; transition: 0.25s; }
+        .profile-completion-card:hover { border-color: rgba(167,139,250,0.3); transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.4); }
+        .profile-completion-video { position: relative; width: 100%; aspect-ratio: 16/9; background: #0a0d1e; }
+        .profile-completion-video iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; border-radius: 0; }
+        .profile-completion-video .no-video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #333; font-size: 1.6rem; gap: 6px; }
+        .profile-completion-video .no-video span { font-size: 0.7rem; color: #444; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+        .profile-completion-info { padding: 10px 12px; }
+        .profile-completion-name { font-size: 0.88rem; font-weight: 900; color: #fff; font-family: 'Orbitron'; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .profile-completion-meta { display: flex; justify-content: space-between; align-items: center; }
+        .profile-completion-perc { font-size: 0.78rem; color: var(--accent); font-weight: 700; }
+        .profile-completion-pts { font-size: 0.72rem; background: rgba(167,139,250,0.1); color: #a78bfa; padding: 2px 7px; border-radius: 6px; font-weight: 700; }
+        @media (max-width: 480px) { .profile-completions-grid { grid-template-columns: 1fr 1fr; gap: 10px; } }
         /* ===== EDIT DEMON MODAL ===== */
         .edit-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); z-index: 4000; backdrop-filter: blur(20px); overflow-y: auto; -webkit-overflow-scrolling: touch; }
         .edit-modal-content { background: rgba(10,12,28,0.99); margin: 20px auto 50px; padding: 28px 22px; max-width: 500px; width: calc(100% - 28px); border-radius: 20px; border: 1px solid rgba(167,139,250,0.3); position: relative; box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 40px rgba(167,139,250,0.1); }
@@ -534,22 +561,6 @@
         <div class="container" id="mainContainer"></div>
     </main>
 
-   <main id="profileSection" class="section-page">
-        <div style="max-width: 1400px; margin: 0 auto; padding: 20px 20px 0; display: flex; justify-content: center;">
-            <button id="btnBackProfile" class="btn-more" style="width: fit-content; padding: 10px 24px; border-radius: 12px; font-size: 0.85rem;" onclick="openSection('listSection'); switchTab('demons');">
-                <i class="fas fa-arrow-left"></i> <span id="textBackProfile">НАЗАД К СПИСКУ</span>
-            </button>
-        </div>
-        <div class="hero-title" style="padding-top: 15px;">
-            <h2 id="profileName" style="font-family:'Orbitron'; text-transform:uppercase;">Имя Игрока</h2>
-            <div class="top-50-text">ВСЕГО БАЛЛОВ: <span id="profilePoints" style="color:#fff;">0</span></div>
-        </div>
-        <div class="container" id="profileDemonsContainer"></div>
-        <div id="emptyProfileMsg" style="display:none; text-align:center; color:var(--text-main); margin-top:40px; font-size:1.2rem; width:100%;">
-            (здесь, к сожалению пусто)
-        </div>
-    </main>
-
     <footer>
         <div class="footer-moon">🌙</div>
         <div class="footer-socials">
@@ -563,10 +574,12 @@
 
     <button id="admin-trigger" onclick="openAdmin()"><i class="fas fa-cog"></i></button>
 
+    <!-- Кнопка для модератора -->
     <button id="mod-trigger" onclick="openModQuickPanel()" style="display:none; position:fixed; bottom:20px; left:20px; z-index:1000; background:linear-gradient(135deg,#3d85c8,#60a5fa); color:#fff; border:none; border-radius:14px; padding:12px 20px; font-family:Nunito,sans-serif; font-weight:900; font-size:0.9rem; cursor:pointer; box-shadow:0 4px 20px rgba(96,165,250,0.4); align-items:center; gap:8px;">
         <i class="fas fa-shield-alt"></i> МОД ПАНЕЛЬ
     </button>
 
+    <!-- MOD QUICK PANEL -->
     <div id="modQuickPanel" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:2000; background:#090b18; border:1px solid rgba(96,165,250,0.35); border-radius:20px; padding:28px 20px; width:calc(100% - 28px); max-width:380px; max-height:calc(100vh - 40px); overflow-y:auto; box-shadow:0 0 60px rgba(0,0,0,0.8);">
         <button onclick="document.getElementById('modQuickPanel').style.display='none'" style="position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:8px;background:rgba(255,70,70,0.13);border:1px solid rgba(255,70,70,0.3);color:#ff6868;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;"><i class="fas fa-times"></i></button>
         <h2 style="margin:0 0 4px;font-family:Orbitron,sans-serif;font-size:1.2rem;text-align:center;background:linear-gradient(135deg,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">🛡️ МОД ПАНЕЛЬ</h2>
@@ -612,6 +625,7 @@
         </button>
     </div>
 
+    <!-- ===== ADMIN PANEL ===== -->
     <div id="adminPanel" class="admin-form">
         <button onclick="closeAdmin()" style="position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:8px;background:rgba(255,70,70,0.13);border:1px solid rgba(255,70,70,0.3);color:#ff6868;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">
             <i class="fas fa-times"></i>
@@ -659,6 +673,7 @@
         </div>
     </div>
 
+    <!-- ===== EDIT DEMON MODAL ===== -->
     <div id="editDemonModal" class="edit-modal">
         <div class="edit-modal-content">
             <button class="modal-close-pin" onclick="closeEditModal()"><i class="fas fa-times"></i></button>
@@ -698,6 +713,7 @@
         </div>
     </div>
 
+    <!-- ===== MODERATORS PANEL ===== -->
     <div id="modPanel" class="mod-panel">
         <button onclick="closeModPanel()" style="position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:8px;background:rgba(255,70,70,0.13);border:1px solid rgba(255,70,70,0.3);color:#ff6868;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;"><i class="fas fa-times"></i></button>
         <h2>👥 МОДЕРАТОРЫ</h2>
@@ -718,8 +734,42 @@
         <p style="color:#555;font-size:0.75rem;text-align:center;margin-top:12px;line-height:1.5;">Модераторы могут редактировать карточки демонов и добавлять рекорды.<br>Администраторы имеют полный доступ.</p>
     </div>
 
+
+    <!-- ===== PLAYER PROFILE MODAL ===== -->
+    <div id="playerProfileModal" class="profile-modal">
+        <div class="profile-modal-content">
+            <button class="modal-close-pin" onclick="document.getElementById('playerProfileModal').style.display='none'" style="position:absolute;top:14px;right:14px;">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="profile-header">
+                <div class="profile-avatar">🌙</div>
+                <div>
+                    <div class="profile-name" id="profileName">—</div>
+                    <div class="profile-points-badge"><i class="fas fa-star"></i> <span id="profilePoints">0</span> pts</div>
+                </div>
+            </div>
+            <div class="profile-stats-row">
+                <div class="profile-stat">
+                    <div class="profile-stat-val" id="profileCompCount">0</div>
+                    <div class="profile-stat-label">Прохождений</div>
+                </div>
+                <div class="profile-stat">
+                    <div class="profile-stat-val" id="profileTopDemon">—</div>
+                    <div class="profile-stat-label">Лучший демон</div>
+                </div>
+                <div class="profile-stat">
+                    <div class="profile-stat-val" id="profileBestPerc">—</div>
+                    <div class="profile-stat-label">Макс. %</div>
+                </div>
+            </div>
+            <div class="profile-section-title">Прохождения</div>
+            <div class="profile-completions-grid" id="profileCompletionsGrid"></div>
+        </div>
+    </div>
+
     <div id="detailModal" class="modal"><div class="modal-content" id="modalData"></div></div>
 
+    <!-- ===== MOD LOGIN PAGE ===== -->
     <div id="modLoginPage">
         <div class="mod-login-box">
             <div class="mod-login-moon">🌙</div>
@@ -786,59 +836,6 @@
 
         if (localStorage.getItem('mxAdmin') === '1') {
             document.getElementById('admin-trigger').style.display = 'block';
-        }
-
-        // ===== ФУНКЦИЯ ДЛЯ ОТКРЫТИЯ ПРОФИЛЯ ИГРОКА =====
-        function openPlayerProfile(playerName) {
-            document.getElementById('detailModal').style.display = 'none'; // Закрываем модалку если открыта
-            openSection('profileSection'); // Открываем страницу профиля
-            
-            document.getElementById('profileName').innerText = playerName;
-            const container = document.getElementById('profileDemonsContainer');
-            const pointsEl = document.getElementById('profilePoints');
-            const emptyMsg = document.getElementById('emptyProfileMsg');
-            
-            container.innerHTML = '';
-            let totalPoints = 0;
-            let foundAny = false;
-
-            // Ищем демоны, которые прошел данный игрок
-            demons.forEach(d => {
-                let hasPassed = false;
-                if (d.victors) {
-                    Object.values(d.victors).forEach(v => {
-                        // Если процент не указан, считаем 100%, иначе проверяем строку на наличие "100"
-                        let percStr = v.perc ? String(v.perc).replace('%', '').trim() : '100';
-                        if (v.name === playerName && percStr === '100') {
-                            hasPassed = true;
-                        }
-                    });
-                }
-
-                if (hasPassed) {
-                    foundAny = true;
-                    let pts = parseFloat(d.points || 0);
-                    if (!isNaN(pts)) totalPoints += pts;
-
-                    const card = document.createElement('div');
-                    card.className = 'card';
-                    card.innerHTML = `
-                        ${d.tag ? `<div class="demon-tag">${d.tag}</div>` : ''}
-                        ${d.points ? `<div class="diff-points-badge"><span class="diff-label">Сложность</span>${d.points}</div>` : ''}
-                        <img src="${d.img}" class="card-img" onerror="this.src='https://via.placeholder.com/600x300/0c1026/a78bfa?text=Night+GDPS'">
-                        <div class="card-body">
-                            <h3 style="margin:0; color:var(--accent); font-size:1.2rem; font-family:'Orbitron';">${d.name}</h3>
-                            <p style="color:#888; margin:6px 0 15px; font-size:0.9rem;">by <span style="color:#c4b5fd;">${d.author}</span></p>
-                            <button class="btn-more" onclick="showInfoByKey('${d.key}')">${currentLang==='EN'?'DETAILS':'ПОДРОБНЕЕ'}</button>
-                        </div>
-                    `;
-                    container.appendChild(card);
-                }
-            });
-
-            // Защита от длинных чисел после запятой: 10.3 + 0.1 не будет 10.400000001
-            pointsEl.innerText = Number.isInteger(totalPoints) ? totalPoints : totalPoints.toFixed(2);
-            emptyMsg.style.display = foundAny ? 'none' : 'block';
         }
 
         // ===== AUTH STATE =====
@@ -1130,13 +1127,7 @@
             demons = val ? Object.entries(val).map(([k, d]) => ({ key: k, ...d })).sort((a,b)=>(a.order||0)-(b.order||0)) : [];
             const sel = document.getElementById('selectDemon');
             if(sel) sel.innerHTML = demons.map(d => `<option value="${d.key}">${d.name}</option>`).join('');
-            
-            // Если открыта секция профиля игрока, обновляем её чтобы цифры пересчитались
-            if (document.getElementById('profileSection').classList.contains('active')) {
-                openPlayerProfile(document.getElementById('profileName').innerText);
-            } else {
-                render();
-            }
+            render();
         });
         db.ref('creators').on('value', s => {
             const val = s.val();
@@ -1204,13 +1195,9 @@
             const isDem = (currentTab === 'demons');
             const query = document.getElementById('searchInput').value.toLowerCase();
             const topBanner = document.getElementById('top50Banner');
-            
-            if(!container) return;
             container.innerHTML = '';
-            
-            const heroTxt = document.getElementById('txtHero');
-            if(heroTxt) heroTxt.innerText = isDem ? (currentLang==='EN'?'DEMON LIST':'СПИСОК ДЕМОНОВ') : (currentLang==='EN'?'CREATOR TOP':'ТОП КРЕАТОРОВ');
-            if(topBanner) topBanner.style.display = isDem ? 'block' : 'none';
+            document.getElementById('txtHero').innerText = isDem ? (currentLang==='EN'?'DEMON LIST':'СПИСОК ДЕМОНОВ') : (currentLang==='EN'?'CREATOR TOP':'ТОП КРЕАТОРОВ');
+            topBanner.style.display = isDem ? 'block' : 'none';
 
             const canEdit = isModerator; // moderators and admins can edit
             const canDelete = isAdmin;   // only admins can delete
@@ -1221,6 +1208,7 @@
                     return d.name.toLowerCase().includes(query) || d.author.toLowerCase().includes(query);
                 });
                 filtered.forEach((d, i) => {
+                    const realIndex = demons.findIndex(x => x.key === d.key);
                     const card = document.createElement('div');
                     card.className = 'card';
                     if (isDragDropMode && isAdmin) {
@@ -1257,7 +1245,7 @@
                         ${d.points ? `<div class="diff-points-badge"><span class="diff-label">Сложность</span>${d.points}</div>` : ''}
                         <img src="${d.img}" class="card-img" onerror="this.src='https://via.placeholder.com/600x300/0c1026/a78bfa?text=Night+GDPS'">
                         <div class="card-body">
-                            <h3 style="margin:0; color:var(--accent); font-size:1.2rem; font-family:'Orbitron';">#${i+1} ${d.name}</h3>
+                            <h3 style="margin:0; color:var(--accent); font-size:1.2rem; font-family:'Orbitron';">#${realIndex+1} ${d.name}</h3>
                             <p style="color:#888; margin:6px 0 15px; font-size:0.9rem;">by <span style="color:#c4b5fd;">${d.author}</span></p>
                             <div class="level-id-box" onclick="copyID('${d.levelID}')"><i class="fas fa-hashtag" style="font-size:0.75rem;"></i> ${d.levelID}</div>
                             <button class="btn-more" onclick="showInfoByKey('${d.key}')">${currentLang==='EN'?'DETAILS':'ПОДРОБНЕЕ'}</button>
@@ -1376,13 +1364,13 @@
             render();
         }
 
-        // ===== DETAIL MODAL (ОБНОВЛЕНО С КЛИКАБЕЛЬНЫМ НИКОМ) =====
+        // ===== DETAIL MODAL =====
         function showInfoByKey(key) {
             const d = demons.find(x => x.key === key);
             const vics = d.victors ? Object.entries(d.victors).map(([vk, v]) => `
                 <div class="record-item">
                     <div style="display:flex;flex-direction:column;gap:6px;flex:1;min-width:0;">
-                        <span><b style="color:#fff; cursor:pointer; border-bottom:1px dashed #888; transition:0.2s;" onclick="openPlayerProfile('${v.name}')" onmouseover="this.style.color='var(--accent)'; this.style.borderColor='var(--accent)';" onmouseout="this.style.color='#fff'; this.style.borderColor='#888';">${v.name}</b> — <span style="color:var(--accent); font-weight:700;">${v.perc || '100%'}</span> <span style="color:#888;">(${v.att || '0'} att)</span></span>
+                        <span><b style="color:#fff;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(167,139,250,0.4);" onclick="openPlayerProfile(\'${v.name}\')" title="Открыть профиль">${v.name}</b> — <span style="color:var(--accent); font-weight:700;">${v.perc || '100%'}</span> <span style="color:#888;">(${v.att || '0'} att)</span></span>
                         ${v.vid ? `<a href="https://youtube.com/watch?v=${v.vid}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,0,0,0.1);border:1px solid rgba(255,0,0,0.25);color:#ff6b6b;padding:4px 10px;border-radius:7px;font-size:0.75rem;font-weight:700;text-decoration:none;width:fit-content;transition:0.2s;" onmouseover="this.style.background='rgba(255,0,0,0.2)'" onmouseout="this.style.background='rgba(255,0,0,0.1)'"><i class="fab fa-youtube"></i> Смотреть видео</a>` : ''}
                     </div>
                     ${isDeleteMode && isAdmin ? `<i class="fas fa-times" style="color:#ff4d4d; cursor:pointer; flex-shrink:0;" onclick="deleteVictor('${d.key}', '${vk}')"></i>` : ''}
@@ -1427,6 +1415,81 @@
             else { overlay.style.display = 'none'; document.body.style.overflow = ''; }
         });
 
+
+
+        // ===== PLAYER PROFILE =====
+        function openPlayerProfile(playerName) {
+            // Закрыть detail modal если открыт
+            document.getElementById('detailModal').style.display = 'none';
+
+            // Собрать все прохождения этого игрока по всем демонам
+            const completions = [];
+            demons.forEach(demon => {
+                if (!demon.victors) return;
+                Object.values(demon.victors).forEach(v => {
+                    if (v.name && v.name.toLowerCase() === playerName.toLowerCase()) {
+                        completions.push({ demon, victor: v });
+                    }
+                });
+            });
+
+            // Считаем баллы
+            let totalPoints = 0;
+            completions.forEach(c => {
+                const pts = parseFloat(c.demon.points);
+                if (!isNaN(pts)) totalPoints += pts;
+            });
+
+            // Лучший демон (по позиции в листе — меньший order = лучший)
+            let topDemon = '—';
+            if (completions.length > 0) {
+                const sorted = [...completions].sort((a, b) => (a.demon.order || 999) - (b.demon.order || 999));
+                topDemon = sorted[0].demon.name;
+            }
+
+            // Лучший % 
+            let bestPerc = '—';
+            if (completions.length > 0) {
+                const percs = completions.map(c => {
+                    const p = parseInt((c.victor.perc || '0').replace('%',''));
+                    return isNaN(p) ? 0 : p;
+                });
+                bestPerc = Math.max(...percs) + '%';
+            }
+
+            // Заполняем UI
+            document.getElementById('profileName').textContent = playerName;
+            document.getElementById('profilePoints').textContent = totalPoints % 1 === 0 ? totalPoints : totalPoints.toFixed(2);
+            document.getElementById('profileCompCount').textContent = completions.length;
+            document.getElementById('profileTopDemon').textContent = topDemon.length > 10 ? topDemon.substring(0,10)+'…' : topDemon;
+            document.getElementById('profileBestPerc').textContent = bestPerc;
+
+            // Карточки прохождений
+            const grid = document.getElementById('profileCompletionsGrid');
+            if (completions.length === 0) {
+                grid.innerHTML = '<p style="color:#555;font-size:0.85rem;grid-column:1/-1;text-align:center;padding:20px 0;">Нет прохождений</p>';
+            } else {
+                grid.innerHTML = completions.map(c => {
+                    const pts = c.demon.points ? `<span class="profile-completion-pts">⚡ ${c.demon.points}</span>` : '';
+                    const videoBlock = c.victor.vid
+                        ? `<iframe src="https://www.youtube.com/embed/${c.victor.vid}" allowfullscreen loading="lazy"></iframe>`
+                        : `<div class="no-video"><i class="fab fa-youtube"></i><span>Нет видео</span></div>`;
+                    return `<div class="profile-completion-card">
+                        <div class="profile-completion-video">${videoBlock}</div>
+                        <div class="profile-completion-info">
+                            <div class="profile-completion-name" title="${c.demon.name}">${c.demon.name}</div>
+                            <div class="profile-completion-meta">
+                                <span class="profile-completion-perc">${c.victor.perc || '100%'} · ${c.victor.att || '0'} att</span>
+                                ${pts}
+                            </div>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+
+            document.getElementById('playerProfileModal').style.display = 'block';
+            document.getElementById('playerProfileModal').scrollTop = 0;
+        }
 
         // ===== MOD QUICK PANEL FUNCTIONS =====
         function openModQuickPanel() {
