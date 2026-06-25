@@ -328,6 +328,40 @@
         .home-video-wrapper { position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 20px; overflow: hidden; border: 1px solid rgba(167,139,250,0.2); box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 40px rgba(167,139,250,0.08); }
         .home-video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
 
+        /* ===== REVIEWS SECTION ===== */
+        .reviews-section { max-width: 1100px; margin: 0 auto 80px; padding: 0 20px; }
+        .reviews-header { text-align: center; margin-bottom: 40px; }
+        .reviews-header h2 { font-family: 'Orbitron'; font-size: clamp(1.6rem, 4vw, 2.2rem); font-weight: 900; margin: 0 0 8px; background: var(--main-grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-transform: uppercase; letter-spacing: 2px; }
+        .reviews-header p { color: var(--text-main); font-size: 0.95rem; margin: 0; }
+
+        .review-form { max-width: 600px; margin: 0 auto 50px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 20px; padding: 30px 25px; backdrop-filter: blur(15px); box-shadow: 0 15px 40px rgba(0,0,0,0.4); }
+        .review-form-row { display: flex; gap: 12px; margin-bottom: 12px; }
+        .review-input, .review-textarea { width: 100%; padding: 13px 16px; background: rgba(4,5,13,0.7); border: 1px solid rgba(167,139,250,0.15); border-radius: 12px; color: white; font-size: 0.92rem; outline: none; transition: 0.3s; font-family: 'Nunito'; resize: vertical; }
+        .review-input:focus, .review-textarea:focus { border-color: var(--accent); box-shadow: 0 0 20px rgba(167,139,250,0.15); }
+        .review-textarea { min-height: 90px; margin-bottom: 14px; }
+
+        .review-stars-picker { display: flex; gap: 8px; justify-content: center; margin-bottom: 18px; }
+        .review-stars-picker i { font-size: 1.6rem; color: rgba(255,255,255,0.15); cursor: pointer; transition: 0.2s; }
+        .review-stars-picker i.active { color: #fbbf24; text-shadow: 0 0 12px rgba(251,191,36,0.5); }
+
+        .review-submit-btn { width: 100%; padding: 14px; background: var(--main-grad); border: none; color: #fff; border-radius: 12px; font-weight: 900; font-size: 0.88rem; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; transition: 0.3s; font-family: 'Nunito'; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .review-submit-btn:hover { box-shadow: 0 0 25px rgba(167,139,250,0.4); transform: translateY(-2px); }
+        .review-submit-note { text-align: center; color: #666; font-size: 0.78rem; margin: 12px 0 0; }
+
+        .reviews-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        .review-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 22px; backdrop-filter: blur(10px); transition: 0.3s; }
+        .review-card:hover { border-color: rgba(167,139,250,0.3); transform: translateY(-3px); }
+        .review-card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .review-card-name { font-weight: 900; font-size: 0.98rem; color: #fff; }
+        .review-card-stars { color: #fbbf24; font-size: 0.85rem; }
+        .review-card-stars i.empty { color: rgba(255,255,255,0.15); }
+        .review-card-text { color: var(--text-main); font-size: 0.88rem; line-height: 1.5; margin: 0; word-break: break-word; }
+        .reviews-empty { text-align: center; color: #555; font-size: 0.9rem; padding: 30px 0; grid-column: 1 / -1; }
+
+        @media (max-width: 600px) {
+            .review-form-row { flex-direction: column; }
+        }
+
         footer { padding: 40px 20px; text-align: center; background: rgba(4,5,13,0.95); margin-top: auto; border-top: 1px solid rgba(167,139,250,0.08); }
         .footer-socials { display: flex; justify-content: center; gap: 30px; margin-bottom: 20px; }
         .footer-socials a { color: var(--text-main); font-size: 2rem; transition: 0.3s; text-decoration: none; }
@@ -528,6 +562,35 @@
                 <iframe src="https://www.youtube.com/embed/26I0Xl9GOUo" title="Night GDPS | Новая Приватка" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
             </div>
         </section>
+
+        <section class="reviews-section">
+            <div class="reviews-header">
+                <h2>Отзывы игроков</h2>
+                <p>Поделись своим мнением о Night GDPS</p>
+            </div>
+
+            <div class="review-form">
+                <div class="review-form-row">
+                    <input type="text" id="reviewName" class="review-input" placeholder="Твой ник" maxlength="30">
+                </div>
+                <textarea id="reviewText" class="review-textarea" placeholder="Расскажи, что думаешь о сервере..." maxlength="400"></textarea>
+                <div class="review-stars-picker" id="reviewStarsPicker">
+                    <i class="fas fa-star" data-val="1"></i>
+                    <i class="fas fa-star" data-val="2"></i>
+                    <i class="fas fa-star" data-val="3"></i>
+                    <i class="fas fa-star" data-val="4"></i>
+                    <i class="fas fa-star" data-val="5"></i>
+                </div>
+                <button class="review-submit-btn" onclick="submitReview()">
+                    <i class="fas fa-paper-plane"></i> Отправить отзыв
+                </button>
+                <p class="review-submit-note">Отзыв появится на сайте после проверки модератором</p>
+            </div>
+
+            <div class="reviews-grid" id="reviewsGrid">
+                <div class="reviews-empty">Загрузка отзывов...</div>
+            </div>
+        </section>
     </main>
 
     <main id="downloadSection" class="section-page">
@@ -627,6 +690,11 @@
             <button onclick="modAddVictor()" style="width:100%;padding:12px;background:linear-gradient(135deg,#7b5ea7,#3d85c8);color:#fff;border:none;border-radius:10px;font-weight:900;font-size:0.85rem;text-transform:uppercase;cursor:pointer;font-family:Nunito;">
                 <i class="fas fa-save"></i> Сохранить
             </button>
+        </div>
+
+        <div style="background:rgba(167,139,250,0.05);border:1px solid rgba(167,139,250,0.12);border-radius:14px;padding:14px;margin-bottom:12px;">
+            <p style="margin:0 0 10px;font-size:0.8rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;">💬 Отзывы на проверке <span id="modReviewCount" style="color:#f472b6;"></span></p>
+            <div id="modReviewsList" style="max-height:280px;overflow-y:auto;"></div>
         </div>
 
         <button onclick="auth.signOut(); document.getElementById('modQuickPanel').style.display='none';" style="width:100%;padding:12px;background:transparent;border:1px solid #e74c3c;color:#e74c3c;border-radius:12px;cursor:pointer;font-weight:700;font-size:0.85rem;text-transform:uppercase;font-family:Nunito;">
@@ -840,6 +908,8 @@
         let demons = [];
         let creators = [];
         let moderators = [];
+        let reviews = [];
+        let selectedReviewRating = 0;
         let draggedItem = null;
         let draggedIndex = -1;
 
@@ -921,6 +991,127 @@
             moderators = val ? Object.entries(val).map(([k, v]) => ({ uid: k, ...v })) : [];
             renderModList();
         });
+
+        // ===== REVIEWS =====
+        db.ref('reviews').on('value', s => {
+            const val = s.val();
+            reviews = val ? Object.entries(val).map(([k, v]) => ({ key: k, ...v })) : [];
+            reviews.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+            renderApprovedReviews();
+            renderModReviews();
+        });
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str || '';
+            return div.innerHTML;
+        }
+
+        function renderStarsHtml(rating) {
+            let html = '';
+            for (let i = 1; i <= 5; i++) {
+                html += `<i class="fas fa-star${i <= rating ? '' : ' empty'}"></i>`;
+            }
+            return html;
+        }
+
+        function renderApprovedReviews() {
+            const grid = document.getElementById('reviewsGrid');
+            if (!grid) return;
+            const approved = reviews.filter(r => r.status === 'approved');
+            if (approved.length === 0) {
+                grid.innerHTML = '<div class="reviews-empty">Пока нет отзывов. Будь первым!</div>';
+                return;
+            }
+            grid.innerHTML = approved.map(r => `
+                <div class="review-card">
+                    <div class="review-card-head">
+                        <span class="review-card-name">${escapeHtml(r.name)}</span>
+                        <span class="review-card-stars">${renderStarsHtml(r.rating || 0)}</span>
+                    </div>
+                    <p class="review-card-text">${escapeHtml(r.text)}</p>
+                </div>
+            `).join('');
+        }
+
+        function renderModReviews() {
+            const list = document.getElementById('modReviewsList');
+            const countEl = document.getElementById('modReviewCount');
+            if (!list) return;
+            const pending = reviews.filter(r => r.status === 'pending');
+            if (countEl) countEl.textContent = pending.length ? `(${pending.length})` : '';
+            if (pending.length === 0) {
+                list.innerHTML = '<p style="color:#555;text-align:center;font-size:0.82rem;margin:6px 0;">Нет отзывов на проверке</p>';
+                return;
+            }
+            list.innerHTML = pending.map(r => `
+                <div style="background:rgba(4,5,13,0.6);border:1px solid rgba(167,139,250,0.12);border-radius:12px;padding:12px;margin-bottom:8px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                        <strong style="font-size:0.85rem;color:#fff;">${escapeHtml(r.name)}</strong>
+                        <span style="color:#fbbf24;font-size:0.75rem;">${renderStarsHtml(r.rating || 0)}</span>
+                    </div>
+                    <p style="font-size:0.8rem;color:var(--text-main);margin:0 0 10px;word-break:break-word;">${escapeHtml(r.text)}</p>
+                    <div style="display:flex;gap:8px;">
+                        <button onclick="approveReview('${r.key}')" style="flex:1;padding:8px;background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.3);color:#4ade80;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.78rem;font-family:Nunito;text-transform:uppercase;">
+                            <i class="fas fa-check"></i> Одобрить
+                        </button>
+                        <button onclick="rejectReview('${r.key}')" style="flex:1;padding:8px;background:rgba(255,70,70,0.1);border:1px solid rgba(255,70,70,0.3);color:#ff6868;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.78rem;font-family:Nunito;text-transform:uppercase;">
+                            <i class="fas fa-times"></i> Отклонить
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function approveReview(key) {
+            if (!isModerator) return;
+            db.ref('reviews/' + key).update({ status: 'approved' })
+                .then(() => showToast('✅ Отзыв опубликован!'))
+                .catch(e => showToast('Ошибка: ' + e.message));
+        }
+
+        function rejectReview(key) {
+            if (!isModerator) return;
+            if (!confirm('Удалить этот отзыв?')) return;
+            db.ref('reviews/' + key).remove()
+                .then(() => showToast('🗑️ Отзыв отклонён'))
+                .catch(e => showToast('Ошибка: ' + e.message));
+        }
+
+        // Stars picker for review form
+        document.addEventListener('DOMContentLoaded', () => {
+            const picker = document.getElementById('reviewStarsPicker');
+            if (!picker) return;
+            const stars = picker.querySelectorAll('i');
+            stars.forEach(star => {
+                star.addEventListener('click', () => {
+                    selectedReviewRating = parseInt(star.dataset.val);
+                    stars.forEach(s => s.classList.toggle('active', parseInt(s.dataset.val) <= selectedReviewRating));
+                });
+            });
+        });
+
+        function submitReview() {
+            const name = document.getElementById('reviewName').value.trim();
+            const text = document.getElementById('reviewText').value.trim();
+            if (!name) { showToast('Введи свой ник!'); return; }
+            if (!text) { showToast('Напиши текст отзыва!'); return; }
+            if (!selectedReviewRating) { showToast('Поставь оценку звёздами!'); return; }
+
+            db.ref('reviews').push({
+                name: name.slice(0, 30),
+                text: text.slice(0, 400),
+                rating: selectedReviewRating,
+                status: 'pending',
+                createdAt: Date.now()
+            }).then(() => {
+                showToast('✅ Отзыв отправлен на проверку!');
+                document.getElementById('reviewName').value = '';
+                document.getElementById('reviewText').value = '';
+                selectedReviewRating = 0;
+                document.querySelectorAll('#reviewStarsPicker i').forEach(s => s.classList.remove('active'));
+            }).catch(e => showToast('Ошибка: ' + e.message));
+        }
 
         function renderModList() {
             const container = document.getElementById('modListContainer');
