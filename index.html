@@ -956,7 +956,7 @@
             if (isModerator) {
                 localStorage.setItem('mxAdmin', '1');
                 trigger.style.display = isAdmin ? 'block' : 'none';
-                if (modTrigger) modTrigger.style.display = (currentUserRole === 'moderator') ? 'flex' : 'none';
+                if (modTrigger) modTrigger.style.display = 'flex';
                 modInd.style.display = 'flex';
                 if (currentUserRole === 'admin') {
                     modText.textContent = 'Администратор';
