@@ -344,6 +344,11 @@
         .review-stars-picker i { font-size: 1.6rem; color: rgba(255,255,255,0.15); cursor: pointer; transition: 0.2s; }
         .review-stars-picker i.active { color: #fbbf24; text-shadow: 0 0 12px rgba(251,191,36,0.5); }
 
+        .review-captcha-row { display: flex; align-items: center; gap: 10px; background: rgba(167,139,250,0.05); border: 1px solid rgba(167,139,250,0.15); border-radius: 12px; padding: 10px 14px; margin-bottom: 18px; flex-wrap: wrap; }
+        .review-captcha-label { color: var(--text-main); font-size: 0.85rem; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+        .review-captcha-label strong { color: var(--accent); font-size: 0.95rem; }
+        .review-captcha-input { width: 80px !important; flex: 0 0 80px; padding: 8px 10px !important; text-align: center; }
+
         .review-submit-btn { width: 100%; padding: 14px; background: var(--main-grad); border: none; color: #fff; border-radius: 12px; font-weight: 900; font-size: 0.88rem; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; transition: 0.3s; font-family: 'Nunito'; display: flex; align-items: center; justify-content: center; gap: 8px; }
         .review-submit-btn:hover { box-shadow: 0 0 25px rgba(167,139,250,0.4); transform: translateY(-2px); }
         .review-submit-note { text-align: center; color: #666; font-size: 0.78rem; margin: 12px 0 0; }
@@ -580,6 +585,10 @@
                     <i class="fas fa-star" data-val="3"></i>
                     <i class="fas fa-star" data-val="4"></i>
                     <i class="fas fa-star" data-val="5"></i>
+                </div>
+                <div class="review-captcha-row">
+                    <span class="review-captcha-label"><i class="fas fa-shield-alt"></i> Реши пример: <strong id="captchaQuestion">?</strong> =</span>
+                    <input type="text" id="captchaAnswer" class="review-input review-captcha-input" inputmode="numeric" placeholder="Ответ" maxlength="4">
                 </div>
                 <button class="review-submit-btn" onclick="submitReview()">
                     <i class="fas fa-paper-plane"></i> Отправить отзыв
@@ -1078,6 +1087,19 @@
                 .catch(e => showToast('Ошибка: ' + e.message));
         }
 
+        let reviewCaptchaAnswer = 0;
+
+        function generateReviewCaptcha() {
+            const a = Math.floor(Math.random() * 8) + 1; // 1-8
+            const b = Math.floor(Math.random() * 8) + 1; // 1-8
+            const useMinus = Math.random() < 0.5 && a >= b;
+            reviewCaptchaAnswer = useMinus ? (a - b) : (a + b);
+            const qEl = document.getElementById('captchaQuestion');
+            if (qEl) qEl.textContent = `${a} ${useMinus ? '−' : '+'} ${b}`;
+            const aEl = document.getElementById('captchaAnswer');
+            if (aEl) aEl.value = '';
+        }
+
         // Stars picker for review form
         document.addEventListener('DOMContentLoaded', () => {
             const picker = document.getElementById('reviewStarsPicker');
@@ -1089,14 +1111,60 @@
                     stars.forEach(s => s.classList.toggle('active', parseInt(s.dataset.val) <= selectedReviewRating));
                 });
             });
+            updateReviewFormCooldownUI();
+            generateReviewCaptcha();
         });
 
+        function updateReviewFormCooldownUI() {
+            const note = document.querySelector('.review-submit-note');
+            const btn = document.querySelector('.review-submit-btn');
+            if (!note || !btn) return;
+            const cooldownLeft = getReviewCooldownLeft();
+            if (cooldownLeft > 0) {
+                const hours = Math.ceil(cooldownLeft / (60 * 60 * 1000));
+                note.textContent = `Ты уже оставлял отзыв. Можно будет написать новый через ~${hours} ч.`;
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+                btn.style.cursor = 'not-allowed';
+            } else {
+                note.textContent = 'Отзыв появится на сайте после проверки модератором';
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+            }
+        }
+
+        function getReviewCooldownLeft() {
+            const last = parseInt(localStorage.getItem('lastReviewAt') || '0');
+            const cooldownMs = 12 * 60 * 60 * 1000; // 12 часов
+            const left = cooldownMs - (Date.now() - last);
+            return left > 0 ? left : 0;
+        }
+
         function submitReview() {
+            const cooldownLeft = getReviewCooldownLeft();
+            if (cooldownLeft > 0) {
+                const hours = Math.ceil(cooldownLeft / (60 * 60 * 1000));
+                showToast(`⏳ Ты уже оставлял отзыв. Попробуй через ~${hours} ч.`);
+                return;
+            }
+
             const name = document.getElementById('reviewName').value.trim();
             const text = document.getElementById('reviewText').value.trim();
+            const captchaInput = document.getElementById('captchaAnswer');
+            const userCaptchaAnswer = parseInt((captchaInput.value || '').trim());
+
             if (!name) { showToast('Введи свой ник!'); return; }
             if (!text) { showToast('Напиши текст отзыва!'); return; }
             if (!selectedReviewRating) { showToast('Поставь оценку звёздами!'); return; }
+            if (isNaN(userCaptchaAnswer) || userCaptchaAnswer !== reviewCaptchaAnswer) {
+                showToast('❌ Неверный ответ на пример. Попробуй ещё раз!');
+                generateReviewCaptcha();
+                return;
+            }
+
+            const submitBtn = document.querySelector('.review-submit-btn');
+            if (submitBtn) submitBtn.disabled = true;
 
             db.ref('reviews').push({
                 name: name.slice(0, 30),
@@ -1105,12 +1173,16 @@
                 status: 'pending',
                 createdAt: Date.now()
             }).then(() => {
+                localStorage.setItem('lastReviewAt', Date.now().toString());
                 showToast('✅ Отзыв отправлен на проверку!');
                 document.getElementById('reviewName').value = '';
                 document.getElementById('reviewText').value = '';
                 selectedReviewRating = 0;
                 document.querySelectorAll('#reviewStarsPicker i').forEach(s => s.classList.remove('active'));
-            }).catch(e => showToast('Ошибка: ' + e.message));
+                generateReviewCaptcha();
+                updateReviewFormCooldownUI();
+            }).catch(e => { showToast('Ошибка: ' + e.message); generateReviewCaptcha(); })
+              .finally(() => { if (submitBtn) submitBtn.disabled = getReviewCooldownLeft() > 0; });
         }
 
         function renderModList() {
