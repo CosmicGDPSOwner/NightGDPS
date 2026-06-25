@@ -102,7 +102,7 @@
         .logo-icon { font-size: 1.3rem; -webkit-text-fill-color: var(--accent); }
         .logo:hover { transform: scale(1.05); filter: drop-shadow(0 0 12px rgba(167,139,250,0.6)); }
         .nav-links { display: flex; align-items: center; gap: 20px; }
-        .nav-item { color: var(--text-main); text-decoration: none; font-weight: 700; transition: 0.3s; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; background: none; border: none; padding: 0; font-family: 'Nunito', sans-serif; vertical-align: middle; line-height: 1; }
+        .nav-item { color: var(--text-main); text-decoration: none; font-weight: 700; transition: 0.3s; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; background: none; border: none; padding: 0; margin: 0; font-family: 'Nunito', sans-serif; line-height: 1; display: inline-flex; align-items: center; gap: 6px; align-self: center; }
         .nav-item:hover { color: var(--accent); text-shadow: 0 0 10px rgba(167,139,250,0.6); }
 
         .dropdown { position: relative; display: inline-block; }
@@ -114,6 +114,9 @@
 
         .btn-download-nav { background: linear-gradient(135deg, #7b5ea7, #3d85c8); color: #fff !important; padding: 10px 20px; border-radius: 10px; font-weight: 900; transition: 0.3s; display: flex; align-items: center; gap: 8px; border: none; cursor: pointer; font-family: 'Nunito', sans-serif; text-transform: uppercase; font-size: 0.85rem; }
         .btn-download-nav:hover { box-shadow: 0 0 20px rgba(167,139,250,0.5); transform: translateY(-2px); }
+
+        .btn-dashboard-nav { background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff !important; padding: 10px 20px; border-radius: 10px; font-weight: 900; transition: 0.3s; display: flex; align-items: center; gap: 8px; border: none; cursor: pointer; font-family: 'Nunito', sans-serif; text-transform: uppercase; font-size: 0.85rem; text-decoration: none; }
+        .btn-dashboard-nav:hover { box-shadow: 0 0 20px rgba(34,197,94,0.5); transform: translateY(-2px); }
 
         .nav-socials { display: flex; gap: 15px; align-items: center; margin-left: 10px; border-left: 1px solid rgba(255,255,255,0.1); padding-left: 15px; }
         .nav-socials a { font-size: 1.5rem; color: var(--text-main); transition: 0.3s; display: flex; align-items: center; text-decoration: none; }
@@ -175,9 +178,10 @@
         .search-modes { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
         .search-mode-btn { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: var(--text-main); padding: 10px 20px; border-radius: 10px; cursor: pointer; font-size: 0.85rem; font-weight: 700; transition: 0.3s; font-family: 'Nunito'; }
         .search-mode-btn.active { background: rgba(167,139,250,0.12); color: var(--accent); border-color: rgba(167,139,250,0.4); }
+        .search-input-wrap { position: relative; display: flex; align-items: center; }
         .search-input { width: 100%; padding: 16px 20px 16px 50px; background: rgba(4,5,13,0.7); border: 1px solid rgba(167,139,250,0.15); border-radius: 15px; color: white; font-size: 1rem; outline: none; transition: 0.3s; backdrop-filter: blur(5px); font-family: 'Nunito'; }
         .search-input:focus { border-color: var(--accent); box-shadow: 0 0 20px rgba(167,139,250,0.15); }
-        .search-icon { position: absolute; left: 40px; bottom: 18px; color: #888; font-size: 1.1rem; }
+        .search-icon { position: absolute; left: 18px; color: #888; font-size: 1.1rem; pointer-events: none; z-index: 2; }
 
         .container { max-width: 1400px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 28px; padding: 20px; }
 
@@ -424,7 +428,7 @@
             .search-modes { gap: 8px; }
             .search-mode-btn { padding: 9px 12px; font-size: 0.77rem; flex: 1; text-align: center; }
             .search-input { padding: 13px 14px 13px 42px; font-size: 0.93rem; }
-            .search-icon { left: 26px; bottom: 15px; }
+            .search-icon { left: 16px; }
             .container { grid-template-columns: 1fr; gap: 14px; padding: 8px 12px; }
             .card-body { padding: 18px; }
             .card-img { height: 155px; }
@@ -466,6 +470,9 @@
             <button class="btn-download-nav" onclick="openSection('downloadSection')">
                 <i class="fas fa-download"></i> <span id="navDownloadText">Скачать</span>
             </button>
+            <a href="https://glowhosting.ru/gd/utypdf/tools/songAdd.php" target="_blank" class="btn-dashboard-nav">
+                <i class="fas fa-gauge"></i> Dashboard
+            </a>
             <div class="nav-socials">
                 <div class="mod-indicator" id="modIndicator"><i class="fas fa-shield-alt"></i> <span id="modIndicatorText">Модератор</span></div>
                 <a href="https://t.me/nightgdps2" target="_blank" class="tg-icon" title="Telegram"><i class="fab fa-telegram"></i></a>
@@ -552,8 +559,10 @@
                 <button id="searchModeMain" class="search-mode-btn active" onclick="setSearchMode('main')">Название / Автор</button>
                 <button id="searchModeTag" class="search-mode-btn" onclick="setSearchMode('tag')">По тегу</button>
             </div>
-            <i class="fas fa-search search-icon"></i>
-            <input type="text" id="searchInput" class="search-input" placeholder="Поиск уровня или автора..." oninput="render()">
+            <div class="search-input-wrap">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="searchInput" class="search-input" placeholder="Поиск уровня или автора..." oninput="render()">
+            </div>
         </div>
         <div id="dragIndicator" class="drag-indicator" style="display: none;">
             <i class="fas fa-arrows-alt"></i> Drag & Drop активен
