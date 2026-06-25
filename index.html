@@ -105,7 +105,7 @@
         .nav-item { color: var(--text-main); text-decoration: none; font-weight: 700; transition: 0.3s; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; background: none; border: none; padding: 0; margin: 0; font-family: 'Nunito', sans-serif; line-height: 1; display: inline-flex; align-items: center; gap: 6px; align-self: center; }
         .nav-item:hover { color: var(--accent); text-shadow: 0 0 10px rgba(167,139,250,0.6); }
 
-        .dropdown { position: relative; display: inline-block; }
+        .dropdown { position: relative; display: inline-flex; align-items: center; }
         .dropdown-content { display: none; position: absolute; background-color: rgba(12,16,38,0.97); min-width: 160px; box-shadow: 0px 10px 30px 0px rgba(0,0,0,0.8); z-index: 1001; border-radius: 12px; overflow: hidden; border: 1px solid rgba(167,139,250,0.2); top: calc(100% + 15px); left: 50%; transform: translateX(-50%); backdrop-filter: blur(10px); }
         .dropdown-content.show { display: block; animation: fadeIn 0.2s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateX(-50%) translateY(-10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
@@ -470,7 +470,7 @@
             <button class="btn-download-nav" onclick="openSection('downloadSection')">
                 <i class="fas fa-download"></i> <span id="navDownloadText">Скачать</span>
             </button>
-            <a href="https://glowhosting.ru/gd/utypdf/tools/songAdd.php" target="_blank" class="btn-dashboard-nav">
+            <a href="https://glowhosting.ru/gd/utypdf/dashboard/index.php" target="_blank" class="btn-dashboard-nav">
                 <i class="fas fa-gauge"></i> Dashboard
             </a>
             <div class="nav-socials">
