@@ -133,9 +133,10 @@
         .mobile-menu { display: none; position: fixed; top: 60px; left: 0; width: 100%; background: rgba(4,5,13,0.97); backdrop-filter: blur(20px); z-index: 999; border-bottom: 1px solid rgba(167,139,250,0.12); padding: 14px; flex-direction: column; gap: 8px; max-height: calc(100vh - 60px); overflow-y: auto; }
         .mobile-menu.open { display: flex; animation: mSlide 0.25s ease; }
         @keyframes mSlide { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
-        .m-btn { width: 100%; padding: 15px 18px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 13px; color: var(--text-main); font-weight: 700; font-size: 0.95rem; text-transform: uppercase; cursor: pointer; font-family: 'Nunito', sans-serif; text-align: left; transition: 0.2s; display: flex; align-items: center; gap: 12px; }
+        .m-btn { width: 100%; padding: 15px 18px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 13px; color: var(--text-main); font-weight: 700; font-size: 0.95rem; text-transform: uppercase; cursor: pointer; font-family: 'Nunito', sans-serif; text-align: left; transition: 0.2s; display: flex; align-items: center; gap: 12px; text-decoration: none; box-sizing: border-box; }
         .m-btn:active { background: rgba(167,139,250,0.1); color: var(--accent); border-color: rgba(167,139,250,0.3); }
         .m-btn.purple { background: linear-gradient(135deg, #7b5ea7, #3d85c8); color: #fff; border-color: transparent; }
+        .m-btn.green { background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; border-color: transparent; }
         .m-socials { display: flex; justify-content: center; gap: 28px; padding: 8px 0 4px; }
         .m-socials a { font-size: 1.9rem; text-decoration: none; transition: 0.3s; }
         .m-lang { align-self: center; background: none; border: 1px solid rgba(167,139,250,0.4); color: var(--accent); padding: 7px 22px; cursor: pointer; border-radius: 8px; font-weight: 700; font-family: 'Nunito', sans-serif; font-size: 0.9rem; }
@@ -538,6 +539,9 @@
         <button class="m-btn purple" onclick="openSection('downloadSection'); closeBurger();">
             <i class="fas fa-download"></i> Скачать игру
         </button>
+        <a href="https://glowhosting.ru/gd/utypdf/tools/songAdd.php" target="_blank" class="m-btn green">
+            <i class="fas fa-gauge"></i> Dashboard
+        </a>
         <div class="m-socials">
             <a href="https://t.me/nightgdps2" target="_blank" style="color:#00a2ed;"><i class="fab fa-telegram"></i></a>
             <a href="https://www.youtube.com/@lichigmdj98" target="_blank" style="color:#ff0000;"><i class="fab fa-youtube"></i></a>
@@ -1166,13 +1170,19 @@
             const submitBtn = document.querySelector('.review-submit-btn');
             if (submitBtn) submitBtn.disabled = true;
 
-            db.ref('reviews').push({
+            const reviewPushPromise = db.ref('reviews').push({
                 name: name.slice(0, 30),
                 text: text.slice(0, 400),
                 rating: selectedReviewRating,
                 status: 'pending',
                 createdAt: Date.now()
-            }).then(() => {
+            });
+
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Превышено время ожидания. Проверь интернет-соединение.')), 12000)
+            );
+
+            Promise.race([reviewPushPromise, timeoutPromise]).then(() => {
                 localStorage.setItem('lastReviewAt', Date.now().toString());
                 showToast('✅ Отзыв отправлен на проверку!');
                 document.getElementById('reviewName').value = '';
