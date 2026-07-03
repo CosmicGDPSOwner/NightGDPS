@@ -218,7 +218,6 @@
         .admin-form input, .admin-form select { width: 100%; padding: 14px; margin: 10px 0; background: #0f1225; border: 1px solid rgba(167,139,250,0.2); color: white; border-radius: 12px; font-size: 0.95rem; outline: none; transition: 0.3s; font-family: 'Nunito'; }
         .admin-form input:focus, .admin-form select:focus { border-color: var(--accent); box-shadow: 0 0 10px rgba(167,139,250,0.15); }
 
-
         /* ===== DIFFICULTY POINTS BADGE ===== */
         .diff-points-badge {
             position: absolute; top: 15px; right: 15px;
@@ -265,7 +264,8 @@
         .profile-completion-perc { font-size: 0.78rem; color: var(--accent); font-weight: 700; }
         .profile-completion-pts { font-size: 0.72rem; background: rgba(167,139,250,0.1); color: #a78bfa; padding: 2px 7px; border-radius: 6px; font-weight: 700; }
         @media (max-width: 480px) { .profile-completions-grid { grid-template-columns: 1fr 1fr; gap: 10px; } }
-        /* ===== EDIT DEMON MODAL ===== */
+        
+        /* ===== EDIT MODALS ===== */
         .edit-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); z-index: 4000; backdrop-filter: blur(20px); overflow-y: auto; -webkit-overflow-scrolling: touch; }
         .edit-modal-content { background: rgba(10,12,28,0.99); margin: 20px auto 50px; padding: 28px 22px; max-width: 500px; width: calc(100% - 28px); border-radius: 20px; border: 1px solid rgba(167,139,250,0.3); position: relative; box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 40px rgba(167,139,250,0.1); }
         .edit-modal-content h2 { font-family: 'Orbitron'; font-size: 1.3rem; margin: 0 40px 20px 0; background: var(--main-grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
@@ -364,10 +364,6 @@
         .review-card-text { color: var(--text-main); font-size: 0.88rem; line-height: 1.5; margin: 0; word-break: break-word; }
         .reviews-empty { text-align: center; color: #555; font-size: 0.9rem; padding: 30px 0; grid-column: 1 / -1; }
 
-        @media (max-width: 600px) {
-            .review-form-row { flex-direction: column; }
-        }
-
         /* ===== SLAYERS TOP LEADERBOARD ===== */
         .player-top-section { max-width: 800px; margin: 0 auto; padding: 0 16px 40px; }
         .player-top-list { display: flex; flex-direction: column; gap: 10px; }
@@ -416,12 +412,7 @@
             .home-video-section { padding: 0 14px; margin-bottom: 48px; }
 
             /* Модальные окна на мобильных */
-            .modal-content { margin: 8px auto 30px; padding: 16px 14px; width: calc(100% - 16px); border-radius: 16px; }
-            .profile-modal-content { margin: 8px auto 30px; padding: 18px 14px; width: calc(100% - 16px); border-radius: 16px; }
-            .edit-modal-content { margin: 8px auto 30px; padding: 20px 14px; width: calc(100% - 16px); border-radius: 16px; }
-            .mod-panel { width: calc(100% - 16px); padding: 20px 14px; border-radius: 16px; }
-            #modQuickPanel { width: calc(100% - 16px) !important; padding: 20px 14px !important; border-radius: 16px !important; max-height: calc(100vh - 20px) !important; }
-            .admin-form { width: calc(100% - 16px) !important; padding: 20px 14px !important; border-radius: 16px !important; }
+            .modal-content, .profile-modal-content, .edit-modal-content, .mod-panel, #modQuickPanel, .admin-form { margin: 8px auto 30px; padding: 16px 14px; width: calc(100% - 16px); border-radius: 16px; }
 
             /* Профиль игрока на мобильных */
             .profile-header { gap: 12px; }
@@ -536,39 +527,6 @@
             border-radius: 20px; padding: 5px 14px; color: var(--accent);
             font-size: 0.75rem; font-weight: 700; letter-spacing: 1px;
             margin: 0 auto 24px; display: flex; justify-content: center;
-        }
-
-        @media (max-width: 768px) {
-            .navbar { padding: 0 14px; height: 60px; flex-wrap: nowrap; }
-            .logo { font-size: 1rem; }
-            .nav-links { display: none !important; }
-            .burger-btn { display: flex !important; }
-            .section-page { margin-top: 60px; }
-            .moon { width: 55px; height: 55px; top: 70px; right: 5%; }
-            .welcome-hero { padding: 28px 16px; min-height: calc(100vh - 60px); }
-            .welcome-hero h1 { font-size: clamp(1.7rem, 9vw, 2.8rem); letter-spacing: 2px; }
-            .welcome-hero p { font-size: 0.95rem; margin: 16px 0 26px; }
-            .hero-btns { gap: 12px; }
-            .btn-main, .btn-outline { padding: 14px 22px; font-size: 0.88rem; flex: 1; min-width: 125px; max-width: 190px; }
-            .download-container { margin: 18px 14px; padding: 28px 16px; }
-            .dl-title { font-size: 1.6rem; }
-            .dl-cards { flex-direction: column; gap: 14px; }
-            .dl-card { min-width: 0; padding: 26px 20px; }
-            .hero-title { padding: 22px 14px 14px; }
-            .hero-title h2 { font-size: 1.7rem; }
-            .search-box { padding: 0 12px; margin-bottom: 22px; }
-            .search-modes { gap: 8px; }
-            .search-mode-btn { padding: 9px 12px; font-size: 0.77rem; flex: 1; text-align: center; }
-            .search-input { padding: 13px 14px 13px 42px; font-size: 0.93rem; }
-            .search-icon { left: 16px; }
-            .container { grid-template-columns: 1fr; gap: 14px; padding: 8px 12px; }
-            .card-body { padding: 18px; }
-            .card-img { height: 155px; }
-            .home-video-section { padding: 0 14px; margin-bottom: 48px; }
-        }
-        @media (min-width: 769px) {
-            .burger-btn { display: none !important; }
-            .mobile-menu { display: none !important; }
         }
     </style>
 </head>
@@ -727,7 +685,6 @@
             <div class="top-50-text" id="top50Banner">✦ TOP 50 ✦</div>
         </div>
 
-        <!-- Переключатель вкладок -->
         <div style="display:flex; justify-content:center; gap:10px; margin: 0 16px 24px; flex-wrap:wrap;">
             <button id="tabDemonsBtn" class="search-mode-btn active" onclick="switchTab('demons')" style="flex:1; max-width:160px; padding:11px 14px;">
                 <i class="fas fa-skull"></i> Демоны
@@ -753,16 +710,15 @@
         <div id="dragIndicator" class="drag-indicator" style="display: none;">
             <i class="fas fa-arrows-alt"></i> Drag & Drop активен
         </div>
+        
         <div class="container" id="mainContainer"></div>
 
-        <!-- Топ слееров -->
         <div class="player-top-section" id="playerTopSection" style="display:none;">
             <div class="player-top-list" id="playerTopList">
                 <div class="player-top-empty">Загрузка рейтинга...</div>
             </div>
         </div>
 
-        <!-- Топ создателей -->
         <div class="player-top-section" id="creatorTopSection" style="display:none;">
             <div class="player-top-list" id="creatorTopList">
                 <div class="player-top-empty">Загрузка рейтинга...</div>
@@ -782,12 +738,10 @@
 
     <button id="admin-trigger" onclick="openAdmin()"><i class="fas fa-cog"></i></button>
 
-    <!-- Кнопка для модератора -->
     <button id="mod-trigger" onclick="openModQuickPanel()" style="display:none; position:fixed; bottom:20px; left:70px; z-index:1000; background:linear-gradient(135deg,#3d85c8,#60a5fa); color:#fff; border:none; border-radius:14px; padding:12px 20px; font-family:Nunito,sans-serif; font-weight:900; font-size:0.9rem; cursor:pointer; box-shadow:0 4px 20px rgba(96,165,250,0.4); align-items:center; gap:8px;">
         <i class="fas fa-shield-alt"></i> МОД ПАНЕЛЬ
     </button>
 
-    <!-- MOD QUICK PANEL -->
     <div id="modQuickPanel" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:2000; background:#090b18; border:1px solid rgba(96,165,250,0.35); border-radius:20px; padding:28px 20px; width:calc(100% - 28px); max-width:380px; max-height:calc(100vh - 40px); overflow-y:auto; box-shadow:0 0 60px rgba(0,0,0,0.8);">
         <button onclick="document.getElementById('modQuickPanel').style.display='none'" style="position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:8px;background:rgba(255,70,70,0.13);border:1px solid rgba(255,70,70,0.3);color:#ff6868;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;"><i class="fas fa-times"></i></button>
         <h2 style="margin:0 0 4px;font-family:Orbitron,sans-serif;font-size:1.2rem;text-align:center;background:linear-gradient(135deg,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">🛡️ МОД ПАНЕЛЬ</h2>
@@ -855,8 +809,8 @@
                 <option value="add_demon">Добавить Демона</option>
                 <option value="add_creator">Добавить Креатора</option>
                 <option value="add_victor">Добавить Рекорд</option>
-                <option value="delete_mode">Удаление / Движение</option>
-                <option value="edit_demon_mode">✏️ Режим редактирования</option>
+                <option value="delete_mode">Удаление / Движение (Все)</option>
+                <option value="edit_demon_mode">✏️ Режим редактирования (Все)</option>
                 <option value="manage_mods">👥 Управление модераторами</option>
                 <option value="delete_all_demons">🗑️ Удалить ВСЕХ демонов</option>
                 <option value="maintenance">🔧 Техперерыв вкл/выкл</option>
@@ -922,6 +876,44 @@
             <div class="edit-btn-row">
                 <button class="edit-btn-cancel" onclick="closeEditModal()">Отмена</button>
                 <button class="edit-btn-save" onclick="saveDemonEdit()"><i class="fas fa-save"></i> Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== EDIT CREATOR MODAL ===== -->
+    <div id="editCreatorModal" class="edit-modal">
+        <div class="edit-modal-content" style="max-width: 400px;">
+            <button class="modal-close-pin" onclick="document.getElementById('editCreatorModal').style.display='none'"><i class="fas fa-times"></i></button>
+            <h2>✏️ РЕДАКТИРОВАТЬ СОЗДАТЕЛЯ</h2>
+            <input type="hidden" id="editCreatorKey">
+            
+            <label class="edit-field-label">Имя создателя</label>
+            <input type="text" id="editCreatorName" class="edit-field-input" placeholder="Никнейм">
+            
+            <label class="edit-field-label">Очки создателя (CP)</label>
+            <input type="number" id="editCreatorPoints" class="edit-field-input" placeholder="Количество CP">
+            
+            <div class="edit-btn-row">
+                <button class="edit-btn-cancel" onclick="document.getElementById('editCreatorModal').style.display='none'">Отмена</button>
+                <button class="edit-btn-save" onclick="saveCreatorEdit()"><i class="fas fa-save"></i> Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== EDIT SLAYER MODAL ===== -->
+    <div id="editSlayerModal" class="edit-modal">
+        <div class="edit-modal-content" style="max-width: 400px;">
+            <button class="modal-close-pin" onclick="document.getElementById('editSlayerModal').style.display='none'"><i class="fas fa-times"></i></button>
+            <h2>✏️ РЕДАКТИРОВАТЬ СЛЕЕРА</h2>
+            <input type="hidden" id="editSlayerOldName">
+            
+            <label class="edit-field-label">Новый ник игрока</label>
+            <input type="text" id="editSlayerNewName" class="edit-field-input" placeholder="Никнейм">
+            <p style="color:#888; font-size:0.8rem; margin-top:8px; line-height:1.4;">Изменение ника обновит его во всех рекордах демонов. Для удаления используйте кнопку корзины в списке.</p>
+            
+            <div class="edit-btn-row">
+                <button class="edit-btn-cancel" onclick="document.getElementById('editSlayerModal').style.display='none'">Отмена</button>
+                <button class="edit-btn-save" onclick="saveSlayerEdit()"><i class="fas fa-save"></i> Сохранить</button>
             </div>
         </div>
     </div>
@@ -1035,7 +1027,7 @@
         let currentLang = 'RU';
         let isAdmin = false;
         let isModerator = false;
-        let currentUserRole = null; // 'admin' | 'moderator' | null
+        let currentUserRole = null; 
         let isDeleteMode = false;
         let isEditMode = false;
         let isDragDropMode = false;
@@ -1056,7 +1048,6 @@
         // ===== AUTH STATE =====
         auth.onAuthStateChanged(user => {
             if (user) {
-                // Check role in DB
                 db.ref('moderators/' + user.uid).once('value', snap => {
                     const modData = snap.val();
                     if (modData) {
@@ -1064,7 +1055,6 @@
                         isModerator = true;
                         isAdmin = (currentUserRole === 'admin');
                     } else {
-                        // Не модератор и не админ — выходим
                         auth.signOut();
                         return;
                     }
@@ -1120,14 +1110,12 @@
             render();
         }
 
-        // ===== MODERATOR PANEL (for admins only) =====
         db.ref('moderators').on('value', s => {
             const val = s.val();
             moderators = val ? Object.entries(val).map(([k, v]) => ({ uid: k, ...v })) : [];
             renderModList();
         });
 
-        // ===== REVIEWS =====
         db.ref('reviews').on('value', s => {
             const val = s.val();
             reviews = val ? Object.entries(val).map(([k, v]) => ({ key: k, ...v })) : [];
@@ -1211,24 +1199,20 @@
 
         function approveReview(key) {
             if (!isModerator) return;
-            db.ref('reviews/' + key).update({ status: 'approved' })
-                .then(() => showToast('✅ Отзыв опубликован!'))
-                .catch(e => showToast('Ошибка: ' + e.message));
+            db.ref('reviews/' + key).update({ status: 'approved' }).then(() => showToast('✅ Отзыв опубликован!')).catch(e => showToast('Ошибка: ' + e.message));
         }
 
         function rejectReview(key) {
             if (!isModerator) return;
             if (!confirm('Удалить этот отзыв?')) return;
-            db.ref('reviews/' + key).remove()
-                .then(() => showToast('🗑️ Отзыв отклонён'))
-                .catch(e => showToast('Ошибка: ' + e.message));
+            db.ref('reviews/' + key).remove().then(() => showToast('🗑️ Отзыв отклонён')).catch(e => showToast('Ошибка: ' + e.message));
         }
 
         let reviewCaptchaAnswer = 0;
 
         function generateReviewCaptcha() {
-            const a = Math.floor(Math.random() * 8) + 1; // 1-8
-            const b = Math.floor(Math.random() * 8) + 1; // 1-8
+            const a = Math.floor(Math.random() * 8) + 1;
+            const b = Math.floor(Math.random() * 8) + 1;
             const useMinus = Math.random() < 0.5 && a >= b;
             reviewCaptchaAnswer = useMinus ? (a - b) : (a + b);
             const qEl = document.getElementById('captchaQuestion');
@@ -1237,7 +1221,6 @@
             if (aEl) aEl.value = '';
         }
 
-        // Stars picker for review form
         document.addEventListener('DOMContentLoaded', () => {
             const picker = document.getElementById('reviewStarsPicker');
             if (!picker) return;
@@ -1273,7 +1256,7 @@
 
         function getReviewCooldownLeft() {
             const last = parseInt(localStorage.getItem('lastReviewAt') || '0');
-            const cooldownMs = 4 * 60 * 60 * 1000; // 4 часа
+            const cooldownMs = 4 * 60 * 60 * 1000;
             const left = cooldownMs - (Date.now() - last);
             return left > 0 ? left : 0;
         }
@@ -1376,8 +1359,6 @@
                 return;
             }
 
-            // We create user via Firebase Auth REST API (secondary app trick)
-            // to avoid signing out current admin
             try {
                 const secondaryApp = firebase.initializeApp(firebaseConfig, 'secondary_' + Date.now());
                 const secondaryAuth = secondaryApp.auth();
@@ -1425,7 +1406,6 @@
             document.getElementById('adminControls').style.display = isModerator ? 'block' : 'none';
             document.getElementById('loginError').style.display = 'none';
             document.getElementById('adminPanel').style.display = 'block';
-            // Hide admin-only options for moderators
             const sel = document.getElementById('admAction');
             if (sel) {
                 Array.from(sel.options).forEach(opt => {
@@ -1485,19 +1465,98 @@
 
             if (!name) { showToast('Введи название уровня'); return; }
 
-            // Parse YouTube ID
             let vid = vidRaw;
             if (vidRaw.includes('v=')) vid = vidRaw.split('v=')[1].split('&')[0];
             else if (vidRaw.includes('youtu.be/')) vid = vidRaw.split('youtu.be/')[1].split('?')[0];
 
             const points = document.getElementById('editPoints').value.trim();
             const updates = { name, author, verifier, levelID, tag, img, vid, points };
-            db.ref('demons/' + key).update(updates)
-                .then(() => {
-                    showToast('Демон обновлён!');
-                    closeEditModal();
-                })
-                .catch(e => { showToast('Ошибка: ' + e.message); });
+            db.ref('demons/' + key).update(updates).then(() => {
+                showToast('Демон обновлён!');
+                closeEditModal();
+            }).catch(e => { showToast('Ошибка: ' + e.message); });
+        }
+
+        // ===== EDIT CREATOR =====
+        function openEditCreatorModal(key) {
+            if (!isAdmin) return;
+            const c = creators.find(x => x.key === key);
+            if (!c) return;
+            document.getElementById('editCreatorKey').value = key;
+            document.getElementById('editCreatorName').value = c.name || '';
+            document.getElementById('editCreatorPoints').value = c.points || 0;
+            document.getElementById('editCreatorModal').style.display = 'block';
+        }
+
+        function saveCreatorEdit() {
+            if (!isAdmin) return;
+            const key = document.getElementById('editCreatorKey').value;
+            const name = document.getElementById('editCreatorName').value.trim();
+            const points = parseInt(document.getElementById('editCreatorPoints').value) || 0;
+            
+            if (!name) return showToast('Введи имя!');
+            
+            db.ref('creators/' + key).update({ name, points }).then(() => {
+                showToast('Создатель обновлен!');
+                document.getElementById('editCreatorModal').style.display = 'none';
+            }).catch(e => showToast('Ошибка: ' + e.message));
+        }
+
+        // ===== EDIT SLAYER =====
+        function openEditSlayerModal(oldName) {
+            if (!isAdmin) return;
+            document.getElementById('editSlayerOldName').value = oldName;
+            document.getElementById('editSlayerNewName').value = oldName;
+            document.getElementById('editSlayerModal').style.display = 'block';
+        }
+
+        function saveSlayerEdit() {
+            if (!isAdmin) return;
+            const oldName = document.getElementById('editSlayerOldName').value;
+            const newName = document.getElementById('editSlayerNewName').value.trim();
+            if (!newName || oldName === newName) {
+                document.getElementById('editSlayerModal').style.display = 'none';
+                return;
+            }
+
+            let updates = {};
+            demons.forEach(d => {
+                if(d.victors) {
+                    Object.entries(d.victors).forEach(([vk, v]) => {
+                        if(v.name === oldName) {
+                            updates[`demons/${d.key}/victors/${vk}/name`] = newName;
+                        }
+                    });
+                }
+            });
+            
+            if (Object.keys(updates).length > 0) {
+                db.ref().update(updates).then(() => {
+                    showToast('Ник слеера обновлен во всех рекордах!');
+                    document.getElementById('editSlayerModal').style.display = 'none';
+                }).catch(e => showToast('Ошибка: ' + e.message));
+            } else {
+                document.getElementById('editSlayerModal').style.display = 'none';
+            }
+        }
+
+        function deleteSlayer(name) {
+            if (!isAdmin || !confirm(`Удалить все рекорды слеера ${name}? Это действие нельзя отменить!`)) return;
+            
+            let updates = {};
+            demons.forEach(d => {
+                if(d.victors) {
+                    Object.entries(d.victors).forEach(([vk, v]) => {
+                        if(v.name === name) {
+                            updates[`demons/${d.key}/victors/${vk}`] = null;
+                        }
+                    });
+                }
+            });
+            
+            db.ref().update(updates).then(() => {
+                showToast(`Все рекорды слеера ${name} удалены!`);
+            }).catch(e => showToast('Ошибка: ' + e.message));
         }
 
         // ===== NAVIGATION =====
@@ -1608,17 +1667,20 @@
         // ===== RENDER =====
         function render() {
             if (currentTab === 'players') { renderPlayerTop(); return; }
+            if (currentTab === 'creatortop') { renderCreatorTop(); return; }
+            
             const container = document.getElementById('mainContainer');
             const isDem = (currentTab === 'demons');
             const query = document.getElementById('searchInput').value.toLowerCase();
             const topBanner = document.getElementById('top50Banner');
+            
             container.innerHTML = '';
             container.style.display = 'grid';
             document.getElementById('txtHero').innerText = isDem ? (currentLang==='EN'?'DEMON LIST':'СПИСОК ДЕМОНОВ') : (currentLang==='EN'?'CREATOR TOP':'ТОП КРЕАТОРОВ');
             topBanner.style.display = isDem ? 'block' : 'none';
 
-            const canEdit = isModerator; // moderators and admins can edit
-            const canDelete = isAdmin;   // only admins can delete
+            const canEdit = isModerator;
+            const canDelete = isAdmin;
 
             if(isDem) {
                 const filtered = demons.filter(d => {
@@ -1639,7 +1701,6 @@
                         card.ondragend = handleDragEnd;
                     }
 
-                    // Admin controls: show edit btn for mods, plus delete/move for admins
                     let adminHtml = '';
                     if (isDeleteMode && canDelete) {
                         adminHtml = `<div class="admin-controls">
@@ -1670,19 +1731,6 @@
                         </div>`;
                     container.appendChild(card);
                 });
-            } else {
-                const filtered = creators.filter(c => c.name.toLowerCase().includes(query));
-                filtered.forEach((c, i) => {
-                    container.innerHTML += `<div class="card">
-                        ${isDeleteMode && canDelete ? `<div class="admin-controls">
-                            <button class="ctrl-btn btn-del" onclick="deleteItem('${c.key}','creators')"><i class="fas fa-trash"></i></button>
-                        </div>` : ''}
-                        <div class="card-body" style="display:flex;justify-content:space-between;align-items:center;padding:35px 40px;">
-                            <h3 style="margin:0;font-size:1.1rem;color:#fff;font-family:'Orbitron';">#${i+1} ${c.name}</h3>
-                            <div style="text-align:right;"><span style="font-size:1.4rem;color:var(--accent);font-weight:900;">${c.points} CP</span></div>
-                        </div>
-                    </div>`;
-                });
             }
         }
 
@@ -1690,7 +1738,6 @@
         function processAdmin() {
             const act = document.getElementById('admAction').value;
 
-            // Moderator-allowed actions
             if (act === 'add_victor') {
                 if (!isModerator) { alert('Нет доступа!'); return; }
                 const dKey = document.getElementById('selectDemon').value;
@@ -1734,6 +1781,7 @@
                 isDeleteMode = !isDeleteMode;
                 if (isDeleteMode) isEditMode = false;
                 render();
+                showToast(isDeleteMode ? '🗑️ Режим удаления включён' : '🗑️ Режим удаления выключён');
             } else if(act === 'manage_mods') {
                 closeAdmin();
                 openModPanel();
@@ -1772,7 +1820,7 @@
             document.getElementById('copyToast').innerText = t.toast;
             const navLabel = document.getElementById('navDemonListLabel');
             if (navLabel) navLabel.textContent = currentLang === 'RU' ? 'Информация' : 'Information';
-            document.getElementById('navDemonListText').innerHTML; // no-op, kept for compat
+            document.getElementById('navDemonListText').innerHTML; 
             document.getElementById('navDownloadText').innerText = t.navDownloadText;
             document.getElementById('navDropTop50').innerText = t.navDropTop50;
             document.getElementById('navDropCreators').innerText = t.navDropCreators;
@@ -1825,6 +1873,7 @@
             document.getElementById('fields_victor').style.display = a === 'add_victor' ? 'block' : 'none';
         }
         function closeAdmin() { document.getElementById('adminPanel').style.display='none'; }
+        
         function switchTab(t) {
             currentTab = t;
             const tabs = { demons: 'tabDemonsBtn', creators: 'tabCreatorsBtn', players: 'tabPlayersBtn', creatortop: 'tabCreatorTopBtn' };
@@ -1838,7 +1887,6 @@
             const searchBoxWrap = document.getElementById('searchBoxWrap');
             const top50Banner = document.getElementById('top50Banner');
 
-            // Скрываем всё по умолчанию
             if (mainContainer) mainContainer.style.display = 'none';
             if (playerTopSection) playerTopSection.style.display = 'none';
             if (creatorTopSection) creatorTopSection.style.display = 'none';
@@ -1876,6 +1924,13 @@
                 const rank = i + 1;
                 const rankClass = rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : 'rank-other';
                 const rankDisplay = rank <= 3 ? medals[rank - 1] : `#${rank}`;
+                
+                let adminBtns = '';
+                if (isAdmin) {
+                    if (isEditMode) adminBtns += `<button class="ctrl-btn btn-edit" onclick="event.stopPropagation(); openEditCreatorModal('${c.key}')" style="margin-right:6px;"><i class="fas fa-pen"></i></button>`;
+                    if (isDeleteMode) adminBtns += `<button class="ctrl-btn btn-del" onclick="event.stopPropagation(); deleteItem('${c.key}','creators')"><i class="fas fa-trash"></i></button>`;
+                }
+
                 return `<div class="player-top-card" style="cursor:default;">
                     <div class="player-top-rank ${rankClass}">${rankDisplay}</div>
                     <div class="player-top-avatar">🔨</div>
@@ -1883,9 +1938,12 @@
                         <div class="player-top-name">${escapeHtml(c.name)}</div>
                         <div class="player-top-meta">Создатель</div>
                     </div>
-                    <div>
-                        <div class="player-top-points">${c.points}</div>
-                        <span class="player-top-pts-label">CP</span>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        ${adminBtns !== '' ? `<div style="display:flex;">${adminBtns}</div>` : ''}
+                        <div>
+                            <div class="player-top-points">${c.points}</div>
+                            <span class="player-top-pts-label">CP</span>
+                        </div>
                     </div>
                 </div>`;
             }).join('');
@@ -1895,7 +1953,6 @@
             const list = document.getElementById('playerTopList');
             if (!list) return;
 
-            // Собираем всех уникальных игроков и их баллы
             const playerMap = {};
             demons.forEach(demon => {
                 if (!demon.victors) return;
@@ -1931,6 +1988,13 @@
                 const rankDisplay = rank <= 3 ? medals[rank - 1] : `#${rank}`;
                 const pts = p.totalPoints % 1 === 0 ? p.totalPoints : p.totalPoints.toFixed(2);
                 const completionText = `${p.completions} прохожд.`;
+                
+                let adminBtns = '';
+                if (isAdmin) {
+                    if (isEditMode) adminBtns += `<button class="ctrl-btn btn-edit" onclick="event.stopPropagation(); openEditSlayerModal('${p.name.replace(/'/g, "\\'")}')" style="margin-right:6px;"><i class="fas fa-pen"></i></button>`;
+                    if (isDeleteMode) adminBtns += `<button class="ctrl-btn btn-del" onclick="event.stopPropagation(); deleteSlayer('${p.name.replace(/'/g, "\\'")}')"><i class="fas fa-trash"></i></button>`;
+                }
+
                 return `<div class="player-top-card" onclick="openPlayerProfile('${p.name.replace(/'/g, "\\'")}')">
                     <div class="player-top-rank ${rankClass}">${rankDisplay}</div>
                     <div class="player-top-avatar">🌙</div>
@@ -1938,14 +2002,17 @@
                         <div class="player-top-name">${escapeHtml(p.name)}</div>
                         <div class="player-top-meta">${completionText}</div>
                     </div>
-                    <div>
-                        <div class="player-top-points">${pts}</div>
-                        <span class="player-top-pts-label">pts</span>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        ${adminBtns !== '' ? `<div style="display:flex;">${adminBtns}</div>` : ''}
+                        <div>
+                            <div class="player-top-points">${pts}</div>
+                            <span class="player-top-pts-label">pts</span>
+                        </div>
                     </div>
                 </div>`;
             }).join('');
         }
-        function deleteItem(k, p) { if(confirm("Delete item?")) db.ref(p+'/'+k).remove(); }
+        function deleteItem(k, p) { if(confirm("Подтверждаете удаление?")) db.ref(p+'/'+k).remove(); }
 
         db.ref('maintenance').on('value', s => {
             const on = s.val() === true;
@@ -1958,10 +2025,8 @@
 
         // ===== PLAYER PROFILE =====
         function openPlayerProfile(playerName) {
-            // Закрыть detail modal если открыт
             document.getElementById('detailModal').style.display = 'none';
 
-            // Собрать все прохождения этого игрока по всем демонам
             const completions = [];
             demons.forEach(demon => {
                 if (!demon.victors) return;
@@ -1972,23 +2037,20 @@
                 });
             });
 
-            // Считаем баллы
             let totalPoints = 0;
             completions.forEach(c => {
                 const perc = parseInt((c.victor.perc || '0').replace('%',''));
-                if (perc < 100) return; // баллы только за 100%
+                if (perc < 100) return;
                 const pts = parseFloat(c.demon.points);
                 if (!isNaN(pts)) totalPoints += pts;
             });
 
-            // Лучший демон (по позиции в листе — меньший order = лучший)
             let topDemon = '—';
             if (completions.length > 0) {
                 const sorted = [...completions].sort((a, b) => (a.demon.order || 999) - (b.demon.order || 999));
                 topDemon = sorted[0].demon.name;
             }
 
-            // Лучший % 
             let bestPerc = '—';
             if (completions.length > 0) {
                 const percs = completions.map(c => {
@@ -1998,14 +2060,12 @@
                 bestPerc = Math.max(...percs) + '%';
             }
 
-            // Заполняем UI
             document.getElementById('profileName').textContent = playerName;
             document.getElementById('profilePoints').textContent = totalPoints % 1 === 0 ? totalPoints : totalPoints.toFixed(2);
             document.getElementById('profileCompCount').textContent = completions.length;
             document.getElementById('profileTopDemon').textContent = topDemon.length > 10 ? topDemon.substring(0,10)+'…' : topDemon;
             document.getElementById('profileBestPerc').textContent = bestPerc;
 
-            // Карточки прохождений
             const grid = document.getElementById('profileCompletionsGrid');
             if (completions.length === 0) {
                 grid.innerHTML = '<p style="color:#555;font-size:0.85rem;grid-column:1/-1;text-align:center;padding:20px 0;">Нет прохождений</p>';
@@ -2034,7 +2094,6 @@
 
         // ===== MOD QUICK PANEL FUNCTIONS =====
         function openModQuickPanel() {
-            // Sync demon list in victor form
             const sel = document.getElementById('modVicDemon');
             if (sel) sel.innerHTML = demons.map(d => `<option value="${d.key}">${d.name}</option>`).join('');
             document.getElementById('modQuickPanel').style.display = 'block';
@@ -2121,7 +2180,6 @@
         function closeModLoginPage() {
             document.getElementById('modLoginPage').style.display = 'none';
             document.body.style.overflow = '';
-            // Clear hash without reload
             history.replaceState(null, '', window.location.pathname + window.location.search);
         }
 
@@ -2155,7 +2213,6 @@
 
             try {
                 await auth.signInWithEmailAndPassword(email, pass);
-                // Auth state listener will handle the rest
                 document.getElementById('modLoginPage').style.display = 'none';
                 document.body.style.overflow = '';
                 history.replaceState(null, '', window.location.pathname + window.location.search);
@@ -2172,26 +2229,20 @@
             }
         }
 
-        // ===== HASH ROUTING =====
         function checkHash() {
             if (window.location.hash === '#mod-login') {
-                // Only show if not already logged in
                 if (!isModerator) {
                     openModLoginPage();
                 } else {
-                    // Already logged in — just go to list
                     history.replaceState(null, '', window.location.pathname + window.location.search);
                     showToast('Ты уже вошёл как ' + (currentUserRole === 'admin' ? 'администратор' : 'модератор'));
                 }
             }
         }
 
-        // Check on load and on hash change
         window.addEventListener('hashchange', checkHash);
         window.addEventListener('load', checkHash);
-        // Also check immediately (for when page loads with hash already set)
         if (window.location.hash === '#mod-login') {
-            // Wait a tick for Firebase auth to initialize
             setTimeout(checkHash, 300);
         }
     </script>
