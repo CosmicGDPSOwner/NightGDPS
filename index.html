@@ -1064,10 +1064,9 @@
                         isModerator = true;
                         isAdmin = (currentUserRole === 'admin');
                     } else {
-                        // Legacy: if user exists but not in moderators node → treat as admin
-                        currentUserRole = 'admin';
-                        isAdmin = true;
-                        isModerator = true;
+                        // Не модератор и не админ — выходим
+                        auth.signOut();
+                        return;
                     }
                     updateUIForRole();
                 });
