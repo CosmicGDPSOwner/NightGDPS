@@ -368,7 +368,7 @@
             .review-form-row { flex-direction: column; }
         }
 
-        /* ===== PLAYER TOP LEADERBOARD ===== */
+        /* ===== SLAYERS TOP LEADERBOARD ===== */
         .player-top-section { max-width: 800px; margin: 0 auto; padding: 0 16px 40px; }
         .player-top-list { display: flex; flex-direction: column; gap: 10px; }
         .player-top-card { display: flex; align-items: center; gap: 14px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 14px 18px; transition: 0.3s; cursor: pointer; }
@@ -432,7 +432,7 @@
             .profile-stat-val { font-size: 1.1rem; }
             .profile-stat-label { font-size: 0.65rem; }
 
-            /* Топ игроков на мобильных */
+            /* Топ слееров на мобильных */
             .player-top-card { padding: 12px 14px; gap: 10px; }
             .player-top-rank { font-size: 0.95rem; min-width: 28px; }
             .player-top-avatar { width: 36px; height: 36px; font-size: 1rem; }
@@ -596,8 +596,8 @@
                 </button>
                 <div class="dropdown-content" id="demonDrop">
                     <a onclick="openSection('listSection'); switchTab('demons');" id="navDropTop50">ТОП 50</a>
-                    <a onclick="openSection('listSection'); switchTab('creators');" id="navDropCreators">КРЕАТОРЫ</a>
-                    <a onclick="openSection('listSection'); switchTab('players');">🏆 ТОП ИГРОКОВ</a>
+                    <a onclick="openSection('listSection'); switchTab('players');">🏆 ТОП СЛЕЕРОВ</a>
+                    <a onclick="openSection('listSection'); switchTab('creatortop');">🔨 ТОП СОЗДАТЕЛЕЙ</a>
                 </div>
             </div>
             <button class="btn-download-nav" onclick="openSection('downloadSection')">
@@ -626,11 +626,11 @@
         <button class="m-btn" onclick="openSection('listSection'); switchTab('demons'); closeBurger();">
             <i class="fas fa-list"></i> ТОП 50 Демонов
         </button>
-        <button class="m-btn" onclick="openSection('listSection'); switchTab('creators'); closeBurger();">
-            <i class="fas fa-star"></i> Топ Креаторов
-        </button>
         <button class="m-btn" onclick="openSection('listSection'); switchTab('players'); closeBurger();">
-            <i class="fas fa-trophy"></i> Топ Игроков
+                <i class="fas fa-trophy"></i> Топ Слееров
+        </button>
+        <button class="m-btn" onclick="openSection('listSection'); switchTab('creatortop'); closeBurger();">
+            <i class="fas fa-hammer"></i> Топ Создателей
         </button>
         <button class="m-btn purple" onclick="openSection('downloadSection'); closeBurger();">
             <i class="fas fa-download"></i> Скачать игру
@@ -732,11 +732,11 @@
             <button id="tabDemonsBtn" class="search-mode-btn active" onclick="switchTab('demons')" style="flex:1; max-width:160px; padding:11px 14px;">
                 <i class="fas fa-skull"></i> Демоны
             </button>
-            <button id="tabCreatorsBtn" class="search-mode-btn" onclick="switchTab('creators')" style="flex:1; max-width:160px; padding:11px 14px;">
-                <i class="fas fa-hammer"></i> Креаторы
-            </button>
             <button id="tabPlayersBtn" class="search-mode-btn" onclick="switchTab('players')" style="flex:1; max-width:160px; padding:11px 14px;">
-                <i class="fas fa-trophy"></i> Топ игроков
+                <i class="fas fa-trophy"></i> Топ слееров
+            </button>
+            <button id="tabCreatorTopBtn" class="search-mode-btn" onclick="switchTab('creatortop')" style="flex:1; max-width:160px; padding:11px 14px;">
+                <i class="fas fa-hammer"></i> Топ создателей
             </button>
         </div>
 
@@ -755,16 +755,22 @@
         </div>
         <div class="container" id="mainContainer"></div>
 
-        <!-- Топ игроков -->
+        <!-- Топ слееров -->
         <div class="player-top-section" id="playerTopSection" style="display:none;">
             <div class="player-top-list" id="playerTopList">
+                <div class="player-top-empty">Загрузка рейтинга...</div>
+            </div>
+        </div>
+
+        <!-- Топ создателей -->
+        <div class="player-top-section" id="creatorTopSection" style="display:none;">
+            <div class="player-top-list" id="creatorTopList">
                 <div class="player-top-empty">Загрузка рейтинга...</div>
             </div>
         </div>
     </main>
 
     <footer>
-        <div class="footer-moon">🌙</div>
         <div class="footer-socials">
             <a href="https://t.me/nightgdps2" target="_blank"><i class="fab fa-telegram"></i></a>
             <a href="https://www.youtube.com/@lichigmdj98" target="_blank"><i class="fab fa-youtube"></i></a>
@@ -1287,29 +1293,38 @@
             const submitBtn = document.querySelector('.review-submit-btn');
             if (submitBtn) submitBtn.disabled = true;
 
-            const reviewPushPromise = db.ref('reviews').push({
-                name: name.slice(0, 30),
-                text: text.slice(0, 400),
-                rating: selectedReviewRating,
-                status: 'pending',
-                createdAt: Date.now()
-            });
+            const doSend = () => {
+                const reviewPushPromise = db.ref('reviews').push({
+                    name: name.slice(0, 30),
+                    text: text.slice(0, 400),
+                    rating: selectedReviewRating,
+                    status: 'pending',
+                    createdAt: Date.now()
+                });
 
-            const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Превышено время ожидания. Проверь интернет-соединение.')), 12000)
-            );
+                const timeoutPromise = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Превышено время ожидания. Проверь интернет-соединение.')), 12000)
+                );
 
-            Promise.race([reviewPushPromise, timeoutPromise]).then(() => {
-                localStorage.setItem('lastReviewAt', Date.now().toString());
-                showToast('✅ Отзыв отправлен на проверку!');
-                document.getElementById('reviewName').value = '';
-                document.getElementById('reviewText').value = '';
-                selectedReviewRating = 0;
-                document.querySelectorAll('#reviewStarsPicker i').forEach(s => s.classList.remove('active'));
-                generateReviewCaptcha();
-                updateReviewFormCooldownUI();
-            }).catch(e => { showToast('Ошибка: ' + e.message); generateReviewCaptcha(); })
-              .finally(() => { if (submitBtn) submitBtn.disabled = getReviewCooldownLeft() > 0; });
+                Promise.race([reviewPushPromise, timeoutPromise]).then(() => {
+                    localStorage.setItem('lastReviewAt', Date.now().toString());
+                    showToast('✅ Отзыв отправлен на проверку!');
+                    document.getElementById('reviewName').value = '';
+                    document.getElementById('reviewText').value = '';
+                    selectedReviewRating = 0;
+                    document.querySelectorAll('#reviewStarsPicker i').forEach(s => s.classList.remove('active'));
+                    generateReviewCaptcha();
+                    updateReviewFormCooldownUI();
+                }).catch(e => { showToast('Ошибка: ' + e.message); generateReviewCaptcha(); })
+                  .finally(() => { if (submitBtn) submitBtn.disabled = getReviewCooldownLeft() > 0; });
+            };
+
+            // Если пользователь не авторизован — входим анонимно, потом отправляем
+            if (!auth.currentUser) {
+                auth.signInAnonymously().then(doSend).catch(() => doSend());
+            } else {
+                doSend();
+            }
         }
 
         function renderModList() {
@@ -1531,7 +1546,8 @@
         db.ref('creators').on('value', s => {
             const val = s.val();
             creators = val ? Object.entries(val).map(([k, d]) => ({ key: k, ...d })).sort((a,b)=>parseInt(b.points)-parseInt(a.points)) : [];
-            render();
+            if (currentTab === 'creatortop') renderCreatorTop();
+            else render();
         });
 
         // ===== SEARCH =====
@@ -1810,30 +1826,68 @@
         function closeAdmin() { document.getElementById('adminPanel').style.display='none'; }
         function switchTab(t) {
             currentTab = t;
-            // Обновляем кнопки вкладок
-            const tabs = { demons: 'tabDemonsBtn', creators: 'tabCreatorsBtn', players: 'tabPlayersBtn' };
+            const tabs = { demons: 'tabDemonsBtn', creators: 'tabCreatorsBtn', players: 'tabPlayersBtn', creatortop: 'tabCreatorTopBtn' };
             Object.entries(tabs).forEach(([key, btnId]) => {
                 const btn = document.getElementById(btnId);
                 if (btn) btn.classList.toggle('active', key === t);
             });
-            // Показываем/скрываем нужные секции
             const mainContainer = document.getElementById('mainContainer');
             const playerTopSection = document.getElementById('playerTopSection');
+            const creatorTopSection = document.getElementById('creatorTopSection');
             const searchBoxWrap = document.getElementById('searchBoxWrap');
             const top50Banner = document.getElementById('top50Banner');
+
+            // Скрываем всё по умолчанию
+            if (mainContainer) mainContainer.style.display = 'none';
+            if (playerTopSection) playerTopSection.style.display = 'none';
+            if (creatorTopSection) creatorTopSection.style.display = 'none';
+            if (searchBoxWrap) searchBoxWrap.style.display = 'none';
+            if (top50Banner) top50Banner.style.display = 'none';
+
             if (t === 'players') {
-                if (mainContainer) mainContainer.style.display = 'none';
                 if (playerTopSection) playerTopSection.style.display = 'block';
-                if (searchBoxWrap) searchBoxWrap.style.display = 'none';
-                if (top50Banner) top50Banner.style.display = 'none';
-                document.getElementById('txtHero').innerText = currentLang === 'EN' ? 'PLAYER TOP' : 'ТОП ИГРОКОВ';
+                document.getElementById('txtHero').innerText = currentLang === 'EN' ? 'SLAYERS TOP' : 'ТОП СЛЕЕРОВ';
                 renderPlayerTop();
+            } else if (t === 'creatortop') {
+                if (creatorTopSection) creatorTopSection.style.display = 'block';
+                document.getElementById('txtHero').innerText = currentLang === 'EN' ? 'CREATOR TOP' : 'ТОП СОЗДАТЕЛЕЙ';
+                renderCreatorTop();
             } else {
                 if (mainContainer) mainContainer.style.display = 'grid';
-                if (playerTopSection) playerTopSection.style.display = 'none';
                 if (searchBoxWrap) searchBoxWrap.style.display = 'block';
                 render();
             }
+        }
+
+        function renderCreatorTop() {
+            const list = document.getElementById('creatorTopList');
+            if (!list) return;
+
+            const sorted = [...creators].sort((a, b) => parseInt(b.points) - parseInt(a.points));
+
+            if (sorted.length === 0) {
+                list.innerHTML = '<div class="player-top-empty">Рейтинг пуст. Добавьте создателей!</div>';
+                return;
+            }
+
+            const medals = ['🥇', '🥈', '🥉'];
+            list.innerHTML = sorted.map((c, i) => {
+                const rank = i + 1;
+                const rankClass = rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : 'rank-other';
+                const rankDisplay = rank <= 3 ? medals[rank - 1] : `#${rank}`;
+                return `<div class="player-top-card" style="cursor:default;">
+                    <div class="player-top-rank ${rankClass}">${rankDisplay}</div>
+                    <div class="player-top-avatar">🔨</div>
+                    <div class="player-top-info">
+                        <div class="player-top-name">${escapeHtml(c.name)}</div>
+                        <div class="player-top-meta">Создатель</div>
+                    </div>
+                    <div>
+                        <div class="player-top-points">${c.points}</div>
+                        <span class="player-top-pts-label">CP</span>
+                    </div>
+                </div>`;
+            }).join('');
         }
 
         function renderPlayerTop() {
