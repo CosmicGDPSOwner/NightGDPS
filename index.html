@@ -1,2250 +1,293 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Night GDPS | Official Global List</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+import sys
+import os
+import sqlite3
+import telebot
+from telebot import types
+
+# Перенаправляем все ошибки в файл 'error_log.txt' в текущей папке
+sys.stderr = open(os.path.join(os.path.dirname(__file__), 'error_log.txt'), 'w', encoding='utf-8')
+sys.stdout = sys.stderr
+
+# ⚙️ НАСТРОЙКИ БОТА
+TOKEN = '8679279294:AAEfnadFvfuhHD-22-At-CqUWuCarjv5UMU'
+ADMIN_CHAT_ID = -1003802502537  # ID вашего закрытого чата модераторов
+ADMIN_ID = 7606858072          # ТВОЙ личный ID в Telegram
+VERSION = "0.0.2v"
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+db_path = os.path.join(BASE_DIR, 'bot_data.db')
+
+def init_db():
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            user_id INTEGER PRIMARY KEY,
+            sub_news INTEGER DEFAULT 1
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+init_db()
+
+# Для этой логики StateMemoryStorage больше НЕ нужен, убираем лишнюю нагрузку
+bot = telebot.TeleBot(TOKEN)
+
+# Вспомогательный класс для имитации состояний при заполнении заявок пользователями в ЛС
+# (Оставляем только для обычных юзеров, чтобы они заполняли анкеты)
+class SimpleStorage:
+    def __init__(self):
+        self.data = {}
+    def set_state(self, user_id, state):
+        self.data[user_id] = state
+    def get_state(self, user_id):
+        return self.data.get(user_id, "idle")
+
+user_storage = SimpleStorage()
+
+# --- КЛАВИАТУРЫ ---
+def get_main_menu(user_id):
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute('SELECT sub_news FROM users WHERE user_id = ?', (user_id,))
+    res = cursor.fetchone()
+    conn.close()
+    sub_status = res[0] if res else 1
     
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    btn_sub = types.InlineKeyboardButton("🔔 Рассылка: ВКЛ (Нажми для ВЫКЛ)" if sub_status == 1 else "🔕 Рассылка: ВЫКЛ (Нажми для ВКЛ)", callback_data="toggle_sub")
+    markup.add(
+        types.InlineKeyboardButton("📥 Отправить реквест", callback_data="btn_request"),
+        types.InlineKeyboardButton("⚖️ Подать апелляцию", callback_data="btn_appeal"),
+        types.InlineKeyboardButton("🏆 Отправить рекорд", callback_data="btn_victory"),
+        btn_sub
+    )
+    return markup
 
-    <style>
-        :root {
-            --bg: #04050d;
-            --bg2: #080b18;
-            --card-bg: rgba(12, 16, 38, 0.75);
-            --main-grad: linear-gradient(135deg, #7b5ea7 0%, #3d85c8 50%, #a78bfa 100%);
-            --accent: #a78bfa;
-            --accent2: #60a5fa;
-            --accent3: #f472b6;
-            --moon: #e2d4f0;
-            --text-main: #94a3b8;
-            --card-border: rgba(167, 139, 250, 0.12);
-            --glow: rgba(167, 139, 250, 0.25);
-        }
+def get_cancel_menu():
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("❌ Отменить действие", callback_data="btn_cancel"))
+    return markup
 
-        * { box-sizing: border-box; scroll-behavior: smooth; -webkit-tap-highlight-color: transparent; }
-        body { margin: 0; font-family: 'Nunito', sans-serif; background: var(--bg); color: white; overflow-x: hidden; min-height: 100vh; display: flex; flex-direction: column; }
+def get_reply_keyboard(user_id, application_type):
+    markup = types.InlineKeyboardMarkup()
+    # Храним тип и ID прямо в callback-данных кнопки
+    markup.add(types.InlineKeyboardButton("💬 Ответить", callback_data=f"setup_{application_type}_{user_id}"))
+    return markup
 
-        .bg-wrapper { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background: var(--bg); overflow: hidden; }
+def get_welcome_text():
+    return (
+        f"👋 **Привет! Я официальный бот-помощник нашего сервера.**\n"
+        f"🤖 _Версия бота: {VERSION}_\n\n"
+        "Я помогаю модераторам быстро собирать заявки. Управляйте мной через кнопки ниже 👇\n\n"
+        "🤖 **Доступные функции:**\n"
+        "• 📥 **Реквест** (`/request`)\n"
+        "• ⚖️ **Апелляция** (`/appeal`)\n"
+        "• 🏆 **Рекорд** (`/victory`)\n\n"
+        "**Выбирай нужный пункт на кнопках:**"
+    )
 
-        .stars-layer {
-            position: absolute; width: 100%; height: 100%;
-            background-image:
-                radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,0.85) 0%, transparent 100%),
-                radial-gradient(1px 1px at 25% 40%, rgba(255,255,255,0.6) 0%, transparent 100%),
-                radial-gradient(1.5px 1.5px at 40% 10%, rgba(255,255,255,0.9) 0%, transparent 100%),
-                radial-gradient(1px 1px at 55% 30%, rgba(255,255,255,0.7) 0%, transparent 100%),
-                radial-gradient(1px 1px at 70% 20%, rgba(255,255,255,0.8) 0%, transparent 100%),
-                radial-gradient(1.5px 1.5px at 85% 5%, rgba(255,255,255,0.9) 0%, transparent 100%),
-                radial-gradient(1px 1px at 15% 60%, rgba(255,255,255,0.5) 0%, transparent 100%),
-                radial-gradient(1px 1px at 30% 80%, rgba(255,255,255,0.6) 0%, transparent 100%),
-                radial-gradient(1px 1px at 45% 70%, rgba(255,255,255,0.4) 0%, transparent 100%),
-                radial-gradient(1px 1px at 60% 55%, rgba(255,255,255,0.7) 0%, transparent 100%),
-                radial-gradient(1.5px 1.5px at 75% 65%, rgba(255,255,255,0.85) 0%, transparent 100%),
-                radial-gradient(1px 1px at 90% 45%, rgba(255,255,255,0.6) 0%, transparent 100%),
-                radial-gradient(1px 1px at 5% 90%, rgba(255,255,255,0.5) 0%, transparent 100%),
-                radial-gradient(1px 1px at 20% 95%, rgba(255,255,255,0.7) 0%, transparent 100%),
-                radial-gradient(1px 1px at 50% 88%, rgba(255,255,255,0.6) 0%, transparent 100%),
-                radial-gradient(1px 1px at 80% 85%, rgba(255,255,255,0.5) 0%, transparent 100%),
-                radial-gradient(1px 1px at 95% 75%, rgba(255,255,255,0.8) 0%, transparent 100%),
-                radial-gradient(1px 1px at 35% 50%, rgba(255,255,255,0.4) 0%, transparent 100%),
-                radial-gradient(2px 2px at 65% 85%, rgba(200,180,255,0.9) 0%, transparent 100%),
-                radial-gradient(1.5px 1.5px at 88% 30%, rgba(160,200,255,0.9) 0%, transparent 100%);
-        }
-        .stars-layer-2 {
-            position: absolute; width: 100%; height: 100%; animation: twinkle 4s ease-in-out infinite alternate;
-            background-image:
-                radial-gradient(1px 1px at 7% 22%, rgba(255,255,255,0.6) 0%, transparent 100%),
-                radial-gradient(1px 1px at 18% 48%, rgba(255,255,255,0.4) 0%, transparent 100%),
-                radial-gradient(1px 1px at 32% 65%, rgba(255,255,255,0.7) 0%, transparent 100%),
-                radial-gradient(1px 1px at 48% 42%, rgba(255,255,255,0.5) 0%, transparent 100%),
-                radial-gradient(1.5px 1.5px at 58% 12%, rgba(255,255,255,0.8) 0%, transparent 100%),
-                radial-gradient(1px 1px at 72% 58%, rgba(255,255,255,0.6) 0%, transparent 100%),
-                radial-gradient(1px 1px at 82% 78%, rgba(255,255,255,0.5) 0%, transparent 100%),
-                radial-gradient(1px 1px at 93% 18%, rgba(255,255,255,0.7) 0%, transparent 100%),
-                radial-gradient(1px 1px at 42% 92%, rgba(255,255,255,0.6) 0%, transparent 100%),
-                radial-gradient(1.5px 1.5px at 3% 72%, rgba(200,170,255,0.8) 0%, transparent 100%);
-        }
-        @keyframes twinkle { 0% { opacity: 0.6; } 100% { opacity: 1; } }
+# --- ОБРАБОТКА СТАРТА ---
+@bot.message_handler(commands=['start'])
+def send_welcome(message):
+    u_id = message.from_user.id
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute('INSERT OR IGNORE INTO users (user_id, sub_news) VALUES (?, 1)', (u_id,))
+    conn.commit()
+    conn.close()
+    
+    user_storage.set_state(u_id, "idle")
+    bot.send_message(message.chat.id, get_welcome_text(), reply_markup=get_main_menu(u_id), parse_mode="Markdown")
 
-        .moon {
-            position: absolute; top: 60px; right: 8%;
-            width: 90px; height: 90px;
-            border-radius: 50%;
-            background: radial-gradient(circle at 35% 35%, #f0e6ff, #c4a8f0 50%, #8b5cf6 100%);
-            box-shadow: 0 0 40px rgba(167,139,250,0.5), 0 0 80px rgba(167,139,250,0.2), inset -10px -10px 20px rgba(100,60,200,0.3);
-            animation: moonGlow 5s ease-in-out infinite alternate;
-        }
-        .moon::before {
-            content: '';
-            position: absolute; top: 15px; left: 20px;
-            width: 14px; height: 14px; border-radius: 50%;
-            background: rgba(140,80,220,0.3);
-            box-shadow: 20px 8px 0 rgba(140,80,220,0.2), 8px 30px 0 rgba(140,80,220,0.15);
-        }
-        @keyframes moonGlow {
-            0% { box-shadow: 0 0 40px rgba(167,139,250,0.4), 0 0 80px rgba(167,139,250,0.15); }
-            100% { box-shadow: 0 0 60px rgba(167,139,250,0.7), 0 0 120px rgba(167,139,250,0.3); }
-        }
+# --- УПРАВЛЕНИЕ ПОДПИСКОЙ ---
+@bot.callback_query_handler(func=lambda call: call.data == "toggle_sub")
+def toggle_subscription(call):
+    try: bot.answer_callback_query(call.id)
+    except: pass
+    u_id = call.from_user.id
+    
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute('SELECT sub_news FROM users WHERE user_id = ?', (u_id,))
+    res = cursor.fetchone()
+    current_status = res[0] if res else 1
+    new_status = 0 if current_status == 1 else 1
+    cursor.execute('UPDATE users SET sub_news = ? WHERE user_id = ?', (new_status, u_id))
+    conn.commit()
+    conn.close()
+    
+    status_text = "🔕 Вы отключили рассылку." if new_status == 0 else "🔔 Вы включили рассылку!"
+    bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=get_welcome_text() + f"\n\n👉 _{status_text}_", reply_markup=get_main_menu(u_id), parse_mode="Markdown")
 
-        .orb { position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.12; animation: float 14s ease-in-out infinite; }
-        .orb-1 { width: 700px; height: 700px; background: radial-gradient(circle, #7b5ea7, #3d85c8); top: -15%; left: -15%; }
-        .orb-2 { width: 600px; height: 600px; background: radial-gradient(circle, #f472b6, #7b5ea7); bottom: -10%; right: -10%; animation-delay: -7s; }
-        .orb-3 { width: 400px; height: 400px; background: radial-gradient(circle, #60a5fa, #a78bfa); top: 40%; left: 30%; animation-delay: -3.5s; opacity: 0.07; }
-        @keyframes float { 0%,100% { transform: translate(0,0); } 50% { transform: translate(25px, 35px); } }
+# --- АДМИН-ПАНЕЛЬ ---
+@bot.message_handler(commands=['panel'])
+def admin_panel(message):
+    if message.from_user.id != ADMIN_ID: return
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("📢 Создать рассылку новостей", callback_data="admin_broadcast"))
+    bot.send_message(message.chat.id, "🛠 **Панель администратора**", reply_markup=markup, parse_mode="Markdown")
 
-        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 6%; background: rgba(4,5,13,0.88); backdrop-filter: blur(20px); position: fixed; width: 100%; top: 0; z-index: 1000; border-bottom: 1px solid rgba(167,139,250,0.15); }
-        .logo { font-family: 'Orbitron'; font-size: 1.5rem; font-weight: 900; background: var(--main-grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; cursor: pointer; transition: 0.3s; letter-spacing: 2px; display: flex; align-items: center; gap: 10px; }
-        .logo-icon { font-size: 1.3rem; -webkit-text-fill-color: var(--accent); }
-        .logo:hover { transform: scale(1.05); filter: drop-shadow(0 0 12px rgba(167,139,250,0.6)); }
-        .nav-links { display: flex; align-items: center; gap: 20px; }
-        .nav-item { color: var(--text-main); text-decoration: none; font-weight: 700; transition: 0.3s; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; background: none; border: none; padding: 0; margin: 0; font-family: 'Nunito', sans-serif; line-height: 1; display: inline-flex; align-items: center; gap: 6px; align-self: center; }
-        .nav-item:hover { color: var(--accent); text-shadow: 0 0 10px rgba(167,139,250,0.6); }
+@bot.callback_query_handler(func=lambda call: call.data == "admin_broadcast")
+def start_broadcast(call):
+    try: bot.answer_callback_query(call.id)
+    except: pass
+    if call.from_user.id != ADMIN_ID: return
+    user_storage.set_state(call.from_user.id, "waiting_broadcast")
+    bot.send_message(call.message.chat.id, "📝 Напишите текст новости для рассылки:", reply_markup=get_cancel_menu())
 
-        .dropdown { position: relative; display: inline-flex; align-items: center; }
-        .dropdown-content { display: none; position: absolute; background-color: rgba(12,16,38,0.97); min-width: 160px; box-shadow: 0px 10px 30px 0px rgba(0,0,0,0.8); z-index: 1001; border-radius: 12px; overflow: hidden; border: 1px solid rgba(167,139,250,0.2); top: calc(100% + 15px); left: 50%; transform: translateX(-50%); backdrop-filter: blur(10px); }
-        .dropdown-content.show { display: block; animation: fadeIn 0.2s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateX(-50%) translateY(-10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
-        .dropdown-content a { color: var(--text-main); padding: 14px 16px; text-decoration: none; display: block; text-align: center; font-size: 0.85rem; text-transform: uppercase; font-weight: 700; transition: 0.3s; cursor: pointer; }
-        .dropdown-content a:hover { background-color: rgba(167,139,250,0.1); color: var(--accent); }
+# --- ОБРАБОТКА НАЖАТИЯ НА КНОПКУ «ОТВЕТИТЬ» В ЧАТЕ МОДЕРАТОРОВ ---
+@bot.callback_query_handler(func=lambda call: call.data.startswith("setup_"))
+def setup_reply_to_user(call):
+    try: bot.answer_callback_query(call.id)
+    except: pass
+    
+    # Извлекаем данные из кнопки
+    data_parts = call.data.split('_')
+    app_type = data_parts[1]
+    target_user_id = data_parts[2]
+    
+    type_names = {"req": "Реквест", "app": "Апелляцию", "vic": "Рекорд"}
+    
+    # Бот присылает специальное сообщение-инструкцию
+    # Мы зашиваем ID получателя и тип заявки прямо в текст сообщения бота, чтобы потом их прочитать!
+    instruction_msg = (
+        f"✍️ **Ответ на {type_names.get(app_type, 'заявку')}**\n"
+        f"🎯 Получатель ID: `{target_user_id}`\n"
+        f"📦 Тип: `{app_type}`\n"
+        f"ーーーーーーーーーーーー\n"
+        f"⚠️ **Важно:** Отправьте текст вашего ответа ОБЯЗАТЕЛЬНО используя функцию **Ответить (Reply)** на это сообщение бота."
+    )
+    bot.send_message(call.message.chat.id, instruction_msg, parse_mode="Markdown")
 
-        .btn-download-nav { background: linear-gradient(135deg, #7b5ea7, #3d85c8); color: #fff !important; padding: 10px 20px; border-radius: 10px; font-weight: 900; transition: 0.3s; display: flex; align-items: center; gap: 8px; border: none; cursor: pointer; font-family: 'Nunito', sans-serif; text-transform: uppercase; font-size: 0.85rem; }
-        .btn-download-nav:hover { box-shadow: 0 0 20px rgba(167,139,250,0.5); transform: translateY(-2px); }
+# --- ПЕРЕХВАТ ОТВЕТА МОДЕРАТОРА (Через Reply) ---
+@bot.message_handler(func=lambda message: message.chat.id == ADMIN_CHAT_ID and message.reply_to_message is not None)
+def handle_moderator_reply(message):
+    reply_to = message.reply_to_message
+    
+    # Проверяем, что модератор ответил именно на инструкцию бота, содержащую ID получателя
+    if "🎯 Получатель ID:" not in reply_to.text or "📦 Тип:" not in reply_to.text:
+        return # Если это просто случайный реплай в чате, игнорируем
 
-        .btn-dashboard-nav { background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff !important; padding: 10px 20px; border-radius: 10px; font-weight: 900; transition: 0.3s; display: flex; align-items: center; gap: 8px; border: none; cursor: pointer; font-family: 'Nunito', sans-serif; text-transform: uppercase; font-size: 0.85rem; text-decoration: none; }
-        .btn-dashboard-nav:hover { box-shadow: 0 0 20px rgba(34,197,94,0.5); transform: translateY(-2px); }
-
-        .nav-socials { display: flex; gap: 15px; align-items: center; margin-left: 10px; border-left: 1px solid rgba(255,255,255,0.1); padding-left: 15px; }
-        .nav-socials a { font-size: 1.5rem; color: var(--text-main); transition: 0.3s; display: flex; align-items: center; text-decoration: none; }
-        .nav-socials a.tg-icon:hover { color: #00a2ed; transform: scale(1.2) translateY(-2px); }
-        .nav-socials a.yt-icon:hover { color: #ff0000; transform: scale(1.2) translateY(-2px); }
-        .nav-socials a.dc-icon:hover { color: #5865F2; transform: scale(1.2) translateY(-2px); }
-
-        .burger-btn { display: none; flex-direction: column; justify-content: center; align-items: center; width: 44px; height: 44px; background: rgba(167,139,250,0.07); border: 1px solid rgba(167,139,250,0.25); border-radius: 10px; cursor: pointer; gap: 5px; padding: 0; flex-shrink: 0; }
-        .burger-btn span { display: block; width: 20px; height: 2px; background: var(--accent); border-radius: 2px; transition: 0.3s; }
-        .burger-btn.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
-        .burger-btn.open span:nth-child(2) { opacity: 0; }
-        .burger-btn.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
-
-        .mobile-menu { display: none; position: fixed; top: 60px; left: 0; width: 100%; background: rgba(4,5,13,0.97); backdrop-filter: blur(20px); z-index: 999; border-bottom: 1px solid rgba(167,139,250,0.12); padding: 14px; flex-direction: column; gap: 8px; max-height: calc(100vh - 60px); overflow-y: auto; }
-        .mobile-menu.open { display: flex; animation: mSlide 0.25s ease; }
-        @keyframes mSlide { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
-        .m-btn { width: 100%; padding: 15px 18px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 13px; color: var(--text-main); font-weight: 700; font-size: 0.95rem; text-transform: uppercase; cursor: pointer; font-family: 'Nunito', sans-serif; text-align: left; transition: 0.2s; display: flex; align-items: center; gap: 12px; text-decoration: none; box-sizing: border-box; }
-        .m-btn:active { background: rgba(167,139,250,0.1); color: var(--accent); border-color: rgba(167,139,250,0.3); }
-        .m-btn.purple { background: linear-gradient(135deg, #7b5ea7, #3d85c8); color: #fff; border-color: transparent; }
-        .m-btn.green { background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; border-color: transparent; }
-        .m-socials { display: flex; justify-content: center; gap: 28px; padding: 8px 0 4px; }
-        .m-socials a { font-size: 1.9rem; text-decoration: none; transition: 0.3s; }
-        .m-lang { align-self: center; background: none; border: 1px solid rgba(167,139,250,0.4); color: var(--accent); padding: 7px 22px; cursor: pointer; border-radius: 8px; font-weight: 700; font-family: 'Nunito', sans-serif; font-size: 0.9rem; }
-
-        .section-page { display: none; flex: 1; margin-top: 80px; padding-bottom: 50px; animation: fadeInPage 0.4s ease; }
-        .section-page.active { display: block; }
-        @keyframes fadeInPage { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
-        .welcome-hero { min-height: calc(100vh - 80px); display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 0 20px; }
-        .hero-eyebrow { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; color: var(--accent); font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 3px; }
-        .hero-eyebrow::before, .hero-eyebrow::after { content: ''; display: block; width: 40px; height: 1px; background: var(--accent); opacity: 0.5; }
-        .welcome-hero h1 { font-family: 'Orbitron'; font-size: clamp(2.5rem, 7vw, 5.5rem); margin: 0; line-height: 1.1; text-transform: uppercase; letter-spacing: 4px; }
-        .h1-night { background: linear-gradient(135deg, #e2d4f0 0%, #a78bfa 40%, #60a5fa 70%, #f472b6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 30px rgba(167,139,250,0.4)); }
-        .welcome-hero p { font-size: 1.1rem; color: var(--text-main); max-width: 650px; margin: 25px 0 40px; line-height: 1.8; }
-        .hero-btns { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
-        .btn-main { padding: 16px 40px; border-radius: 12px; background: linear-gradient(135deg, #7b5ea7, #3d85c8); color: #fff; text-decoration: none; font-weight: 900; font-size: 1rem; transition: 0.3s; border: none; cursor: pointer; font-family: 'Nunito'; text-transform: uppercase; position: relative; overflow: hidden; }
-        .btn-main::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent); transition: 0.5s; }
-        .btn-main:hover::before { left: 100%; }
-        .btn-main:hover { transform: translateY(-4px); box-shadow: 0 15px 35px rgba(123,94,167,0.5); }
-        .btn-outline { padding: 16px 40px; border-radius: 12px; border: 1px solid rgba(167,139,250,0.5); color: var(--accent); text-decoration: none; font-weight: 900; font-size: 1rem; transition: 0.3s; background: rgba(167,139,250,0.05); cursor: pointer; font-family: 'Nunito'; text-transform: uppercase; }
-        .btn-outline:hover { background: rgba(167,139,250,0.15); border-color: var(--accent); color: #fff; transform: translateY(-4px); box-shadow: 0 15px 35px rgba(167,139,250,0.2); }
-
-        .download-container { max-width: 800px; margin: 40px auto; text-align: center; background: var(--card-bg); padding: 50px 30px; border-radius: 25px; border: 1px solid var(--card-border); backdrop-filter: blur(15px); box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 60px rgba(167,139,250,0.05); }
-        .dl-title { font-family: 'Orbitron'; font-size: 2.5rem; margin-bottom: 10px; background: var(--main-grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .dl-version { display: inline-block; background: rgba(167,139,250,0.1); color: var(--accent); padding: 8px 20px; border-radius: 20px; font-weight: 700; font-size: 1rem; margin-bottom: 40px; border: 1px solid rgba(167,139,250,0.3); }
-        .dl-cards { display: flex; justify-content: center; gap: 30px; flex-wrap: wrap; }
-        .dl-card { flex: 1; min-width: 250px; background: rgba(4,5,13,0.6); border: 1px solid rgba(255,255,255,0.05); padding: 40px 20px; border-radius: 20px; transition: 0.3s; text-decoration: none; color: white; display: flex; flex-direction: column; align-items: center; }
-        .dl-card:hover { transform: translateY(-10px); border-color: var(--accent); background: rgba(4,5,13,0.9); box-shadow: 0 15px 30px rgba(167,139,250,0.15); }
-        .dl-icon { font-size: 4rem; margin-bottom: 20px; color: var(--text-main); transition: 0.3s; }
-        .dl-card.pc:hover .dl-icon { color: var(--accent2); }
-        .dl-card.android:hover .dl-icon { color: #4ade80; }
-        .dl-name { font-size: 1.4rem; font-weight: 900; margin-bottom: 10px; font-family: 'Orbitron'; }
-        .dl-desc { font-size: 0.9rem; color: #666; font-weight: 400; }
-
-        .hero-title { width: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px 20px 30px; text-align: center; }
-        .hero-title h2 { font-family: 'Orbitron'; font-size: 2.6rem; margin: 0; text-transform: uppercase; letter-spacing: 3px; background: var(--main-grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .top-50-text { color: var(--accent); font-family: 'Orbitron'; font-weight: 900; font-size: 1.2rem; margin-top: 8px; letter-spacing: 8px; text-shadow: 0 0 20px rgba(167,139,250,0.6); opacity: 0.8; }
-
-        .search-box { max-width: 600px; margin: 0 auto 40px; position: relative; padding: 0 20px; }
-        .search-modes { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
-        .search-mode-btn { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: var(--text-main); padding: 10px 20px; border-radius: 10px; cursor: pointer; font-size: 0.85rem; font-weight: 700; transition: 0.3s; font-family: 'Nunito'; }
-        .search-mode-btn.active { background: rgba(167,139,250,0.12); color: var(--accent); border-color: rgba(167,139,250,0.4); }
-        .search-input-wrap { position: relative; display: flex; align-items: center; }
-        .search-input { width: 100%; padding: 16px 20px 16px 50px; background: rgba(4,5,13,0.7); border: 1px solid rgba(167,139,250,0.15); border-radius: 15px; color: white; font-size: 1rem; outline: none; transition: 0.3s; backdrop-filter: blur(5px); font-family: 'Nunito'; }
-        .search-input:focus { border-color: var(--accent); box-shadow: 0 0 20px rgba(167,139,250,0.15); }
-        .search-icon { position: absolute; left: 18px; color: #888; font-size: 1.1rem; pointer-events: none; z-index: 2; }
-
-        .container { max-width: 1400px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 28px; padding: 20px; }
-
-        .card { background: var(--card-bg); backdrop-filter: blur(10px); border-radius: 20px; overflow: hidden; border: 1px solid var(--card-border); position: relative; transition: 0.3s; box-shadow: 0 10px 30px rgba(0,0,0,0.4); cursor: default; }
-        .card:hover { border-color: rgba(167,139,250,0.35); box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 30px rgba(167,139,250,0.1); transform: translateY(-4px); }
-        .card.dragging { opacity: 0.5; transform: scale(0.98); border-color: var(--accent); box-shadow: 0 0 30px rgba(167,139,250,0.3); }
-        .card.drag-over { border-color: var(--accent); transform: scale(1.02); box-shadow: 0 0 30px rgba(167,139,250,0.5); }
-        .card.drag-over::after { content: '▼'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 3rem; color: var(--accent); opacity: 0.5; pointer-events: none; z-index: 100; }
-        .card[draggable="true"] { cursor: grab; }
-        .card[draggable="true"]:active { cursor: grabbing; }
-
-        .card-img { width: 100%; height: 180px; object-fit: cover; border-bottom: 1px solid rgba(167,139,250,0.08); }
-        .card-body { padding: 25px; }
-
-        .demon-tag { position: absolute; top: 15px; left: 15px; background: linear-gradient(135deg, #7b5ea7, #3d85c8); color: #fff; padding: 5px 12px; border-radius: 8px; font-weight: 900; font-size: 0.72rem; z-index: 50; box-shadow: 0 4px 15px rgba(0,0,0,0.5); text-transform: uppercase; letter-spacing: 1px; }
-
-        .level-id-box { display: flex; align-items: center; gap: 8px; background: rgba(167,139,250,0.07); padding: 10px 15px; border-radius: 10px; color: var(--accent); cursor: pointer; margin-bottom: 20px; font-weight: 700; transition: 0.2s; width: fit-content; font-size: 0.85rem; border: 1px solid rgba(167,139,250,0.12); }
-        .level-id-box:hover { background: rgba(167,139,250,0.14); border-color: rgba(167,139,250,0.3); }
-
-        .admin-controls { position: absolute; top: 10px; right: 10px; z-index: 100; display: flex; gap: 8px; background: rgba(0,0,0,0.85); padding: 6px; border-radius: 12px; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.1); }
-        .ctrl-btn { width: 34px; height: 34px; border-radius: 8px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white !important; font-size: 0.95rem; transition: 0.2s; }
-        .btn-up { background-color: #2ecc71 !important; }
-        .btn-down { background-color: #3498db !important; }
-        .btn-del { background-color: #e74c3c !important; }
-        .btn-edit { background-color: #f39c12 !important; }
-        .ctrl-btn:hover { transform: scale(1.1); filter: brightness(1.2); }
-
-        #admin-trigger { position: fixed; bottom: 20px; left: 20px; opacity: 0.2; cursor: pointer; font-size: 1.5rem; background: none; border: none; color: white; z-index: 1000; transition: 0.3s; display: none; }
-        #admin-trigger:hover { opacity: 1; color: var(--accent); }
-
-        .admin-form { display: none; background: #090b18; padding: 25px 18px; border-radius: 20px; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2000; width: calc(100% - 28px); max-width: 450px; max-height: calc(100vh - 40px); overflow-y: auto; border: 1px solid rgba(167,139,250,0.4); box-shadow: 0 0 50px rgba(0,0,0,0.8), 0 0 30px rgba(167,139,250,0.1); }
-        .admin-form h2 { margin-top: 0; font-size: 1.5rem; color: white; text-align: center; font-family: Orbitron; background: var(--main-grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .admin-form input, .admin-form select { width: 100%; padding: 14px; margin: 10px 0; background: #0f1225; border: 1px solid rgba(167,139,250,0.2); color: white; border-radius: 12px; font-size: 0.95rem; outline: none; transition: 0.3s; font-family: 'Nunito'; }
-        .admin-form input:focus, .admin-form select:focus { border-color: var(--accent); box-shadow: 0 0 10px rgba(167,139,250,0.15); }
-
-        /* ===== DIFFICULTY POINTS BADGE ===== */
-        .diff-points-badge {
-            position: absolute; top: 15px; right: 15px;
-            background: rgba(4,5,13,0.85);
-            border: 1px solid rgba(167,139,250,0.35);
-            color: var(--accent); padding: 5px 11px;
-            border-radius: 8px; font-weight: 900;
-            font-size: 0.78rem; z-index: 50;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            font-family: 'Orbitron', sans-serif;
-            backdrop-filter: blur(4px);
-            letter-spacing: 0.5px;
-        }
-        .diff-points-badge .diff-label {
-            font-size: 0.6rem; color: #666;
-            text-transform: uppercase; letter-spacing: 1px;
-            display: block; margin-bottom: 1px;
-            font-family: 'Nunito', sans-serif;
-        }
-
-        /* ===== PLAYER PROFILE MODAL ===== */
-        .profile-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); z-index: 5000; backdrop-filter: blur(20px); overflow-y: auto; -webkit-overflow-scrolling: touch; }
-        .profile-modal-content { background: rgba(10,12,28,0.99); margin: 16px auto 50px; padding: 24px 20px; max-width: 700px; width: calc(100% - 28px); border-radius: 22px; border: 1px solid rgba(167,139,250,0.2); position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
-        .profile-header { display: flex; align-items: center; gap: 18px; margin-bottom: 24px; flex-wrap: wrap; }
-        .profile-avatar { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, #7b5ea7, #3d85c8); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; flex-shrink: 0; box-shadow: 0 0 20px rgba(167,139,250,0.3); }
-        .profile-name { font-family: 'Orbitron'; font-size: clamp(1.1rem, 4vw, 1.6rem); font-weight: 900; color: #fff; margin: 0 0 4px; }
-        .profile-points-badge { display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, rgba(123,94,167,0.2), rgba(61,133,200,0.2)); border: 1px solid rgba(167,139,250,0.35); padding: 5px 14px; border-radius: 20px; color: var(--accent); font-size: 0.85rem; font-weight: 900; font-family: 'Orbitron'; }
-        .profile-stats-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 22px; }
-        .profile-stat { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 12px 18px; text-align: center; flex: 1; min-width: 80px; }
-        .profile-stat-val { font-size: 1.3rem; font-weight: 900; color: var(--accent); font-family: 'Orbitron'; }
-        .profile-stat-label { font-size: 0.72rem; color: #555; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
-        .profile-section-title { font-size: 0.8rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 2px; margin: 0 0 14px; display: flex; align-items: center; gap: 8px; }
-        .profile-section-title::after { content: ''; flex: 1; height: 1px; background: rgba(167,139,250,0.15); }
-        .profile-completions-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
-        .profile-completion-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(167,139,250,0.1); border-radius: 14px; overflow: hidden; transition: 0.25s; }
-        .profile-completion-card:hover { border-color: rgba(167,139,250,0.3); transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.4); }
-        .profile-completion-video { position: relative; width: 100%; aspect-ratio: 16/9; background: #0a0d1e; }
-        .profile-completion-video iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; border-radius: 0; }
-        .profile-completion-video .no-video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #333; font-size: 1.6rem; gap: 6px; }
-        .profile-completion-video .no-video span { font-size: 0.7rem; color: #444; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
-        .profile-completion-info { padding: 10px 12px; }
-        .profile-completion-name { font-size: 0.88rem; font-weight: 900; color: #fff; font-family: 'Orbitron'; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .profile-completion-meta { display: flex; justify-content: space-between; align-items: center; }
-        .profile-completion-perc { font-size: 0.78rem; color: var(--accent); font-weight: 700; }
-        .profile-completion-pts { font-size: 0.72rem; background: rgba(167,139,250,0.1); color: #a78bfa; padding: 2px 7px; border-radius: 6px; font-weight: 700; }
-        @media (max-width: 480px) { .profile-completions-grid { grid-template-columns: 1fr 1fr; gap: 10px; } }
+    try:
+        # Парсим ID пользователя и тип заявки прямо из текста сообщения бота
+        lines = reply_to.text.split('\n')
+        target_user_id = None
+        app_type = "🔔 УВЕДОМЛЕНИЕ"
         
-        /* ===== EDIT MODALS ===== */
-        .edit-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); z-index: 4000; backdrop-filter: blur(20px); overflow-y: auto; -webkit-overflow-scrolling: touch; }
-        .edit-modal-content { background: rgba(10,12,28,0.99); margin: 20px auto 50px; padding: 28px 22px; max-width: 500px; width: calc(100% - 28px); border-radius: 20px; border: 1px solid rgba(167,139,250,0.3); position: relative; box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 40px rgba(167,139,250,0.1); }
-        .edit-modal-content h2 { font-family: 'Orbitron'; font-size: 1.3rem; margin: 0 40px 20px 0; background: var(--main-grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .edit-field-label { font-size: 0.8rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin: 14px 0 4px; display: block; }
-        .edit-field-input { width: 100%; padding: 13px 15px; background: #0a0d1e; border: 1px solid rgba(167,139,250,0.18); color: white; border-radius: 12px; font-size: 0.92rem; outline: none; transition: 0.3s; font-family: 'Nunito'; }
-        .edit-field-input:focus { border-color: var(--accent); box-shadow: 0 0 10px rgba(167,139,250,0.15); }
-        .edit-img-preview { width: 100%; height: 140px; object-fit: cover; border-radius: 10px; margin-top: 10px; border: 1px solid rgba(167,139,250,0.15); display: block; }
-        .edit-btn-row { display: flex; gap: 10px; margin-top: 20px; }
-        .edit-btn-save { flex: 1; padding: 14px; background: linear-gradient(135deg, #7b5ea7, #3d85c8); color: #fff; border: none; border-radius: 12px; font-weight: 900; font-size: 0.9rem; text-transform: uppercase; cursor: pointer; font-family: 'Nunito'; transition: 0.3s; }
-        .edit-btn-save:hover { filter: brightness(1.15); transform: translateY(-2px); }
-        .edit-btn-cancel { flex: 1; padding: 14px; background: transparent; color: #888; border: 1px solid #333; border-radius: 12px; font-weight: 700; font-size: 0.9rem; text-transform: uppercase; cursor: pointer; font-family: 'Nunito'; transition: 0.3s; }
-        .edit-btn-cancel:hover { border-color: #555; color: #aaa; }
+        for line in lines:
+            if "🎯 Получатель ID:" in line:
+                target_user_id = line.split("🎯 Получатель ID:")[1].strip()
+            if "📦 Тип:" in line:
+                t_code = line.split("📦 Тип:")[1].strip()
+                if t_code == "req": app_type = "📥 **ОТВЕТ НА ВАШ РЕКВЕСТ**"
+                elif t_code == "app": app_type = "⚖️ **ВЕРДИКТ ПО ВАШЕЙ АПЕЛЛЯЦИИ**"
+                elif t_code == "vic": app_type = "🏆 **РЕЗУЛЬТАТ ВЕРИФИКАЦИИ РЕКОРДА**"
 
-        /* ===== MODERATORS PANEL ===== */
-        .mod-panel { display: none; background: #090b18; padding: 25px 18px; border-radius: 20px; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 3500; width: calc(100% - 28px); max-width: 480px; max-height: calc(100vh - 40px); overflow-y: auto; border: 1px solid rgba(167,139,250,0.4); box-shadow: 0 0 50px rgba(0,0,0,0.8), 0 0 30px rgba(167,139,250,0.1); }
-        .mod-panel h2 { margin-top: 0; font-size: 1.4rem; text-align: center; font-family: 'Orbitron'; background: var(--main-grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .mod-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25); padding: 4px 12px; border-radius: 20px; color: var(--accent); font-size: 0.75rem; font-weight: 700; letter-spacing: 1px; }
-        .mod-badge.admin-badge { background: rgba(244,114,182,0.1); border-color: rgba(244,114,182,0.3); color: var(--accent3); }
-        .mod-list-item { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 12px 16px; margin-bottom: 10px; gap: 10px; }
-        .mod-item-info { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
-        .mod-item-email { font-size: 0.85rem; color: #c4b5fd; font-weight: 700; word-break: break-all; }
-        .mod-item-name { font-size: 0.78rem; color: #666; }
-        .mod-item-actions { display: flex; gap: 6px; flex-shrink: 0; }
-        .mod-del-btn { width: 30px; height: 30px; border-radius: 8px; background: rgba(231,76,60,0.15); border: 1px solid rgba(231,76,60,0.3); color: #e74c3c; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
-        .mod-del-btn:hover { background: rgba(231,76,60,0.3); }
-        .mod-add-form { background: rgba(167,139,250,0.05); border: 1px solid rgba(167,139,250,0.15); border-radius: 14px; padding: 16px; margin-top: 16px; }
-        .mod-add-form h3 { margin: 0 0 12px; font-size: 1rem; color: white; font-family: 'Orbitron'; }
-        .mod-add-form input, .mod-add-form select { width: 100%; padding: 12px 14px; margin: 6px 0; background: #0a0d1e; border: 1px solid rgba(167,139,250,0.18); color: white; border-radius: 10px; font-size: 0.9rem; outline: none; font-family: 'Nunito'; transition: 0.3s; }
-        .mod-add-form input:focus, .mod-add-form select:focus { border-color: var(--accent); }
-        .mod-add-btn { width: 100%; padding: 13px; background: linear-gradient(135deg, #7b5ea7, #3d85c8); color: #fff; border: none; border-radius: 10px; font-weight: 900; font-size: 0.88rem; text-transform: uppercase; cursor: pointer; font-family: 'Nunito'; margin-top: 8px; transition: 0.3s; }
-        .mod-add-btn:hover { filter: brightness(1.1); }
-        .mod-role-badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; font-weight: 700; }
-        .mod-role-mod { background: rgba(96,165,250,0.15); color: #60a5fa; border: 1px solid rgba(96,165,250,0.3); }
-        .mod-role-admin { background: rgba(244,114,182,0.15); color: #f472b6; border: 1px solid rgba(244,114,182,0.3); }
+        if not target_user_id:
+            bot.reply_to(message, "❌ Ошибка: не удалось считать ID пользователя из сообщения.")
+            return
 
-        /* Moderator indicator in navbar */
-        .mod-indicator { display: none; align-items: center; gap: 6px; background: rgba(96,165,250,0.1); border: 1px solid rgba(96,165,250,0.25); padding: 5px 12px; border-radius: 20px; color: #60a5fa; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; }
-
-        .drag-indicator { position: fixed; top: 100px; right: 20px; background: linear-gradient(135deg, #7b5ea7, #3d85c8); color: #fff; padding: 10px 20px; border-radius: 30px; font-weight: 900; z-index: 1000; box-shadow: 0 0 20px rgba(167,139,250,0.5); animation: pulse 1.5s infinite; display: flex; align-items: center; gap: 8px; font-family: 'Nunito'; }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
-
-        .btn-more { width: 100%; padding: 14px; background: rgba(167,139,250,0.07); border: 1px solid rgba(167,139,250,0.2); color: var(--accent); border-radius: 12px; cursor: pointer; font-weight: 900; text-transform: uppercase; transition: 0.3s; font-size: 0.83rem; letter-spacing: 1px; font-family: 'Nunito'; }
-        .btn-more:hover { background: linear-gradient(135deg, #7b5ea7, #3d85c8); color: #fff; border-color: transparent; }
-
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); z-index: 3000; backdrop-filter: blur(20px); overflow-y: auto; -webkit-overflow-scrolling: touch; }
-        .modal-content { background: rgba(10,12,28,0.98); margin: 16px auto 50px; padding: 20px; max-width: 750px; width: calc(100% - 28px); border-radius: 20px; border: 1px solid rgba(167,139,250,0.2); position: relative; box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 40px rgba(167,139,250,0.08); }
-        .modal-close-pin { position: absolute; top: 14px; right: 14px; width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0; background: rgba(255,70,70,0.13); border: 1px solid rgba(255,70,70,0.3); color: #ff6868; font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; z-index: 10; }
-        .modal-close-pin:hover { background: rgba(255,70,70,0.28); }
-
-        #copyToast { visibility: hidden; background: linear-gradient(135deg, #7b5ea7, #3d85c8); color: #fff; padding: 15px 30px; position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%); border-radius: 12px; z-index: 5000; font-weight: 900; font-size: 0.95rem; box-shadow: 0 10px 20px rgba(0,0,0,0.5); white-space: nowrap; font-family: 'Nunito'; }
-        #copyToast.show { visibility: visible; animation: fadeInUp 0.4s; }
-        @keyframes fadeInUp { from { opacity:0; transform:translateX(-50%) translateY(10px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
-
-        .record-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; background: rgba(167,139,250,0.04); margin-bottom: 8px; border-radius: 12px; font-size: 0.95rem; border: 1px solid rgba(167,139,250,0.08); gap: 8px; }
-
-        .home-video-section { max-width: 900px; margin: 0 auto 80px; padding: 0 20px; text-align: center; }
-        .home-video-label { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 18px; }
-        .home-video-line { flex: 1; height: 1px; background: rgba(167,139,250,0.2); max-width: 120px; }
-        .home-video-tag { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--text-main); display: flex; align-items: center; }
-        .home-video-title { font-family: 'Orbitron'; font-size: clamp(1.2rem, 3vw, 1.8rem); font-weight: 900; margin: 0 0 30px; color: #fff; text-transform: uppercase; letter-spacing: 2px; }
-        .home-video-wrapper { position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 20px; overflow: hidden; border: 1px solid rgba(167,139,250,0.2); box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 40px rgba(167,139,250,0.08); }
-        .home-video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-
-        /* ===== REVIEWS SECTION ===== */
-        .reviews-section { max-width: 1100px; margin: 0 auto 80px; padding: 0 20px; }
-        .reviews-header { text-align: center; margin-bottom: 40px; }
-        .reviews-header h2 { font-family: 'Orbitron'; font-size: clamp(1.6rem, 4vw, 2.2rem); font-weight: 900; margin: 0 0 8px; background: var(--main-grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-transform: uppercase; letter-spacing: 2px; }
-        .reviews-header p { color: var(--text-main); font-size: 0.95rem; margin: 0; }
-
-        .review-form { max-width: 600px; margin: 0 auto 50px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 20px; padding: 30px 25px; backdrop-filter: blur(15px); box-shadow: 0 15px 40px rgba(0,0,0,0.4); }
-        .review-form-row { display: flex; gap: 12px; margin-bottom: 12px; }
-        .review-input, .review-textarea { width: 100%; padding: 13px 16px; background: rgba(4,5,13,0.7); border: 1px solid rgba(167,139,250,0.15); border-radius: 12px; color: white; font-size: 0.92rem; outline: none; transition: 0.3s; font-family: 'Nunito'; resize: vertical; }
-        .review-input:focus, .review-textarea:focus { border-color: var(--accent); box-shadow: 0 0 20px rgba(167,139,250,0.15); }
-        .review-textarea { min-height: 90px; margin-bottom: 14px; }
-
-        .review-stars-picker { display: flex; gap: 8px; justify-content: center; margin-bottom: 18px; }
-        .review-stars-picker i { font-size: 1.6rem; color: rgba(255,255,255,0.15); cursor: pointer; transition: 0.2s; }
-        .review-stars-picker i.active { color: #fbbf24; text-shadow: 0 0 12px rgba(251,191,36,0.5); }
-
-        .review-captcha-row { display: flex; align-items: center; gap: 10px; background: rgba(167,139,250,0.05); border: 1px solid rgba(167,139,250,0.15); border-radius: 12px; padding: 10px 14px; margin-bottom: 18px; flex-wrap: wrap; }
-        .review-captcha-label { color: var(--text-main); font-size: 0.85rem; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
-        .review-captcha-label strong { color: var(--accent); font-size: 0.95rem; }
-        .review-captcha-input { width: 80px !important; flex: 0 0 80px; padding: 8px 10px !important; text-align: center; }
-
-        .review-submit-btn { width: 100%; padding: 14px; background: var(--main-grad); border: none; color: #fff; border-radius: 12px; font-weight: 900; font-size: 0.88rem; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; transition: 0.3s; font-family: 'Nunito'; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .review-submit-btn:hover { box-shadow: 0 0 25px rgba(167,139,250,0.4); transform: translateY(-2px); }
-        .review-submit-note { text-align: center; color: #666; font-size: 0.78rem; margin: 12px 0 0; }
-
-        .reviews-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
-        .review-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 22px; backdrop-filter: blur(10px); transition: 0.3s; }
-        .review-card:hover { border-color: rgba(167,139,250,0.3); transform: translateY(-3px); }
-        .review-card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .review-card-name { font-weight: 900; font-size: 0.98rem; color: #fff; }
-        .review-card-stars { color: #fbbf24; font-size: 0.85rem; }
-        .review-card-stars i.empty { color: rgba(255,255,255,0.15); }
-        .review-card-text { color: var(--text-main); font-size: 0.88rem; line-height: 1.5; margin: 0; word-break: break-word; }
-        .reviews-empty { text-align: center; color: #555; font-size: 0.9rem; padding: 30px 0; grid-column: 1 / -1; }
-
-        /* ===== SLAYERS TOP LEADERBOARD ===== */
-        .player-top-section { max-width: 800px; margin: 0 auto; padding: 0 16px 40px; }
-        .player-top-list { display: flex; flex-direction: column; gap: 10px; }
-        .player-top-card { display: flex; align-items: center; gap: 14px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 14px 18px; transition: 0.3s; cursor: pointer; }
-        .player-top-card:hover { border-color: rgba(167,139,250,0.35); transform: translateX(4px); box-shadow: 0 8px 25px rgba(0,0,0,0.4); }
-        .player-top-rank { font-family: 'Orbitron'; font-weight: 900; font-size: 1.1rem; min-width: 36px; text-align: center; }
-        .player-top-rank.rank-1 { color: #fbbf24; text-shadow: 0 0 15px rgba(251,191,36,0.6); }
-        .player-top-rank.rank-2 { color: #94a3b8; text-shadow: 0 0 10px rgba(148,163,184,0.5); }
-        .player-top-rank.rank-3 { color: #f97316; text-shadow: 0 0 10px rgba(249,115,22,0.5); }
-        .player-top-rank.rank-other { color: #475569; }
-        .player-top-avatar { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #7b5ea7, #3d85c8); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
-        .player-top-info { flex: 1; min-width: 0; }
-        .player-top-name { font-weight: 900; font-size: 1rem; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .player-top-meta { font-size: 0.78rem; color: var(--text-main); margin-top: 2px; }
-        .player-top-points { font-family: 'Orbitron'; font-weight: 900; font-size: 1rem; color: var(--accent); white-space: nowrap; }
-        .player-top-pts-label { font-size: 0.65rem; color: #555; display: block; text-align: right; }
-        .player-top-empty { text-align: center; color: #555; font-size: 0.9rem; padding: 40px 0; }
-
-        /* ===== MOBILE OPTIMIZATIONS ===== */
-        @media (max-width: 768px) {
-            .navbar { padding: 0 14px; height: 60px; flex-wrap: nowrap; }
-            .logo { font-size: 1rem; }
-            .nav-links { display: none !important; }
-            .burger-btn { display: flex !important; }
-            .section-page { margin-top: 60px; }
-            .moon { width: 55px; height: 55px; top: 70px; right: 5%; }
-            .welcome-hero { padding: 28px 16px; min-height: calc(100vh - 60px); }
-            .welcome-hero h1 { font-size: clamp(1.7rem, 9vw, 2.8rem); letter-spacing: 2px; }
-            .welcome-hero p { font-size: 0.95rem; margin: 16px 0 26px; }
-            .hero-btns { gap: 12px; }
-            .btn-main, .btn-outline { padding: 14px 22px; font-size: 0.88rem; flex: 1; min-width: 125px; max-width: 190px; }
-            .download-container { margin: 18px 14px; padding: 28px 16px; }
-            .dl-title { font-size: 1.6rem; }
-            .dl-cards { flex-direction: column; gap: 14px; }
-            .dl-card { min-width: 0; padding: 26px 20px; }
-            .hero-title { padding: 22px 14px 14px; }
-            .hero-title h2 { font-size: 1.7rem; }
-            .search-box { padding: 0 12px; margin-bottom: 22px; }
-            .search-modes { gap: 6px; flex-wrap: wrap; }
-            .search-mode-btn { padding: 9px 10px; font-size: 0.75rem; flex: 1; text-align: center; min-width: 80px; }
-            .search-input { padding: 13px 14px 13px 42px; font-size: 0.93rem; }
-            .search-icon { left: 16px; }
-            .container { grid-template-columns: 1fr; gap: 14px; padding: 8px 12px; }
-            .card-body { padding: 18px; }
-            .card-img { height: 155px; }
-            .home-video-section { padding: 0 14px; margin-bottom: 48px; }
-
-            /* Модальные окна на мобильных */
-            .modal-content, .profile-modal-content, .edit-modal-content, .mod-panel, #modQuickPanel, .admin-form { margin: 8px auto 30px; padding: 16px 14px; width: calc(100% - 16px); border-radius: 16px; }
-
-            /* Профиль игрока на мобильных */
-            .profile-header { gap: 12px; }
-            .profile-avatar { width: 50px; height: 50px; font-size: 1.4rem; }
-            .profile-name { font-size: clamp(1rem, 5vw, 1.4rem); }
-            .profile-stats-row { gap: 8px; }
-            .profile-stat { padding: 10px 10px; min-width: 60px; }
-            .profile-stat-val { font-size: 1.1rem; }
-            .profile-stat-label { font-size: 0.65rem; }
-
-            /* Топ слееров на мобильных */
-            .player-top-card { padding: 12px 14px; gap: 10px; }
-            .player-top-rank { font-size: 0.95rem; min-width: 28px; }
-            .player-top-avatar { width: 36px; height: 36px; font-size: 1rem; }
-            .player-top-name { font-size: 0.9rem; }
-            .player-top-points { font-size: 0.88rem; }
-
-            /* Отзывы на мобильных */
-            .review-form { padding: 20px 14px; margin: 0 0 30px; }
-            .reviews-section { padding: 0 12px; }
-            .reviews-grid { grid-template-columns: 1fr; }
-            .review-captcha-row { flex-direction: column; align-items: flex-start; gap: 8px; }
-            .review-captcha-input { width: 100% !important; flex: none !important; }
-
-            /* Кнопки в карточках */
-            .btn-more { padding: 12px; font-size: 0.8rem; }
-            .level-id-box { font-size: 0.8rem; padding: 8px 12px; }
-
-            /* Drag indicator */
-            .drag-indicator { top: 70px; right: 10px; padding: 8px 14px; font-size: 0.8rem; }
-        }
-
-        @media (max-width: 400px) {
-            .welcome-hero h1 { font-size: clamp(1.4rem, 10vw, 2rem); }
-            .hero-btns { flex-direction: column; align-items: center; }
-            .btn-main, .btn-outline { max-width: 100%; width: 100%; }
-            .profile-stats-row { flex-direction: row; flex-wrap: wrap; }
-            .profile-stat { flex: 1 1 calc(50% - 4px); }
-        }
-        .footer-socials { display: flex; justify-content: center; gap: 30px; margin-bottom: 20px; }
-        .footer-socials a { color: var(--text-main); font-size: 2rem; transition: 0.3s; text-decoration: none; }
-        .footer-socials a:hover { color: var(--accent); transform: translateY(-3px); }
-        .footer-moon { font-size: 1.2rem; margin-bottom: 8px; }
-
-        #maintenanceOverlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:9999; background:#04050d; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:20px; }
-
-        /* ===== MOD LOGIN PAGE ===== */
-        #modLoginPage {
-            display: none;
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 8000; background: var(--bg);
-            flex-direction: column; justify-content: center; align-items: center;
-            padding: 20px;
-        }
-        .mod-login-box {
-            width: 100%; max-width: 420px;
-            background: rgba(10,12,28,0.98);
-            border: 1px solid rgba(167,139,250,0.25);
-            border-radius: 24px;
-            padding: 40px 32px;
-            box-shadow: 0 30px 80px rgba(0,0,0,0.7), 0 0 60px rgba(167,139,250,0.08);
-            animation: fadeInPage 0.4s ease;
-        }
-        .mod-login-moon { font-size: 2.8rem; text-align: center; margin-bottom: 10px; }
-        .mod-login-title {
-            font-family: 'Orbitron'; font-size: 1.5rem; font-weight: 900;
-            text-align: center; margin: 0 0 6px;
-            background: var(--main-grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        }
-        .mod-login-sub {
-            text-align: center; color: var(--text-main); font-size: 0.85rem;
-            margin: 0 0 30px; line-height: 1.5;
-        }
-        .mod-login-label {
-            display: block; font-size: 0.78rem; font-weight: 700;
-            color: var(--accent); text-transform: uppercase; letter-spacing: 1px;
-            margin: 0 0 6px;
-        }
-        .mod-login-input {
-            width: 100%; padding: 14px 16px; margin-bottom: 16px;
-            background: rgba(4,5,13,0.8); border: 1px solid rgba(167,139,250,0.18);
-            color: white; border-radius: 12px; font-size: 0.95rem; outline: none;
-            transition: 0.3s; font-family: 'Nunito';
-        }
-        .mod-login-input:focus { border-color: var(--accent); box-shadow: 0 0 12px rgba(167,139,250,0.15); }
-        .mod-login-btn {
-            width: 100%; padding: 15px; margin-top: 6px;
-            background: linear-gradient(135deg, #7b5ea7, #3d85c8);
-            color: #fff; border: none; border-radius: 12px;
-            font-weight: 900; font-size: 1rem; text-transform: uppercase;
-            cursor: pointer; font-family: 'Nunito'; transition: 0.3s;
-            display: flex; align-items: center; justify-content: center; gap: 10px;
-        }
-        .mod-login-btn:hover { filter: brightness(1.12); transform: translateY(-2px); box-shadow: 0 10px 25px rgba(123,94,167,0.4); }
-        .mod-login-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-        .mod-login-error {
-            background: rgba(231,76,60,0.1); border: 1px solid rgba(231,76,60,0.3);
-            color: #ff6868; border-radius: 10px; padding: 10px 14px;
-            font-size: 0.85rem; text-align: center; margin-top: 12px;
-            display: none;
-        }
-        .mod-login-back {
-            display: block; text-align: center; margin-top: 20px;
-            color: #555; font-size: 0.82rem; cursor: pointer;
-            transition: 0.2s; background: none; border: none; font-family: 'Nunito';
-            width: 100%;
-        }
-        .mod-login-back:hover { color: var(--text-main); }
-        .mod-login-badge {
-            display: inline-flex; align-items: center; gap: 6px;
-            background: rgba(167,139,250,0.08); border: 1px solid rgba(167,139,250,0.2);
-            border-radius: 20px; padding: 5px 14px; color: var(--accent);
-            font-size: 0.75rem; font-weight: 700; letter-spacing: 1px;
-            margin: 0 auto 24px; display: flex; justify-content: center;
-        }
-    </style>
-</head>
-<body>
-    <div id="copyToast">ID Скопировано!</div>
-
-    <div class="bg-wrapper">
-        <div class="stars-layer"></div>
-        <div class="stars-layer-2"></div>
-        <div class="moon"></div>
-        <div class="orb orb-1"></div>
-        <div class="orb orb-2"></div>
-        <div class="orb orb-3"></div>
-    </div>
-
-    <nav class="navbar">
-        <div class="logo" onclick="openSection('homeSection')">
-            <span class="logo-icon">🌙</span> Night GDPS
-        </div>
-        <div class="nav-links">
-            <button class="nav-item" onclick="openSection('homeSection')" id="navHome">Главная</button>
-            <div class="dropdown">
-                <button class="nav-item" onclick="toggleDropdown('demonDrop', event)" id="navDemonListText">
-                    <span id="navDemonListLabel">Информация</span> <i class="fas fa-caret-down"></i>
-                </button>
-                <div class="dropdown-content" id="demonDrop">
-                    <a onclick="openSection('listSection'); switchTab('demons');" id="navDropTop50">ТОП 50</a>
-                    <a onclick="openSection('listSection'); switchTab('players');">🏆 ТОП СЛЕЕРОВ</a>
-                    <a onclick="openSection('listSection'); switchTab('creatortop');">🔨 ТОП СОЗДАТЕЛЕЙ</a>
-                </div>
-            </div>
-            <button class="btn-download-nav" onclick="openSection('downloadSection')">
-                <i class="fas fa-download"></i> <span id="navDownloadText">Скачать</span>
-            </button>
-            <a href="https://glowhosting.ru/gd/utypdf/tools/songAdd.php" target="_blank" class="btn-dashboard-nav">
-                <i class="fas fa-gauge"></i> Dashboard
-            </a>
-            <div class="nav-socials">
-                <div class="mod-indicator" id="modIndicator"><i class="fas fa-shield-alt"></i> <span id="modIndicatorText">Модератор</span></div>
-                <a href="https://t.me/nightgdps2" target="_blank" class="tg-icon" title="Telegram"><i class="fab fa-telegram"></i></a>
-                <a href="https://www.youtube.com/@lichigmdj98" target="_blank" class="yt-icon" title="YouTube"><i class="fab fa-youtube"></i></a>
-                <a href="https://discord.gg/cBv5ueunB" target="_blank" class="dc-icon" title="Discord"><i class="fab fa-discord"></i></a>
-                <button onclick="toggleLang()" id="langBtn" style="background:none; border:1px solid rgba(167,139,250,0.4); color:var(--accent); padding:5px 12px; cursor:pointer; border-radius:8px; font-weight:700; margin-left:10px; font-family:'Nunito';">RU</button>
-            </div>
-        </div>
-        <button class="burger-btn" id="burgerBtn" onclick="toggleBurger()">
-            <span></span><span></span><span></span>
-        </button>
-    </nav>
-
-    <div class="mobile-menu" id="mobileMenu">
-        <button class="m-btn" onclick="openSection('homeSection'); closeBurger();">
-            <i class="fas fa-home"></i> Главная
-        </button>
-        <button class="m-btn" onclick="openSection('listSection'); switchTab('demons'); closeBurger();">
-            <i class="fas fa-list"></i> ТОП 50 Демонов
-        </button>
-        <button class="m-btn" onclick="openSection('listSection'); switchTab('players'); closeBurger();">
-                <i class="fas fa-trophy"></i> Топ Слееров
-        </button>
-        <button class="m-btn" onclick="openSection('listSection'); switchTab('creatortop'); closeBurger();">
-            <i class="fas fa-hammer"></i> Топ Создателей
-        </button>
-        <button class="m-btn purple" onclick="openSection('downloadSection'); closeBurger();">
-            <i class="fas fa-download"></i> Скачать игру
-        </button>
-        <a href="https://glowhosting.ru/gd/utypdf/tools/songAdd.php" target="_blank" class="m-btn green">
-            <i class="fas fa-gauge"></i> Dashboard
-        </a>
-        <div class="m-socials">
-            <a href="https://t.me/nightgdps2" target="_blank" style="color:#00a2ed;"><i class="fab fa-telegram"></i></a>
-            <a href="https://www.youtube.com/@lichigmdj98" target="_blank" style="color:#ff0000;"><i class="fab fa-youtube"></i></a>
-            <a href="https://discord.gg/cBv5ueunB" target="_blank" style="color:#5865F2;"><i class="fab fa-discord"></i></a>
-        </div>
-        <button class="m-lang" onclick="toggleLang()">RU / EN</button>
-    </div>
-
-    <main id="homeSection" class="section-page active">
-        <header class="welcome-hero">
-            <div class="hero-eyebrow">🌙 Private Server</div>
-            <h1><span class="h1-night" id="welcomeTitle">NIGHT GDPS</span></h1>
-            <p id="welcomeDesc">Окунись в мир самого амбициозного приватного сервера Geometry Dash. Стабильность, уникальные уровни и сильнейшее комьюнити игроков.</p>
-            <div class="hero-btns">
-                <button onclick="openSection('downloadSection')" class="btn-main" id="btnPlay">СКАЧАТЬ ИГРУ</button>
-                <button onclick="openSection('listSection'); switchTab('demons');" class="btn-outline" id="btnList">DEMON LIST</button>
-            </div>
-        </header>
-        <section class="home-video-section">
-            <div class="home-video-label">
-                <span class="home-video-line"></span>
-                <span class="home-video-tag"><i class="fab fa-youtube" style="color:#ff0000; margin-right:8px;"></i>СМОТРЕТЬ НА YOUTUBE</span>
-                <span class="home-video-line"></span>
-            </div>
-            <h2 class="home-video-title">Night GDPS | Новая Приватка</h2>
-            <div class="home-video-wrapper">
-                <iframe src="https://www.youtube.com/embed/26I0Xl9GOUo" title="Night GDPS | Новая Приватка" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-            </div>
-        </section>
-
-        <section class="reviews-section">
-            <div class="reviews-header">
-                <h2>Отзывы игроков</h2>
-                <p>Поделись своим мнением о Night GDPS</p>
-            </div>
-
-            <div class="review-form">
-                <div class="review-form-row">
-                    <input type="text" id="reviewName" class="review-input" placeholder="Твой ник" maxlength="30">
-                </div>
-                <textarea id="reviewText" class="review-textarea" placeholder="Расскажи, что думаешь о сервере..." maxlength="400"></textarea>
-                <div class="review-stars-picker" id="reviewStarsPicker">
-                    <i class="fas fa-star" data-val="1"></i>
-                    <i class="fas fa-star" data-val="2"></i>
-                    <i class="fas fa-star" data-val="3"></i>
-                    <i class="fas fa-star" data-val="4"></i>
-                    <i class="fas fa-star" data-val="5"></i>
-                </div>
-                <div class="review-captcha-row">
-                    <span class="review-captcha-label"><i class="fas fa-shield-alt"></i> Реши пример: <strong id="captchaQuestion">?</strong> =</span>
-                    <input type="text" id="captchaAnswer" class="review-input review-captcha-input" inputmode="numeric" placeholder="Ответ" maxlength="4">
-                </div>
-                <button class="review-submit-btn" onclick="submitReview()">
-                    <i class="fas fa-paper-plane"></i> Отправить отзыв
-                </button>
-                <p class="review-submit-note">Отзыв появится на сайте после проверки модератором</p>
-            </div>
-
-            <div class="reviews-grid" id="reviewsGrid">
-                <div class="reviews-empty">Загрузка отзывов...</div>
-            </div>
-        </section>
-    </main>
-
-    <main id="downloadSection" class="section-page">
-        <div class="download-container">
-            <h2 class="dl-title" id="dlTitle">СКАЧАТЬ ИГРУ</h2>
-            <div class="dl-version" id="dlVersion">Версия 2.2081</div>
-            <div class="dl-cards">
-                <a href="https://drive.google.com/file/d/1dYI75aK1v3S8npQ7nr1HnRkyen0UQJig/view?usp=sharing" target="_blank" class="dl-card pc">
-                    <i class="fab fa-windows dl-icon"></i>
-                    <div class="dl-name">PC / Windows</div>
-                    <div class="dl-desc" id="dlDescPC">Скачать .zip архив для игры на компьютере</div>
-                </a>
-                <a href="https://drive.google.com/file/d/13uVW7kbOtsqFVvHWWjnL5hScKOLTCswD/view?usp=drive_link" target="_blank" class="dl-card android">
-                    <i class="fab fa-android dl-icon"></i>
-                    <div class="dl-name">Android</div>
-                    <div class="dl-desc" id="dlDescAnd">Скачать .apk файл для игры на телефоне</div>
-                </a>
-            </div>
-        </div>
-    </main>
-
-    <main id="listSection" class="section-page">
-        <div class="hero-title">
-            <h2 id="txtHero">DEMON LIST</h2>
-            <div class="top-50-text" id="top50Banner">✦ TOP 50 ✦</div>
-        </div>
-
-        <div style="display:flex; justify-content:center; gap:10px; margin: 0 16px 24px; flex-wrap:wrap;">
-            <button id="tabDemonsBtn" class="search-mode-btn active" onclick="switchTab('demons')" style="flex:1; max-width:160px; padding:11px 14px;">
-                <i class="fas fa-skull"></i> Демоны
-            </button>
-            <button id="tabPlayersBtn" class="search-mode-btn" onclick="switchTab('players')" style="flex:1; max-width:160px; padding:11px 14px;">
-                <i class="fas fa-trophy"></i> Топ слееров
-            </button>
-            <button id="tabCreatorTopBtn" class="search-mode-btn" onclick="switchTab('creatortop')" style="flex:1; max-width:160px; padding:11px 14px;">
-                <i class="fas fa-hammer"></i> Топ создателей
-            </button>
-        </div>
-
-        <div class="search-box" id="searchBoxWrap">
-            <div class="search-modes">
-                <button id="searchModeMain" class="search-mode-btn active" onclick="setSearchMode('main')">Название / Автор</button>
-                <button id="searchModeTag" class="search-mode-btn" onclick="setSearchMode('tag')">По тегу</button>
-            </div>
-            <div class="search-input-wrap">
-                <i class="fas fa-search search-icon"></i>
-                <input type="text" id="searchInput" class="search-input" placeholder="Поиск уровня или автора..." oninput="render()">
-            </div>
-        </div>
-        <div id="dragIndicator" class="drag-indicator" style="display: none;">
-            <i class="fas fa-arrows-alt"></i> Drag & Drop активен
-        </div>
+        user_msg = f"{app_type}\nーーーーーーーーーーーー\n{message.text}"
         
-        <div class="container" id="mainContainer"></div>
-
-        <div class="player-top-section" id="playerTopSection" style="display:none;">
-            <div class="player-top-list" id="playerTopList">
-                <div class="player-top-empty">Загрузка рейтинга...</div>
-            </div>
-        </div>
-
-        <div class="player-top-section" id="creatorTopSection" style="display:none;">
-            <div class="player-top-list" id="creatorTopList">
-                <div class="player-top-empty">Загрузка рейтинга...</div>
-            </div>
-        </div>
-    </main>
-
-    <footer>
-        <div class="footer-socials">
-            <a href="https://t.me/nightgdps2" target="_blank"><i class="fab fa-telegram"></i></a>
-            <a href="https://www.youtube.com/@lichigmdj98" target="_blank"><i class="fab fa-youtube"></i></a>
-            <a href="https://discord.gg/XPFZfDbAa" target="_blank"><i class="fab fa-discord"></i></a>
-        </div>
-        <p style="color:var(--text-main);">© 2026 Night GDPS. Developed with passion.</p>
-        <a href="https://t.me/nightgdps2/11198/11199" id="verifyLink" style="color:#555; text-decoration:none; font-size:0.85rem; transition:0.3s;" target="_blank">Критерии верификации</a>
-    </footer>
-
-    <button id="admin-trigger" onclick="openAdmin()"><i class="fas fa-cog"></i></button>
-
-    <button id="mod-trigger" onclick="openModQuickPanel()" style="display:none; position:fixed; bottom:20px; left:70px; z-index:1000; background:linear-gradient(135deg,#3d85c8,#60a5fa); color:#fff; border:none; border-radius:14px; padding:12px 20px; font-family:Nunito,sans-serif; font-weight:900; font-size:0.9rem; cursor:pointer; box-shadow:0 4px 20px rgba(96,165,250,0.4); align-items:center; gap:8px;">
-        <i class="fas fa-shield-alt"></i> МОД ПАНЕЛЬ
-    </button>
-
-    <div id="modQuickPanel" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:2000; background:#090b18; border:1px solid rgba(96,165,250,0.35); border-radius:20px; padding:28px 20px; width:calc(100% - 28px); max-width:380px; max-height:calc(100vh - 40px); overflow-y:auto; box-shadow:0 0 60px rgba(0,0,0,0.8);">
-        <button onclick="document.getElementById('modQuickPanel').style.display='none'" style="position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:8px;background:rgba(255,70,70,0.13);border:1px solid rgba(255,70,70,0.3);color:#ff6868;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;"><i class="fas fa-times"></i></button>
-        <h2 style="margin:0 0 4px;font-family:Orbitron,sans-serif;font-size:1.2rem;text-align:center;background:linear-gradient(135deg,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">🛡️ МОД ПАНЕЛЬ</h2>
-        <p id="modNickDisplay" style="text-align:center;color:#60a5fa;font-size:0.82rem;font-weight:700;margin:0 0 18px;"></p>
-
-        <div style="background:rgba(167,139,250,0.05);border:1px solid rgba(167,139,250,0.12);border-radius:14px;padding:14px;margin-bottom:12px;">
-            <p style="margin:0 0 10px;font-size:0.8rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;">➕ Добавить демона</p>
-            <input type="text" id="mName" placeholder="Название уровня" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
-            <input type="text" id="mAuthor" placeholder="Автор" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
-            <input type="text" id="mID" placeholder="ID уровня" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
-            <input type="text" id="mTag" placeholder="Тег (напр. Top 1)" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
-            <input type="text" id="mVerifier" placeholder="Верифер" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
-            <input type="text" id="mImg" placeholder="Ссылка на картинку" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
-            <input type="text" id="mVid" placeholder="Ссылка на YouTube" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
-            <input type="text" id="mPoints" placeholder="⚡ Баллы сложности (напр. 0.31)" style="width:100%;padding:10px 12px;margin:4px 0 10px;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
-            <button onclick="modAddDemon()" style="width:100%;padding:12px;background:linear-gradient(135deg,#7b5ea7,#3d85c8);color:#fff;border:none;border-radius:10px;font-weight:900;font-size:0.85rem;text-transform:uppercase;cursor:pointer;font-family:Nunito;">
-                <i class="fas fa-plus"></i> Добавить
-            </button>
-        </div>
-
-        <button onclick="modToggleEditMode()" id="modEditBtn" style="width:100%;padding:13px;margin-bottom:10px;background:rgba(243,156,18,0.1);border:1px solid rgba(243,156,18,0.3);color:#f39c12;border-radius:12px;cursor:pointer;font-weight:900;font-size:0.85rem;text-transform:uppercase;font-family:Nunito;">
-            <i class="fas fa-pen"></i> <span id="modEditBtnText">Включить редактирование</span>
-        </button>
-
-        <button onclick="showModVictorForm()" style="width:100%;padding:13px;margin-bottom:10px;background:rgba(167,139,250,0.07);border:1px solid rgba(167,139,250,0.2);color:#a78bfa;border-radius:12px;cursor:pointer;font-weight:900;font-size:0.85rem;text-transform:uppercase;font-family:Nunito;">
-            <i class="fas fa-trophy"></i> Добавить рекорд
-        </button>
-
-        <div id="modVictorForm" style="display:none;background:rgba(167,139,250,0.05);border:1px solid rgba(167,139,250,0.12);border-radius:14px;padding:14px;margin-bottom:12px;">
-            <p style="margin:0 0 10px;font-size:0.8rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;">🏆 Добавить рекорд</p>
-            <select id="modVicDemon" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;"></select>
-            <input type="text" id="modVicName" placeholder="Ник игрока" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
-            <input type="text" id="modVicPerc" placeholder="Проценты (напр. 100%)" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
-            <input type="text" id="modVicAtt" placeholder="Попытки" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
-            <input type="text" id="modVicVid" placeholder="Ссылка на YouTube (необязательно)" style="width:100%;padding:10px 12px;margin:4px 0 10px;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
-            <button onclick="modAddVictor()" style="width:100%;padding:12px;background:linear-gradient(135deg,#7b5ea7,#3d85c8);color:#fff;border:none;border-radius:10px;font-weight:900;font-size:0.85rem;text-transform:uppercase;cursor:pointer;font-family:Nunito;">
-                <i class="fas fa-save"></i> Сохранить
-            </button>
-        </div>
-
-        <div style="background:rgba(167,139,250,0.05);border:1px solid rgba(167,139,250,0.12);border-radius:14px;padding:14px;margin-bottom:12px;">
-            <p style="margin:0 0 10px;font-size:0.8rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;">💬 Отзывы на проверке <span id="modReviewCount" style="color:#f472b6;"></span></p>
-            <div id="modReviewsList" style="max-height:280px;overflow-y:auto;"></div>
-        </div>
-
-        <button onclick="auth.signOut(); document.getElementById('modQuickPanel').style.display='none';" style="width:100%;padding:12px;background:transparent;border:1px solid #e74c3c;color:#e74c3c;border-radius:12px;cursor:pointer;font-weight:700;font-size:0.85rem;text-transform:uppercase;font-family:Nunito;">
-            <i class="fas fa-sign-out-alt"></i> Выйти
-        </button>
-    </div>
-
-    <!-- ===== ADMIN PANEL ===== -->
-    <div id="adminPanel" class="admin-form">
-        <button onclick="closeAdmin()" style="position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:8px;background:rgba(255,70,70,0.13);border:1px solid rgba(255,70,70,0.3);color:#ff6868;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-            <i class="fas fa-times"></i>
-        </button>
-        <h2>ADMIN PANEL</h2>
-        <div id="loginBlock">
-            <input type="email" id="adminEmail" placeholder="Email">
-            <input type="password" id="adminPass" placeholder="Пароль">
-            <div id="loginError" style="color:#ff6868;font-size:0.85rem;text-align:center;margin-top:6px;display:none;">Неверный email или пароль</div>
-            <button class="btn-more" style="background:linear-gradient(135deg,#7b5ea7,#3d85c8);color:#fff;margin-top:15px;border:none;" onclick="adminLogin()">ВОЙТИ</button>
-        </div>
-        <div id="adminControls" style="display:none;">
-            <select id="admAction" onchange="toggleAdmFields()">
-                <option value="add_demon">Добавить Демона</option>
-                <option value="add_creator">Добавить Креатора</option>
-                <option value="add_victor">Добавить Рекорд</option>
-                <option value="delete_mode">Удаление / Движение (Все)</option>
-                <option value="edit_demon_mode">✏️ Режим редактирования (Все)</option>
-                <option value="manage_mods">👥 Управление модераторами</option>
-                <option value="delete_all_demons">🗑️ Удалить ВСЕХ демонов</option>
-                <option value="maintenance">🔧 Техперерыв вкл/выкл</option>
-                <option value="drag_drop">🖱️ Drag & Drop режим</option>
-            </select>
-            <div id="fields_main">
-                <input type="text" id="itemName" placeholder="Название / Ник">
-                <input type="text" id="itemVal" placeholder="Автор / CP">
-                <div id="fields_demon">
-                    <input type="text" id="itemID" placeholder="ID Уровня">
-                    <input type="text" id="itemTag" placeholder="Тег (напр. Top 1)">
-                    <input type="text" id="itemVerifier" placeholder="Верифер">
-                    <input type="text" id="itemImgURL" placeholder="Ссылка на картинку">
-                    <input type="text" id="itemVid" placeholder="Ссылка на YouTube">
-                    <input type="text" id="itemPoints" placeholder="⚡ Баллы сложности (напр. 0.31)">
-                </div>
-            </div>
-            <div id="fields_victor" style="display:none;">
-                <select id="selectDemon" style="width:100%"></select>
-                <input type="text" id="vicName" placeholder="Ник игрока">
-                <input type="text" id="vicPerc" placeholder="Проценты">
-                <input type="text" id="vicAtt" placeholder="Попытки">
-                <input type="text" id="vicVid" placeholder="Ссылка на YouTube видео (необязательно)">
-            </div>
-            <button class="btn-more" style="background:linear-gradient(135deg,#7b5ea7,#3d85c8);color:#fff;margin-top:15px;border:none;" onclick="processAdmin()">ВЫПОЛНИТЬ</button>
-            <button class="btn-more" style="background:transparent;border:1px solid #e74c3c;color:#e74c3c;margin-top:10px;" onclick="adminLogout()">ВЫЙТИ ИЗ АККАУНТА</button>
-        </div>
-    </div>
-
-    <!-- ===== EDIT DEMON MODAL ===== -->
-    <div id="editDemonModal" class="edit-modal">
-        <div class="edit-modal-content">
-            <button class="modal-close-pin" onclick="closeEditModal()"><i class="fas fa-times"></i></button>
-            <h2>✏️ РЕДАКТИРОВАТЬ ДЕМОНА</h2>
-            <input type="hidden" id="editDemonKey">
-
-            <label class="edit-field-label">Название уровня</label>
-            <input type="text" id="editName" class="edit-field-input" placeholder="Название уровня">
-
-            <label class="edit-field-label">Автор</label>
-            <input type="text" id="editAuthor" class="edit-field-input" placeholder="Автор">
-
-            <label class="edit-field-label">Верифер</label>
-            <input type="text" id="editVerifier" class="edit-field-input" placeholder="Верифер">
-
-            <label class="edit-field-label">ID Уровня</label>
-            <input type="text" id="editLevelID" class="edit-field-input" placeholder="ID уровня">
-
-            <label class="edit-field-label">Тег (напр. Top 1)</label>
-            <input type="text" id="editTag" class="edit-field-input" placeholder="Тег">
-
-            <label class="edit-field-label">Ссылка на картинку</label>
-            <input type="text" id="editImg" class="edit-field-input" placeholder="https://..." oninput="updateImgPreview()">
-            <img id="editImgPreview" class="edit-img-preview" src="" alt="Preview" onerror="this.style.display='none'" style="display:none;">
-
-            <label class="edit-field-label">Ссылка на YouTube</label>
-            <input type="text" id="editVid" class="edit-field-input" placeholder="https://youtube.com/...">
-
-            <label class="edit-field-label">⚡ Баллы сложности</label>
-            <input type="text" id="editPoints" class="edit-field-input" placeholder="напр. 0.31 или 1.50">
-            <p style="color:#555;font-size:0.75rem;margin:4px 0 0;line-height:1.4;">Отображается на карточке демона. Можно оставить пустым.</p>
-
-            <div class="edit-btn-row">
-                <button class="edit-btn-cancel" onclick="closeEditModal()">Отмена</button>
-                <button class="edit-btn-save" onclick="saveDemonEdit()"><i class="fas fa-save"></i> Сохранить</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ===== EDIT CREATOR MODAL ===== -->
-    <div id="editCreatorModal" class="edit-modal">
-        <div class="edit-modal-content" style="max-width: 400px;">
-            <button class="modal-close-pin" onclick="document.getElementById('editCreatorModal').style.display='none'"><i class="fas fa-times"></i></button>
-            <h2>✏️ РЕДАКТИРОВАТЬ СОЗДАТЕЛЯ</h2>
-            <input type="hidden" id="editCreatorKey">
-            
-            <label class="edit-field-label">Имя создателя</label>
-            <input type="text" id="editCreatorName" class="edit-field-input" placeholder="Никнейм">
-            
-            <label class="edit-field-label">Очки создателя (CP)</label>
-            <input type="number" id="editCreatorPoints" class="edit-field-input" placeholder="Количество CP">
-            
-            <div class="edit-btn-row">
-                <button class="edit-btn-cancel" onclick="document.getElementById('editCreatorModal').style.display='none'">Отмена</button>
-                <button class="edit-btn-save" onclick="saveCreatorEdit()"><i class="fas fa-save"></i> Сохранить</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ===== EDIT SLAYER MODAL ===== -->
-    <div id="editSlayerModal" class="edit-modal">
-        <div class="edit-modal-content" style="max-width: 400px;">
-            <button class="modal-close-pin" onclick="document.getElementById('editSlayerModal').style.display='none'"><i class="fas fa-times"></i></button>
-            <h2>✏️ РЕДАКТИРОВАТЬ СЛЕЕРА</h2>
-            <input type="hidden" id="editSlayerOldName">
-            
-            <label class="edit-field-label">Новый ник игрока</label>
-            <input type="text" id="editSlayerNewName" class="edit-field-input" placeholder="Никнейм">
-            <p style="color:#888; font-size:0.8rem; margin-top:8px; line-height:1.4;">Изменение ника обновит его во всех рекордах демонов. Для удаления используйте кнопку корзины в списке.</p>
-            
-            <div class="edit-btn-row">
-                <button class="edit-btn-cancel" onclick="document.getElementById('editSlayerModal').style.display='none'">Отмена</button>
-                <button class="edit-btn-save" onclick="saveSlayerEdit()"><i class="fas fa-save"></i> Сохранить</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ===== MODERATORS PANEL ===== -->
-    <div id="modPanel" class="mod-panel">
-        <button onclick="closeModPanel()" style="position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:8px;background:rgba(255,70,70,0.13);border:1px solid rgba(255,70,70,0.3);color:#ff6868;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;"><i class="fas fa-times"></i></button>
-        <h2>👥 МОДЕРАТОРЫ</h2>
-
-        <div id="modListContainer" style="margin-bottom:8px;"></div>
-
-        <div class="mod-add-form">
-            <h3>➕ Добавить модератора</h3>
-            <input type="email" id="newModEmail" placeholder="Email аккаунта Firebase">
-            <input type="password" id="newModPass" placeholder="Пароль для нового аккаунта">
-            <input type="text" id="newModNick" placeholder="Никнейм (для отображения)">
-            <select id="newModRole">
-                <option value="moderator">Модератор (редактирование, рекорды)</option>
-                <option value="admin">Администратор (полный доступ)</option>
-            </select>
-            <button class="mod-add-btn" onclick="addModerator()"><i class="fas fa-user-plus"></i> Создать аккаунт модератора</button>
-        </div>
-        <p style="color:#555;font-size:0.75rem;text-align:center;margin-top:12px;line-height:1.5;">Модераторы могут редактировать карточки демонов и добавлять рекорды.<br>Администраторы имеют полный доступ.</p>
-    </div>
-
-
-    <!-- ===== PLAYER PROFILE MODAL ===== -->
-    <div id="playerProfileModal" class="profile-modal">
-        <div class="profile-modal-content">
-            <button class="modal-close-pin" onclick="document.getElementById('playerProfileModal').style.display='none'" style="position:absolute;top:14px;right:14px;">
-                <i class="fas fa-times"></i>
-            </button>
-            <div class="profile-header">
-                <div class="profile-avatar">🌙</div>
-                <div>
-                    <div class="profile-name" id="profileName">—</div>
-                    <div class="profile-points-badge"><i class="fas fa-star"></i> <span id="profilePoints">0</span> pts</div>
-                </div>
-            </div>
-            <div class="profile-stats-row">
-                <div class="profile-stat">
-                    <div class="profile-stat-val" id="profileCompCount">0</div>
-                    <div class="profile-stat-label">Прохождений</div>
-                </div>
-                <div class="profile-stat">
-                    <div class="profile-stat-val" id="profileTopDemon">—</div>
-                    <div class="profile-stat-label">Лучший демон</div>
-                </div>
-                <div class="profile-stat">
-                    <div class="profile-stat-val" id="profileBestPerc">—</div>
-                    <div class="profile-stat-label">Макс. %</div>
-                </div>
-            </div>
-            <div class="profile-section-title">Прохождения</div>
-            <div class="profile-completions-grid" id="profileCompletionsGrid"></div>
-        </div>
-    </div>
-
-    <div id="detailModal" class="modal"><div class="modal-content" id="modalData"></div></div>
-
-    <!-- ===== MOD LOGIN PAGE ===== -->
-    <div id="modLoginPage">
-        <div class="mod-login-box">
-            <div class="mod-login-moon">🌙</div>
-            <h2 class="mod-login-title">ВХОД ДЛЯ КОМАНДЫ</h2>
-            <p class="mod-login-sub">Страница входа для модераторов и администраторов Night GDPS</p>
-            <div class="mod-login-badge"><i class="fas fa-shield-alt"></i> STAFF ONLY</div>
-
-            <label class="mod-login-label">Email</label>
-            <input type="email" id="modLoginEmail" class="mod-login-input" placeholder="your@email.com" autocomplete="email">
-
-            <label class="mod-login-label">Пароль</label>
-            <div style="position:relative;">
-                <input type="password" id="modLoginPass" class="mod-login-input" placeholder="••••••••" autocomplete="current-password" style="padding-right:44px;" onkeydown="if(event.key==='Enter') doModLogin()">
-                <button onclick="toggleModPassVis()" style="position:absolute;right:12px;top:50%;transform:translateY(-60%);background:none;border:none;color:#555;cursor:pointer;font-size:1rem;padding:0;" id="modPassEyeBtn">
-                    <i class="fas fa-eye" id="modPassEyeIcon"></i>
-                </button>
-            </div>
-
-            <button class="mod-login-btn" id="modLoginBtn" onclick="doModLogin()">
-                <i class="fas fa-sign-in-alt"></i> ВОЙТИ
-            </button>
-            <div class="mod-login-error" id="modLoginError"></div>
-            <button class="mod-login-back" onclick="closeModLoginPage()">
-                <i class="fas fa-arrow-left"></i> Вернуться на главную
-            </button>
-        </div>
-    </div>
-
-    <div id="maintenanceOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:9999; background:#04050d; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:20px;">
-        <div style="font-size:4rem; margin-bottom:20px;">🌙</div>
-        <h1 style="font-family:'Orbitron',sans-serif; font-size:clamp(1.6rem,5vw,3rem); margin:0 0 16px; background:linear-gradient(135deg,#a78bfa,#60a5fa); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">ТЕХНИЧЕСКИЙ ПЕРЕРЫВ</h1>
-        <p style="color:#94a3b8; font-size:1.1rem; max-width:500px; line-height:1.7; margin:0 0 30px;">Сайт временно недоступен. Мы проводим технические работы. Скоро вернёмся!</p>
-        <div style="background:rgba(167,139,250,0.08); border:1px solid rgba(167,139,250,0.2); border-radius:12px; padding:12px 24px; color:#a78bfa; font-weight:700; font-size:0.9rem; letter-spacing:1px; font-family:'Orbitron';">🌙 NIGHT GDPS</div>
-    </div>
-
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyBugYw3fPo4r7Q0e4jDjBUd-JBbCspghE8",
-            authDomain: "mysterygdps-30547.firebaseapp.com",
-            databaseURL: "https://mysterygdps-30547-default-rtdb.firebaseio.com",
-            projectId: "mysterygdps-30547",
-            storageBucket: "mysterygdps-30547.firebasestorage.app",
-            messagingSenderId: "12553952733",
-            appId: "1:12553952733:web:fa603d37c8c08dddefaa34"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-        const auth = firebase.auth();
-
-        let currentLang = 'RU';
-        let isAdmin = false;
-        let isModerator = false;
-        let currentUserRole = null; 
-        let isDeleteMode = false;
-        let isEditMode = false;
-        let isDragDropMode = false;
-        let searchMode = 'main';
-        let currentTab = 'demons';
-        let demons = [];
-        let creators = [];
-        let moderators = [];
-        let reviews = [];
-        let selectedReviewRating = 0;
-        let draggedItem = null;
-        let draggedIndex = -1;
-
-        if (localStorage.getItem('mxAdmin') === '1') {
-            document.getElementById('admin-trigger').style.display = 'block';
-        }
-
-        // ===== AUTH STATE =====
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                db.ref('moderators/' + user.uid).once('value', snap => {
-                    const modData = snap.val();
-                    if (modData) {
-                        currentUserRole = modData.role || 'moderator';
-                        isModerator = true;
-                        isAdmin = (currentUserRole === 'admin');
-                    } else {
-                        auth.signOut();
-                        return;
-                    }
-                    updateUIForRole();
-                });
-            } else {
-                isAdmin = false;
-                isModerator = false;
-                currentUserRole = null;
-                isDeleteMode = false;
-                isEditMode = false;
-                isDragDropMode = false;
-                updateUIForRole();
-                render();
-            }
-        });
-
-        function updateUIForRole() {
-            const trigger = document.getElementById('admin-trigger');
-            const modTrigger = document.getElementById('mod-trigger');
-            const modInd = document.getElementById('modIndicator');
-            const modText = document.getElementById('modIndicatorText');
-
-            if (isModerator) {
-                localStorage.setItem('mxAdmin', '1');
-                trigger.style.display = isAdmin ? 'block' : 'none';
-                if (modTrigger) modTrigger.style.display = 'flex';
-                modInd.style.display = 'flex';
-                if (currentUserRole === 'admin') {
-                    modText.textContent = 'Администратор';
-                    modInd.style.color = '#f472b6';
-                    modInd.style.borderColor = 'rgba(244,114,182,0.3)';
-                    modInd.style.background = 'rgba(244,114,182,0.1)';
-                } else {
-                    modText.textContent = 'Модератор';
-                    modInd.style.color = '#60a5fa';
-                    modInd.style.borderColor = 'rgba(96,165,250,0.25)';
-                    modInd.style.background = 'rgba(96,165,250,0.1)';
-                }
-                const user = auth.currentUser;
-                if (user) {
-                    const found = moderators.find(m => m.uid === user.uid);
-                    const nick = found ? (found.nick || found.email) : (user.email || '');
-                    const el = document.getElementById('modNickDisplay');
-                    if (el) el.textContent = '\u{1F464} ' + nick;
-                }
-            } else {
-                localStorage.removeItem('mxAdmin');
-                trigger.style.display = 'none';
-                if (modTrigger) modTrigger.style.display = 'none';
-                modInd.style.display = 'none';
-            }
-            render();
-        }
-
-        db.ref('moderators').on('value', s => {
-            const val = s.val();
-            moderators = val ? Object.entries(val).map(([k, v]) => ({ uid: k, ...v })) : [];
-            renderModList();
-        });
-
-        db.ref('reviews').on('value', s => {
-            const val = s.val();
-            reviews = val ? Object.entries(val).map(([k, v]) => ({ key: k, ...v })) : [];
-            reviews.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-            renderApprovedReviews();
-            renderModReviews();
-        });
-
-        function escapeHtml(str) {
-            const div = document.createElement('div');
-            div.textContent = str || '';
-            return div.innerHTML;
-        }
-
-        function renderStarsHtml(rating) {
-            let html = '';
-            for (let i = 1; i <= 5; i++) {
-                html += `<i class="fas fa-star${i <= rating ? '' : ' empty'}"></i>`;
-            }
-            return html;
-        }
-
-        function renderApprovedReviews() {
-            const grid = document.getElementById('reviewsGrid');
-            if (!grid) return;
-            const approved = reviews.filter(r => r.status === 'approved');
-            if (approved.length === 0) {
-                grid.innerHTML = '<div class="reviews-empty">Пока нет отзывов. Будь первым!</div>';
-                return;
-            }
-            grid.innerHTML = approved.map(r => `
-                <div class="review-card">
-                    <div class="review-card-head">
-                        <span class="review-card-name">${escapeHtml(r.name)}</span>
-                        <div style="display:flex;align-items:center;gap:8px;">
-                            <span class="review-card-stars">${renderStarsHtml(r.rating || 0)}</span>
-                            ${isAdmin ? `<button onclick="deleteReview('${r.key}')" title="Удалить отзыв" style="background:rgba(255,70,70,0.12);border:1px solid rgba(255,70,70,0.3);color:#ff6868;border-radius:7px;width:26px;height:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.75rem;flex-shrink:0;transition:0.2s;" onmouseover="this.style.background='rgba(255,70,70,0.25)'" onmouseout="this.style.background='rgba(255,70,70,0.12)'"><i class="fas fa-trash"></i></button>` : ''}
-                        </div>
-                    </div>
-                    <p class="review-card-text">${escapeHtml(r.text)}</p>
-                </div>
-            `).join('');
-        }
-
-        function deleteReview(key) {
-            if (!isAdmin) return;
-            if (!confirm('Удалить этот отзыв?')) return;
-            db.ref('reviews/' + key).remove()
-                .then(() => showToast('🗑️ Отзыв удалён'))
-                .catch(e => showToast('Ошибка: ' + e.message));
-        }
-
-        function renderModReviews() {
-            const list = document.getElementById('modReviewsList');
-            const countEl = document.getElementById('modReviewCount');
-            if (!list) return;
-            const pending = reviews.filter(r => r.status === 'pending');
-            if (countEl) countEl.textContent = pending.length ? `(${pending.length})` : '';
-            if (pending.length === 0) {
-                list.innerHTML = '<p style="color:#555;text-align:center;font-size:0.82rem;margin:6px 0;">Нет отзывов на проверке</p>';
-                return;
-            }
-            list.innerHTML = pending.map(r => `
-                <div style="background:rgba(4,5,13,0.6);border:1px solid rgba(167,139,250,0.12);border-radius:12px;padding:12px;margin-bottom:8px;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                        <strong style="font-size:0.85rem;color:#fff;">${escapeHtml(r.name)}</strong>
-                        <span style="color:#fbbf24;font-size:0.75rem;">${renderStarsHtml(r.rating || 0)}</span>
-                    </div>
-                    <p style="font-size:0.8rem;color:var(--text-main);margin:0 0 10px;word-break:break-word;">${escapeHtml(r.text)}</p>
-                    <div style="display:flex;gap:8px;">
-                        <button onclick="approveReview('${r.key}')" style="flex:1;padding:8px;background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.3);color:#4ade80;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.78rem;font-family:Nunito;text-transform:uppercase;">
-                            <i class="fas fa-check"></i> Одобрить
-                        </button>
-                        <button onclick="rejectReview('${r.key}')" style="flex:1;padding:8px;background:rgba(255,70,70,0.1);border:1px solid rgba(255,70,70,0.3);color:#ff6868;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.78rem;font-family:Nunito;text-transform:uppercase;">
-                            <i class="fas fa-times"></i> Отклонить
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function approveReview(key) {
-            if (!isModerator) return;
-            db.ref('reviews/' + key).update({ status: 'approved' }).then(() => showToast('✅ Отзыв опубликован!')).catch(e => showToast('Ошибка: ' + e.message));
-        }
-
-        function rejectReview(key) {
-            if (!isModerator) return;
-            if (!confirm('Удалить этот отзыв?')) return;
-            db.ref('reviews/' + key).remove().then(() => showToast('🗑️ Отзыв отклонён')).catch(e => showToast('Ошибка: ' + e.message));
-        }
-
-        let reviewCaptchaAnswer = 0;
-
-        function generateReviewCaptcha() {
-            const a = Math.floor(Math.random() * 8) + 1;
-            const b = Math.floor(Math.random() * 8) + 1;
-            const useMinus = Math.random() < 0.5 && a >= b;
-            reviewCaptchaAnswer = useMinus ? (a - b) : (a + b);
-            const qEl = document.getElementById('captchaQuestion');
-            if (qEl) qEl.textContent = `${a} ${useMinus ? '−' : '+'} ${b}`;
-            const aEl = document.getElementById('captchaAnswer');
-            if (aEl) aEl.value = '';
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const picker = document.getElementById('reviewStarsPicker');
-            if (!picker) return;
-            const stars = picker.querySelectorAll('i');
-            stars.forEach(star => {
-                star.addEventListener('click', () => {
-                    selectedReviewRating = parseInt(star.dataset.val);
-                    stars.forEach(s => s.classList.toggle('active', parseInt(s.dataset.val) <= selectedReviewRating));
-                });
-            });
-            updateReviewFormCooldownUI();
-            generateReviewCaptcha();
-        });
-
-        function updateReviewFormCooldownUI() {
-            const note = document.querySelector('.review-submit-note');
-            const btn = document.querySelector('.review-submit-btn');
-            if (!note || !btn) return;
-            const cooldownLeft = getReviewCooldownLeft();
-            if (cooldownLeft > 0) {
-                const hours = Math.ceil(cooldownLeft / (60 * 60 * 1000));
-                note.textContent = `Ты уже оставлял отзыв. Можно будет написать новый через ~${hours} ч.`;
-                btn.disabled = true;
-                btn.style.opacity = '0.5';
-                btn.style.cursor = 'not-allowed';
-            } else {
-                note.textContent = 'Отзыв появится на сайте после проверки модератором';
-                btn.disabled = false;
-                btn.style.opacity = '1';
-                btn.style.cursor = 'pointer';
-            }
-        }
-
-        function getReviewCooldownLeft() {
-            const last = parseInt(localStorage.getItem('lastReviewAt') || '0');
-            const cooldownMs = 4 * 60 * 60 * 1000;
-            const left = cooldownMs - (Date.now() - last);
-            return left > 0 ? left : 0;
-        }
-
-        function submitReview() {
-            const cooldownLeft = getReviewCooldownLeft();
-            if (cooldownLeft > 0) {
-                const hours = Math.ceil(cooldownLeft / (60 * 60 * 1000));
-                showToast(`⏳ Ты уже оставлял отзыв. Попробуй через ~${hours} ч.`);
-                return;
-            }
-
-            const name = document.getElementById('reviewName').value.trim();
-            const text = document.getElementById('reviewText').value.trim();
-            const captchaInput = document.getElementById('captchaAnswer');
-            const userCaptchaAnswer = parseInt((captchaInput.value || '').trim());
-
-            if (!name) { showToast('Введи свой ник!'); return; }
-            if (!text) { showToast('Напиши текст отзыва!'); return; }
-            if (!selectedReviewRating) { showToast('Поставь оценку звёздами!'); return; }
-            if (isNaN(userCaptchaAnswer) || userCaptchaAnswer !== reviewCaptchaAnswer) {
-                showToast('❌ Неверный ответ на пример. Попробуй ещё раз!');
-                generateReviewCaptcha();
-                return;
-            }
-
-            const submitBtn = document.querySelector('.review-submit-btn');
-            if (submitBtn) submitBtn.disabled = true;
-
-            const reviewPushPromise = db.ref('reviews').push({
-                name: name.slice(0, 30),
-                text: text.slice(0, 400),
-                rating: selectedReviewRating,
-                status: 'pending',
-                createdAt: Date.now()
-            });
-
-            const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Превышено время ожидания. Проверь интернет-соединение.')), 12000)
-            );
-
-            Promise.race([reviewPushPromise, timeoutPromise]).then(() => {
-                localStorage.setItem('lastReviewAt', Date.now().toString());
-                showToast('✅ Отзыв отправлен на проверку!');
-                document.getElementById('reviewName').value = '';
-                document.getElementById('reviewText').value = '';
-                selectedReviewRating = 0;
-                document.querySelectorAll('#reviewStarsPicker i').forEach(s => s.classList.remove('active'));
-                generateReviewCaptcha();
-                updateReviewFormCooldownUI();
-            }).catch(e => { showToast('Ошибка: ' + e.message); generateReviewCaptcha(); })
-              .finally(() => { if (submitBtn) submitBtn.disabled = getReviewCooldownLeft() > 0; });
-        }
-
-        function renderModList() {
-            const container = document.getElementById('modListContainer');
-            if (!container) return;
-            if (moderators.length === 0) {
-                container.innerHTML = '<p style="color:#555;text-align:center;font-size:0.85rem;">Модераторов пока нет</p>';
-                return;
-            }
-            container.innerHTML = moderators.map(m => `
-                <div class="mod-list-item">
-                    <div class="mod-item-info">
-                        <div class="mod-item-email">${m.email || '—'}</div>
-                        <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
-                            <span class="mod-item-name">${m.nick || 'Без ника'}</span>
-                            <span class="mod-role-badge ${m.role === 'admin' ? 'mod-role-admin' : 'mod-role-mod'}">
-                                ${m.role === 'admin' ? '⭐ Админ' : '🛡️ Мод'}
-                            </span>
-                        </div>
-                    </div>
-                    <div class="mod-item-actions">
-                        <button class="mod-del-btn" onclick="removeModerator('${m.uid}', '${m.email || ''}')">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function openModPanel() {
-            if (!isAdmin) return;
-            document.getElementById('modPanel').style.display = 'block';
-            renderModList();
-        }
-        function closeModPanel() {
-            document.getElementById('modPanel').style.display = 'none';
-        }
-
-        async function addModerator() {
-            if (!isAdmin) return;
-            const email = document.getElementById('newModEmail').value.trim();
-            const pass = document.getElementById('newModPass').value;
-            const nick = document.getElementById('newModNick').value.trim();
-            const role = document.getElementById('newModRole').value;
-
-            if (!email || !pass || pass.length < 6) {
-                showToast('Заполни email и пароль (мин. 6 символов)');
-                return;
-            }
-
-            try {
-                const secondaryApp = firebase.initializeApp(firebaseConfig, 'secondary_' + Date.now());
-                const secondaryAuth = secondaryApp.auth();
-                const cred = await secondaryAuth.createUserWithEmailAndPassword(email, pass);
-                const uid = cred.user.uid;
-                await secondaryAuth.signOut();
-                secondaryApp.delete();
-
-                await db.ref('moderators/' + uid).set({ email, nick, role, createdAt: Date.now() });
-                showToast('Модератор успешно добавлен!');
-                document.getElementById('newModEmail').value = '';
-                document.getElementById('newModPass').value = '';
-                document.getElementById('newModNick').value = '';
-            } catch (e) {
-                console.error(e);
-                showToast('Ошибка: ' + (e.message || 'неизвестная ошибка'));
-            }
-        }
-
-        async function removeModerator(uid, email) {
-            if (!isAdmin) return;
-            if (!confirm(`Удалить модератора ${email}?\n\nАккаунт Firebase останется, но права будут убраны.`)) return;
-            await db.ref('moderators/' + uid).remove();
-            showToast('Права модератора убраны');
-        }
-
-        // ===== ADMIN AUTH =====
-        function adminLogin() {
-            const email = document.getElementById('adminEmail').value.trim();
-            const pass = document.getElementById('adminPass').value;
-            const errEl = document.getElementById('loginError');
-            errEl.style.display = 'none';
-            auth.signInWithEmailAndPassword(email, pass)
-                .then(() => {
-                    document.getElementById('loginBlock').style.display = 'none';
-                    document.getElementById('adminControls').style.display = 'block';
-                    toggleAdmFields();
-                })
-                .catch(() => { errEl.style.display = 'block'; });
-        }
-        function adminLogout() { auth.signOut(); closeAdmin(); }
-
-        function openAdmin() {
-            document.getElementById('loginBlock').style.display = isModerator ? 'none' : 'block';
-            document.getElementById('adminControls').style.display = isModerator ? 'block' : 'none';
-            document.getElementById('loginError').style.display = 'none';
-            document.getElementById('adminPanel').style.display = 'block';
-            const sel = document.getElementById('admAction');
-            if (sel) {
-                Array.from(sel.options).forEach(opt => {
-                    if (['delete_all_demons','manage_mods','maintenance','drag_drop','delete_mode'].includes(opt.value)) {
-                        opt.disabled = !isAdmin;
-                        opt.style.color = isAdmin ? '' : '#555';
-                    }
-                });
-            }
-            toggleAdmFields();
-        }
-
-        // ===== EDIT DEMON =====
-        function openEditModal(key) {
-            if (!isModerator) return;
-            const d = demons.find(x => x.key === key);
-            if (!d) return;
-            document.getElementById('editDemonKey').value = key;
-            document.getElementById('editName').value = d.name || '';
-            document.getElementById('editAuthor').value = d.author || '';
-            document.getElementById('editVerifier').value = d.verifier || '';
-            document.getElementById('editLevelID').value = d.levelID || '';
-            document.getElementById('editTag').value = d.tag || '';
-            document.getElementById('editImg').value = d.img || '';
-            document.getElementById('editVid').value = d.vid ? `https://youtube.com/watch?v=${d.vid}` : '';
-            document.getElementById('editPoints').value = d.points || '';
-            updateImgPreview();
-            document.getElementById('editDemonModal').style.display = 'block';
-            document.getElementById('editDemonModal').scrollTop = 0;
-        }
-
-        function closeEditModal() {
-            document.getElementById('editDemonModal').style.display = 'none';
-        }
-
-        function updateImgPreview() {
-            const url = document.getElementById('editImg').value.trim();
-            const preview = document.getElementById('editImgPreview');
-            if (url) {
-                preview.src = url;
-                preview.style.display = 'block';
-                preview.onerror = () => { preview.style.display = 'none'; };
-            } else {
-                preview.style.display = 'none';
-            }
-        }
-
-        function saveDemonEdit() {
-            const key = document.getElementById('editDemonKey').value;
-            const name = document.getElementById('editName').value.trim();
-            const author = document.getElementById('editAuthor').value.trim();
-            const verifier = document.getElementById('editVerifier').value.trim();
-            const levelID = document.getElementById('editLevelID').value.trim();
-            const tag = document.getElementById('editTag').value.trim();
-            const img = document.getElementById('editImg').value.trim();
-            let vidRaw = document.getElementById('editVid').value.trim();
-
-            if (!name) { showToast('Введи название уровня'); return; }
-
-            let vid = vidRaw;
-            if (vidRaw.includes('v=')) vid = vidRaw.split('v=')[1].split('&')[0];
-            else if (vidRaw.includes('youtu.be/')) vid = vidRaw.split('youtu.be/')[1].split('?')[0];
-
-            const points = document.getElementById('editPoints').value.trim();
-            const updates = { name, author, verifier, levelID, tag, img, vid, points };
-            db.ref('demons/' + key).update(updates).then(() => {
-                showToast('Демон обновлён!');
-                closeEditModal();
-            }).catch(e => { showToast('Ошибка: ' + e.message); });
-        }
-
-        // ===== EDIT CREATOR =====
-        function openEditCreatorModal(key) {
-            if (!isAdmin) return;
-            const c = creators.find(x => x.key === key);
-            if (!c) return;
-            document.getElementById('editCreatorKey').value = key;
-            document.getElementById('editCreatorName').value = c.name || '';
-            document.getElementById('editCreatorPoints').value = c.points || 0;
-            document.getElementById('editCreatorModal').style.display = 'block';
-        }
-
-        function saveCreatorEdit() {
-            if (!isAdmin) return;
-            const key = document.getElementById('editCreatorKey').value;
-            const name = document.getElementById('editCreatorName').value.trim();
-            const points = parseInt(document.getElementById('editCreatorPoints').value) || 0;
-            
-            if (!name) return showToast('Введи имя!');
-            
-            db.ref('creators/' + key).update({ name, points }).then(() => {
-                showToast('Создатель обновлен!');
-                document.getElementById('editCreatorModal').style.display = 'none';
-            }).catch(e => showToast('Ошибка: ' + e.message));
-        }
-
-        // ===== EDIT SLAYER =====
-        function openEditSlayerModal(oldName) {
-            if (!isAdmin) return;
-            document.getElementById('editSlayerOldName').value = oldName;
-            document.getElementById('editSlayerNewName').value = oldName;
-            document.getElementById('editSlayerModal').style.display = 'block';
-        }
-
-        function saveSlayerEdit() {
-            if (!isAdmin) return;
-            const oldName = document.getElementById('editSlayerOldName').value;
-            const newName = document.getElementById('editSlayerNewName').value.trim();
-            if (!newName || oldName === newName) {
-                document.getElementById('editSlayerModal').style.display = 'none';
-                return;
-            }
-
-            let updates = {};
-            demons.forEach(d => {
-                if(d.victors) {
-                    Object.entries(d.victors).forEach(([vk, v]) => {
-                        if(v.name === oldName) {
-                            updates[`demons/${d.key}/victors/${vk}/name`] = newName;
-                        }
-                    });
-                }
-            });
-            
-            if (Object.keys(updates).length > 0) {
-                db.ref().update(updates).then(() => {
-                    showToast('Ник слеера обновлен во всех рекордах!');
-                    document.getElementById('editSlayerModal').style.display = 'none';
-                }).catch(e => showToast('Ошибка: ' + e.message));
-            } else {
-                document.getElementById('editSlayerModal').style.display = 'none';
-            }
-        }
-
-        function deleteSlayer(name) {
-            if (!isAdmin || !confirm(`Удалить все рекорды слеера ${name}? Это действие нельзя отменить!`)) return;
-            
-            let updates = {};
-            demons.forEach(d => {
-                if(d.victors) {
-                    Object.entries(d.victors).forEach(([vk, v]) => {
-                        if(v.name === name) {
-                            updates[`demons/${d.key}/victors/${vk}`] = null;
-                        }
-                    });
-                }
-            });
-            
-            db.ref().update(updates).then(() => {
-                showToast(`Все рекорды слеера ${name} удалены!`);
-            }).catch(e => showToast('Ошибка: ' + e.message));
-        }
-
-        // ===== NAVIGATION =====
-        function toggleBurger() {
-            const menu = document.getElementById('mobileMenu');
-            const btn  = document.getElementById('burgerBtn');
-            const open = menu.classList.contains('open');
-            menu.classList.toggle('open', !open);
-            btn.classList.toggle('open', !open);
-        }
-        function closeBurger() {
-            document.getElementById('mobileMenu').classList.remove('open');
-            document.getElementById('burgerBtn').classList.remove('open');
-        }
-
-        function openSection(id) {
-            document.querySelectorAll('.section-page').forEach(sec => sec.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            window.scrollTo(0,0);
-            const drops = document.getElementsByClassName("dropdown-content");
-            for (let i = 0; i < drops.length; i++) { drops[i].classList.remove('show'); }
-            closeBurger();
-        }
-
-        function toggleDropdown(id, event) {
-            event.stopPropagation();
-            document.getElementById(id).classList.toggle("show");
-        }
-
-        window.onclick = function(event) {
-            if (!event.target.matches('.nav-item') && !event.target.matches('.fa-caret-down')) {
-                var dropdowns = document.getElementsByClassName("dropdown-content");
-                for (var i = 0; i < dropdowns.length; i++) {
-                    if (dropdowns[i].classList.contains('show')) { dropdowns[i].classList.remove('show'); }
-                }
-            }
-        }
-
-        // ===== FIREBASE LISTENERS =====
-        db.ref('demons').on('value', s => {
-            const val = s.val();
-            demons = val ? Object.entries(val).map(([k, d]) => ({ key: k, ...d })).sort((a,b)=>(a.order||0)-(b.order||0)) : [];
-            const sel = document.getElementById('selectDemon');
-            if(sel) sel.innerHTML = demons.map(d => `<option value="${d.key}">${d.name}</option>`).join('');
-            render();
-        });
-        db.ref('creators').on('value', s => {
-            const val = s.val();
-            creators = val ? Object.entries(val).map(([k, d]) => ({ key: k, ...d })).sort((a,b)=>parseInt(b.points)-parseInt(a.points)) : [];
-            if (currentTab === 'creatortop') renderCreatorTop();
-            else render();
-        });
-
-        // ===== SEARCH =====
-        function setSearchMode(m) {
-            searchMode = m;
-            document.getElementById('searchModeMain').classList.toggle('active', m === 'main');
-            document.getElementById('searchModeTag').classList.toggle('active', m === 'tag');
-            render();
-        }
-
-        // ===== DRAG & DROP =====
-        function handleDragStart(index, event) {
-            if (!isDragDropMode) { event.preventDefault(); return; }
-            draggedIndex = index; draggedItem = demons[index];
-            event.dataTransfer.setData('text/plain', index);
-            event.currentTarget.classList.add('dragging');
-        }
-        function handleDragOver(index, event) {
-            if (!isDragDropMode || draggedIndex === -1) return;
-            event.preventDefault();
-            document.querySelectorAll('.card').forEach(c => c.classList.remove('drag-over'));
-            event.currentTarget.classList.add('drag-over');
-        }
-        function handleDragLeave(event) { event.currentTarget.classList.remove('drag-over'); }
-        function handleDrop(targetIndex, event) {
-            event.preventDefault(); event.currentTarget.classList.remove('drag-over');
-            if (!isDragDropMode || draggedIndex === -1 || draggedIndex === targetIndex) return;
-            const newDemons = [...demons];
-            const dragged = newDemons[draggedIndex];
-            newDemons.splice(draggedIndex, 1);
-            newDemons.splice(targetIndex, 0, dragged);
-            const updates = {};
-            newDemons.forEach((demon, idx) => { if (demon.order !== idx) { updates[`/demons/${demon.key}/order`] = idx; } });
-            db.ref().update(updates).then(() => { showToast('Порядок обновлён!'); });
-            draggedIndex = -1; draggedItem = null;
-        }
-        function handleDragEnd(event) {
-            event.currentTarget.classList.remove('dragging');
-            document.querySelectorAll('.card').forEach(c => c.classList.remove('drag-over'));
-            draggedIndex = -1; draggedItem = null;
-        }
-
-        function showToast(message) {
-            const toast = document.getElementById('copyToast');
-            toast.innerText = message; toast.className = 'show';
-            setTimeout(() => toast.className = '', 2500);
-        }
-
-        function toggleDragDropMode() {
-            isDragDropMode = !isDragDropMode;
-            const indicator = document.getElementById('dragIndicator');
-            indicator.style.display = isDragDropMode ? 'flex' : 'none';
-            render();
-            showToast(isDragDropMode ? 'Drag & Drop режим включён' : 'Drag & Drop режим выключён');
-        }
-
-        // ===== RENDER =====
-        function render() {
-            if (currentTab === 'players') { renderPlayerTop(); return; }
-            if (currentTab === 'creatortop') { renderCreatorTop(); return; }
-            
-            const container = document.getElementById('mainContainer');
-            const isDem = (currentTab === 'demons');
-            const query = document.getElementById('searchInput').value.toLowerCase();
-            const topBanner = document.getElementById('top50Banner');
-            
-            container.innerHTML = '';
-            container.style.display = 'grid';
-            document.getElementById('txtHero').innerText = isDem ? (currentLang==='EN'?'DEMON LIST':'СПИСОК ДЕМОНОВ') : (currentLang==='EN'?'CREATOR TOP':'ТОП КРЕАТОРОВ');
-            topBanner.style.display = isDem ? 'block' : 'none';
-
-            const canEdit = isModerator;
-            const canDelete = isAdmin;
-
-            if(isDem) {
-                const filtered = demons.filter(d => {
-                    if (searchMode === 'tag') { return d.tag && d.tag.toLowerCase().includes(query); }
-                    return d.name.toLowerCase().includes(query) || d.author.toLowerCase().includes(query);
-                });
-                filtered.forEach((d, i) => {
-                    const realIndex = demons.findIndex(x => x.key === d.key);
-                    const card = document.createElement('div');
-                    card.className = 'card';
-                    if (isDragDropMode && isAdmin) {
-                        card.setAttribute('draggable', 'true');
-                        card.setAttribute('data-index', i);
-                        card.ondragstart = (e) => handleDragStart(i, e);
-                        card.ondragover = (e) => handleDragOver(i, e);
-                        card.ondragleave = handleDragLeave;
-                        card.ondrop = (e) => handleDrop(i, e);
-                        card.ondragend = handleDragEnd;
-                    }
-
-                    let adminHtml = '';
-                    if (isDeleteMode && canDelete) {
-                        adminHtml = `<div class="admin-controls">
-                            <button class="ctrl-btn btn-up" onclick="moveItem(${i}, -1)"><i class="fas fa-arrow-up"></i></button>
-                            <button class="ctrl-btn btn-down" onclick="moveItem(${i}, 1)"><i class="fas fa-arrow-down"></i></button>
-                            <button class="ctrl-btn btn-edit" onclick="openEditModal('${d.key}')"><i class="fas fa-pen"></i></button>
-                            <button class="ctrl-btn btn-del" onclick="deleteItem('${d.key}','demons')"><i class="fas fa-trash"></i></button>
-                        </div>`;
-                    } else if (isEditMode && canEdit) {
-                        adminHtml = `<div class="admin-controls">
-                            <button class="ctrl-btn btn-up" onclick="moveItem(${i}, -1)"><i class="fas fa-arrow-up"></i></button>
-                            <button class="ctrl-btn btn-down" onclick="moveItem(${i}, 1)"><i class="fas fa-arrow-down"></i></button>
-                            <button class="ctrl-btn btn-edit" onclick="openEditModal('${d.key}')"><i class="fas fa-pen"></i></button>
-                        </div>`;
-                    }
-
-                    card.innerHTML = `
-                        ${adminHtml}
-                        ${isDragDropMode && isAdmin ? `<div style="position:absolute;top:10px;left:10px;background:rgba(167,139,250,0.2);padding:4px 8px;border-radius:5px;font-size:0.7rem;color:var(--accent);z-index:50;"><i class="fas fa-grip-vertical"></i> Drag me</div>` : ''}
-                        ${d.tag ? `<div class="demon-tag">${d.tag}</div>` : ''}
-                        ${d.points ? `<div class="diff-points-badge"><span class="diff-label">Сложность</span>${d.points}</div>` : ''}
-                        <img src="${d.img}" class="card-img" onerror="this.src='https://via.placeholder.com/600x300/0c1026/a78bfa?text=Night+GDPS'">
-                        <div class="card-body">
-                            <h3 style="margin:0; color:var(--accent); font-size:1.2rem; font-family:'Orbitron';">#${realIndex+1} ${d.name}</h3>
-                            <p style="color:#888; margin:6px 0 15px; font-size:0.9rem;">by <span style="color:#c4b5fd;">${d.author}</span></p>
-                            <div class="level-id-box" onclick="copyID('${d.levelID}')"><i class="fas fa-hashtag" style="font-size:0.75rem;"></i> ${d.levelID}</div>
-                            <button class="btn-more" onclick="showInfoByKey('${d.key}')">${currentLang==='EN'?'DETAILS':'ПОДРОБНЕЕ'}</button>
-                        </div>`;
-                    container.appendChild(card);
-                });
-            }
-        }
-
-        // ===== PROCESS ADMIN ACTIONS =====
-        function processAdmin() {
-            const act = document.getElementById('admAction').value;
-
-            if (act === 'add_victor') {
-                if (!isModerator) { alert('Нет доступа!'); return; }
-                const dKey = document.getElementById('selectDemon').value;
-                const vicVidRaw = document.getElementById('vicVid').value.trim();
-                let vicVid = vicVidRaw;
-                if (vicVidRaw.includes('v=')) vicVid = vicVidRaw.split('v=')[1].split('&')[0];
-                else if (vicVidRaw.includes('youtu.be/')) vicVid = vicVidRaw.split('youtu.be/')[1].split('?')[0];
-                db.ref(`demons/${dKey}/victors`).push({
-                    name: document.getElementById('vicName').value,
-                    perc: document.getElementById('vicPerc').value,
-                    att: document.getElementById('vicAtt').value,
-                    vid: vicVid
-                });
-                closeAdmin();
-                return;
-            }
-            if (act === 'add_demon') {
-                if (!isModerator) { alert('Нет доступа!'); return; }
-                let r = document.getElementById('itemVid').value;
-                let v = r.includes('v=') ? r.split('v=')[1].split('&')[0] : r.includes('youtu.be/') ? r.split('youtu.be/')[1].split('?')[0] : r;
-                db.ref('demons').push({ name: document.getElementById('itemName').value, author: document.getElementById('itemVal').value, levelID: document.getElementById('itemID').value, tag: document.getElementById('itemTag').value, verifier: document.getElementById('itemVerifier').value, img: document.getElementById('itemImgURL').value, vid: v, points: document.getElementById('itemPoints').value.trim(), order: demons.length });
-                closeAdmin();
-                return;
-            }
-            if (act === 'edit_demon_mode') {
-                if (!isModerator) { alert('Нет доступа!'); return; }
-                isEditMode = !isEditMode;
-                if (isEditMode) isDeleteMode = false;
-                render();
-                showToast(isEditMode ? '✏️ Режим редактирования включён' : '✏️ Режим редактирования выключён');
-                closeAdmin();
-                return;
-            }
-
-            // Admin-only actions
-            if (!isAdmin) { alert('Только администратор!'); return; }
-
-            if(act === 'add_creator') {
-                db.ref('creators').push({ name: document.getElementById('itemName').value, points: parseInt(document.getElementById('itemVal').value) || 0 });
-            } else if(act === 'delete_mode') {
-                isDeleteMode = !isDeleteMode;
-                if (isDeleteMode) isEditMode = false;
-                render();
-                showToast(isDeleteMode ? '🗑️ Режим удаления включён' : '🗑️ Режим удаления выключён');
-            } else if(act === 'manage_mods') {
-                closeAdmin();
-                openModPanel();
-                return;
-            } else if(act === 'delete_all_demons') {
-                if(confirm('⚠️ Удалить ВСЕХ демонов из списка? Это действие необратимо!')) { db.ref('demons').remove(); }
-            } else if(act === 'maintenance') {
-                db.ref('maintenance').once('value', s => {
-                    const current = s.val() === true;
-                    db.ref('maintenance').set(!current);
-                    alert(!current ? '🔧 Техперерыв ВКЛЮЧЁН — сайт закрыт для посетителей' : '✅ Техперерыв ВЫКЛЮЧЕН — сайт открыт');
-                });
-            } else if(act === 'drag_drop') {
-                toggleDragDropMode();
-            }
-            closeAdmin();
-        }
-
-        // ===== LANGUAGE =====
-        function toggleLang() {
-            currentLang = currentLang === 'RU' ? 'EN' : 'RU';
-            document.getElementById('langBtn').innerText = currentLang;
-            const translations = {
-                RU: { welcomeT:"NIGHT GDPS", welcomeD:"Окунись в мир самого амбициозного приватного сервера Geometry Dash. Стабильность, уникальные уровни и сильнейшее комьюнити игроков.", play:"СКАЧАТЬ ИГРУ", list:"DEMON LIST", searchM:"Название / Автор", searchT:"По тегу", searchP:"Поиск уровня или автора...", verify:"Критерии верификации", toast:"ID Скопировано!", navDropTop50:"ТОП 50", navDropCreators:"КРЕАТОРЫ", navDownloadText:"Скачать", navHome:"Главная", dlTitle:"СКАЧАТЬ ИГРУ", dlVersion:"Версия 2.2081", dlDescPC:"Скачать .zip архив для игры на компьютере", dlDescAnd:"Скачать .apk файл для игры на телефоне" },
-                EN: { welcomeT:"NIGHT GDPS", welcomeD:"Dive into the world of the most ambitious Geometry Dash private server. Stability, unique levels, and the strongest community.", play:"DOWNLOAD GAME", list:"DEMON LIST", searchM:"Name / Author", searchT:"By Tag", searchP:"Search level or creator...", verify:"Verification Criteria", toast:"ID Copied!", navDropTop50:"TOP 50", navDropCreators:"CREATORS", navDownloadText:"Download", navHome:"Home", dlTitle:"DOWNLOAD GAME", dlVersion:"Version 2.2081", dlDescPC:"Download .zip archive to play on PC", dlDescAnd:"Download .apk file to play on mobile" }
-            };
-            const t = translations[currentLang];
-            document.getElementById('welcomeTitle').innerText = t.welcomeT;
-            document.getElementById('welcomeDesc').innerText = t.welcomeD;
-            document.getElementById('btnPlay').innerText = t.play;
-            document.getElementById('btnList').innerText = t.list;
-            document.getElementById('searchModeMain').innerText = t.searchM;
-            document.getElementById('searchModeTag').innerText = t.searchT;
-            document.getElementById('searchInput').placeholder = t.searchP;
-            document.getElementById('verifyLink').innerText = t.verify;
-            document.getElementById('copyToast').innerText = t.toast;
-            const navLabel = document.getElementById('navDemonListLabel');
-            if (navLabel) navLabel.textContent = currentLang === 'RU' ? 'Информация' : 'Information';
-            document.getElementById('navDemonListText').innerHTML; 
-            document.getElementById('navDownloadText').innerText = t.navDownloadText;
-            document.getElementById('navDropTop50').innerText = t.navDropTop50;
-            document.getElementById('navDropCreators').innerText = t.navDropCreators;
-            document.getElementById('navHome').innerText = t.navHome;
-            document.getElementById('dlTitle').innerText = t.dlTitle;
-            document.getElementById('dlVersion').innerText = t.dlVersion;
-            document.getElementById('dlDescPC').innerText = t.dlDescPC;
-            document.getElementById('dlDescAnd').innerText = t.dlDescAnd;
-            render();
-        }
-
-        // ===== DETAIL MODAL =====
-        function showInfoByKey(key) {
-            const d = demons.find(x => x.key === key);
-            const vics = d.victors ? Object.entries(d.victors).map(([vk, v]) => `
-                <div class="record-item">
-                    <div style="display:flex;flex-direction:column;gap:6px;flex:1;min-width:0;">
-                        <span><b style="color:#fff;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(167,139,250,0.4);" onclick="openPlayerProfile(\'${v.name}\')" title="Открыть профиль">${v.name}</b> — <span style="color:var(--accent); font-weight:700;">${v.perc || '100%'}</span> <span style="color:#888;">(${v.att || '0'} att)</span></span>
-                        ${v.vid ? `<a href="https://youtube.com/watch?v=${v.vid}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,0,0,0.1);border:1px solid rgba(255,0,0,0.25);color:#ff6b6b;padding:4px 10px;border-radius:7px;font-size:0.75rem;font-weight:700;text-decoration:none;width:fit-content;transition:0.2s;" onmouseover="this.style.background='rgba(255,0,0,0.2)'" onmouseout="this.style.background='rgba(255,0,0,0.1)'"><i class="fab fa-youtube"></i> Смотреть видео</a>` : ''}
-                    </div>
-                    ${isDeleteMode && isAdmin ? `<i class="fas fa-times" style="color:#ff4d4d; cursor:pointer; flex-shrink:0;" onclick="deleteVictor('${d.key}', '${vk}')"></i>` : ''}
-                </div>`).join('') : `<p style='color:#555;'>${currentLang==='EN'?'No records yet':'Рекордов пока нет'}</p>`;
-            document.getElementById('modalData').innerHTML = `
-                <button class="modal-close-pin" onclick="document.getElementById('detailModal').style.display='none'">
-                    <i class="fas fa-times"></i>
-                </button>
-                <h2 style="font-family:Orbitron; font-size:clamp(1.1rem,4vw,1.7rem); margin:0 44px 4px 0; color:#fff; background:var(--main-grad); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">${d.name}</h2>
-                <p style="color:#888; font-size:0.9rem; margin:0 0 14px;">by <span style="color:var(--accent);">${d.author}</span> ${d.verifier ? '| Verified by ' + d.verifier : ''}</p>
-                ${isModerator ? `<button onclick="document.getElementById('detailModal').style.display='none'; openEditModal('${d.key}')" style="margin-bottom:14px; padding:8px 18px; background:rgba(243,156,18,0.12); border:1px solid rgba(243,156,18,0.3); color:#f39c12; border-radius:10px; cursor:pointer; font-size:0.82rem; font-weight:700; font-family:'Nunito'; text-transform:uppercase; transition:0.2s;"><i class="fas fa-pen"></i> Редактировать</button>` : ''}
-                <iframe style="width:100%; aspect-ratio:16/9; border-radius:14px; margin:0 0 18px; border:1px solid rgba(167,139,250,0.2);" src="https://www.youtube.com/embed/${d.vid}" frameborder="0" allowfullscreen></iframe>
-                <h3 style="margin-bottom:12px; font-size:1rem; color:#fff; font-family:Orbitron;">Victors & Records:</h3>
-                <div style="max-height:220px; overflow-y:auto; padding-right:6px;">${vics}</div>
-                <button class="btn-more" style="background:transparent; border:1px solid #333; color:#666; margin-top:20px;" onclick="document.getElementById('detailModal').style.display='none'">${currentLang==='EN'?'CLOSE':'ЗАКРЫТЬ'}</button>`;
-            document.getElementById('detailModal').style.display='block';
-            document.getElementById('detailModal').scrollTop = 0;
-        }
-
-        // ===== UTILS =====
-        function deleteVictor(dk, vk) {
-            if(confirm(currentLang==='EN'?"Delete record?":"Удалить рекорд?")) {
-                db.ref(`demons/${dk}/victors/${vk}`).remove().then(() => { document.getElementById('detailModal').style.display='none'; });
-            }
-        }
-        function copyID(id) { navigator.clipboard.writeText(id); const t = document.getElementById("copyToast"); t.className = "show"; setTimeout(() => t.className = "", 3000); }
-        function moveItem(index, dir) { let target = index + dir; if (target < 0 || target >= demons.length) return; const updates = {}; updates[`/demons/${demons[index].key}/order`] = target; updates[`/demons/${demons[target].key}/order`] = index; db.ref().update(updates); }
-        function toggleAdmFields() {
-            const a = document.getElementById('admAction').value;
-            document.getElementById('fields_main').style.display = (a === 'add_demon' || a === 'add_creator') ? 'block' : 'none';
-            document.getElementById('fields_demon').style.display = a === 'add_demon' ? 'block' : 'none';
-            document.getElementById('fields_victor').style.display = a === 'add_victor' ? 'block' : 'none';
-        }
-        function closeAdmin() { document.getElementById('adminPanel').style.display='none'; }
+        # 1. Отправляем в ЛС пользователю
+        bot.send_message(int(target_user_id), user_msg, parse_mode="Markdown")
         
-        function switchTab(t) {
-            currentTab = t;
-            const tabs = { demons: 'tabDemonsBtn', creators: 'tabCreatorsBtn', players: 'tabPlayersBtn', creatortop: 'tabCreatorTopBtn' };
-            Object.entries(tabs).forEach(([key, btnId]) => {
-                const btn = document.getElementById(btnId);
-                if (btn) btn.classList.toggle('active', key === t);
-            });
-            const mainContainer = document.getElementById('mainContainer');
-            const playerTopSection = document.getElementById('playerTopSection');
-            const creatorTopSection = document.getElementById('creatorTopSection');
-            const searchBoxWrap = document.getElementById('searchBoxWrap');
-            const top50Banner = document.getElementById('top50Banner');
+        # 2. Логируем успех
+        moderator_name = f"@{message.from_user.username}" if message.from_user.username else message.from_user.first_name
+        success_log = (
+            f"🟢 **Заявка успешно обработана!**\n"
+            f"👤 Модератор: {moderator_name}\n"
+            f"🎯 Доставлено в ЛС ID: `{target_user_id}`\n"
+            f"📝 Текст ответа:\n_{message.text}_"
+        )
+        bot.send_message(ADMIN_CHAT_ID, success_log, parse_mode="Markdown")
 
-            if (mainContainer) mainContainer.style.display = 'none';
-            if (playerTopSection) playerTopSection.style.display = 'none';
-            if (creatorTopSection) creatorTopSection.style.display = 'none';
-            if (searchBoxWrap) searchBoxWrap.style.display = 'none';
-            if (top50Banner) top50Banner.style.display = 'none';
+    except Exception as e:
+        bot.reply_to(message, f"❌ **ОШИБКА ДОСТАВКИ В ЛС!**\n\nTelegram вернул ошибку:\n`{str(e)}`")
 
-            if (t === 'players') {
-                if (playerTopSection) playerTopSection.style.display = 'block';
-                document.getElementById('txtHero').innerText = currentLang === 'EN' ? 'SLAYERS TOP' : 'ТОП СЛЕЕРОВ';
-                renderPlayerTop();
-            } else if (t === 'creatortop') {
-                if (creatorTopSection) creatorTopSection.style.display = 'block';
-                document.getElementById('txtHero').innerText = currentLang === 'EN' ? 'CREATOR TOP' : 'ТОП СОЗДАТЕЛЕЙ';
-                renderCreatorTop();
-            } else {
-                if (mainContainer) mainContainer.style.display = 'grid';
-                if (searchBoxWrap) searchBoxWrap.style.display = 'block';
-                render();
-            }
-        }
+# --- ЛОГИКА КНОПОК ПОЛЬЗОВАТЕЛЕЙ (В ЛС) ---
+@bot.callback_query_handler(func=lambda call: call.data in ["btn_request", "btn_appeal", "btn_victory", "btn_cancel"])
+def callback_inline(call):
+    try: bot.answer_callback_query(call.id)
+    except: pass
+    user_id = call.from_user.id
+    chat_id = call.message.chat.id
+    
+    if call.data == "btn_cancel":
+        user_storage.set_state(user_id, "idle")
+        bot.send_message(chat_id, "❌ Действие отменено.", reply_markup=get_main_menu(user_id))
+        return
 
-        function renderCreatorTop() {
-            const list = document.getElementById('creatorTopList');
-            if (!list) return;
+    if call.data == "btn_request":
+        user_storage.set_state(user_id, "waiting_request")
+        bot.send_message(chat_id, "Отправьте рейт в формате:\n1) ID уровня\n2) Автор\n3) Сложность и сколько звезд требуется (например: Harder 7★)", reply_markup=get_cancel_menu())
+    elif call.data == "btn_appeal":
+        user_storage.set_state(user_id, "waiting_appeal")
+        bot.send_message(chat_id, "Пожалуйста, распишите всё как есть (причину бана/мута).", reply_markup=get_cancel_menu())
+    elif call.data == "btn_victory":
+        user_storage.set_state(user_id, "waiting_victory")
+        rules = "📜 **ПРАВИЛА ВЕРИФА/РЕКОРДА:**\n- ВИДЕН ФПС\n- ВИДЕН КПС\n- ВИДЕО НА ЮТУБЕ\n- ЧИТ-ИНДИКАТОР\n\nОтправьте ссылку:"
+        bot.send_message(chat_id, rules, parse_mode="Markdown", reply_markup=get_cancel_menu())
 
-            const sorted = [...creators].sort((a, b) => parseInt(b.points) - parseInt(a.points));
+# --- ПЕРЕХВАТ ТЕКСТОВЫХ КОМАНД И АНКЕТ ---
+@bot.message_handler(commands=['request', 'appeal', 'victory'])
+def cmd_handlers(message):
+    u_id = message.from_user.id
+    if message.text == '/request':
+        user_storage.set_state(u_id, "waiting_request")
+        bot.send_message(message.chat.id, "Отправьте рейт в формате:\n1) ID уровня\n2) Автор\n3) Сложность и сколько звезд требуется (например: Harder 7★)", reply_markup=get_cancel_menu())
+    elif message.text == '/appeal':
+        user_storage.set_state(u_id, "waiting_appeal")
+        bot.send_message(message.chat.id, "Пожалуйста, распишите всё как есть (причину бана/мута).", reply_markup=get_cancel_menu())
+    elif message.text == '/victory':
+        user_storage.set_state(u_id, "waiting_victory")
+        rules = "📜 **ПРАВИЛА ВЕРИФА/РЕКОРДА:**\n- ВИДЕН ФПС\n- ВИДЕН КПС\n- ВИДЕО НА ЮТУБЕ\n- ЧИТ-ИНДИКАТОР\n\nОтправьте ссылку:"
+        bot.send_message(message.chat.id, rules, parse_mode="Markdown", reply_markup=get_cancel_menu())
 
-            if (sorted.length === 0) {
-                list.innerHTML = '<div class="player-top-empty">Рейтинг пуст. Добавьте создателей!</div>';
-                return;
-            }
+@bot.message_handler(func=lambda message: message.chat.id != ADMIN_CHAT_ID)
+def handle_user_text(message):
+    u_id = message.from_user.id
+    state = user_storage.get_state(u_id)
+    user = f"@{message.from_user.username}" if message.from_user.username else message.from_user.first_name
+    
+    if state == "waiting_request":
+        msg_text = f"📥 **НОВЫЙ РЕКВЕСТ**\n👤 От: {user} (ID: `{u_id}`)\nーーーーーーーーーーーー\n{message.text}"
+        bot.send_message(ADMIN_CHAT_ID, msg_text, parse_mode="Markdown", reply_markup=get_reply_keyboard(u_id, "req"))
+        user_storage.set_state(u_id, "idle")
+        bot.reply_to(message, "✅ Успешно отправлено модераторам!", reply_markup=get_main_menu(u_id))
+        
+    elif state == "waiting_appeal":
+        msg_text = f"⚖️ **НОВАЯ АПЕЛЛЯЦИЯ**\n👤 От: {user} (ID: `{u_id}`)\nーーーーーーーーーーーー\n{message.text}"
+        bot.send_message(ADMIN_CHAT_ID, msg_text, parse_mode="Markdown", reply_markup=get_reply_keyboard(u_id, "app"))
+        user_storage.set_state(u_id, "idle")
+        bot.reply_to(message, "⏳ Апелляция принята. Ожидайте ответа.", reply_markup=get_main_menu(u_id))
+        
+    elif state == "waiting_victory":
+        msg_text = f"🏆 **НОВЫЙ РЕКОРД**\n👤 От: {user} (ID: `{u_id}`)\nーーーーーーーーーーーー\nСсылка: {message.text}"
+        bot.send_message(ADMIN_CHAT_ID, msg_text, parse_mode="Markdown", reply_markup=get_reply_keyboard(u_id, "vic"))
+        user_storage.set_state(u_id, "idle")
+        bot.reply_to(message, "🚀 Рекорд отправлен на верификацию!", reply_markup=get_main_menu(u_id))
+        
+    elif state == "waiting_broadcast" and u_id == ADMIN_ID:
+        news_text = f"📢 **НОВОСТИ И НОВОВВЕДЕНИЯ** (v{VERSION})\nーーーーーーーーーーーー\n{message.text}"
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute('SELECT user_id FROM users WHERE sub_news = 1')
+        active_users = cursor.fetchall()
+        conn.close()
+        
+        success = 0
+        for r in active_users:
+            try: bot.send_message(r[0], news_text, parse_mode="Markdown"); success += 1
+            except: pass
+        user_storage.set_state(u_id, "idle")
+        bot.reply_to(message, f"✅ Рассылка завершена! Получили {success} человек.")
+        
+    else:
+        bot.reply_to(message, "🤖 Пожалуйста, выберите действие на кнопках.", reply_markup=get_main_menu(u_id))
 
-            const medals = ['🥇', '🥈', '🥉'];
-            list.innerHTML = sorted.map((c, i) => {
-                const rank = i + 1;
-                const rankClass = rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : 'rank-other';
-                const rankDisplay = rank <= 3 ? medals[rank - 1] : `#${rank}`;
-                
-                let adminBtns = '';
-                if (isAdmin) {
-                    if (isEditMode) adminBtns += `<button class="ctrl-btn btn-edit" onclick="event.stopPropagation(); openEditCreatorModal('${c.key}')" style="margin-right:6px;"><i class="fas fa-pen"></i></button>`;
-                    if (isDeleteMode) adminBtns += `<button class="ctrl-btn btn-del" onclick="event.stopPropagation(); deleteItem('${c.key}','creators')"><i class="fas fa-trash"></i></button>`;
-                }
-
-                return `<div class="player-top-card" style="cursor:default;">
-                    <div class="player-top-rank ${rankClass}">${rankDisplay}</div>
-                    <div class="player-top-avatar">🔨</div>
-                    <div class="player-top-info">
-                        <div class="player-top-name">${escapeHtml(c.name)}</div>
-                        <div class="player-top-meta">Создатель</div>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        ${adminBtns !== '' ? `<div style="display:flex;">${adminBtns}</div>` : ''}
-                        <div>
-                            <div class="player-top-points">${c.points}</div>
-                            <span class="player-top-pts-label">CP</span>
-                        </div>
-                    </div>
-                </div>`;
-            }).join('');
-        }
-
-        function renderPlayerTop() {
-            const list = document.getElementById('playerTopList');
-            if (!list) return;
-
-            const playerMap = {};
-            demons.forEach(demon => {
-                if (!demon.victors) return;
-                const pts = parseFloat(demon.points);
-                Object.values(demon.victors).forEach(v => {
-                    if (!v.name) return;
-                    const name = v.name.trim();
-                    if (!playerMap[name]) {
-                        playerMap[name] = { name, totalPoints: 0, completions: 0, demons: [] };
-                    }
-                    const perc = parseInt((v.perc || '0').replace('%', ''));
-                    if (perc >= 100 && !isNaN(pts)) {
-                        playerMap[name].totalPoints += pts;
-                    }
-                    playerMap[name].completions++;
-                    playerMap[name].demons.push(demon.name);
-                });
-            });
-
-            const players = Object.values(playerMap)
-                .sort((a, b) => b.totalPoints - a.totalPoints)
-                .filter(p => p.totalPoints > 0 || p.completions > 0);
-
-            if (players.length === 0) {
-                list.innerHTML = '<div class="player-top-empty">Рейтинг пуст. Добавьте рекорды в демон лист!</div>';
-                return;
-            }
-
-            const medals = ['🥇', '🥈', '🥉'];
-            list.innerHTML = players.map((p, i) => {
-                const rank = i + 1;
-                const rankClass = rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : 'rank-other';
-                const rankDisplay = rank <= 3 ? medals[rank - 1] : `#${rank}`;
-                const pts = p.totalPoints % 1 === 0 ? p.totalPoints : p.totalPoints.toFixed(2);
-                const completionText = `${p.completions} прохожд.`;
-                
-                let adminBtns = '';
-                if (isAdmin) {
-                    if (isEditMode) adminBtns += `<button class="ctrl-btn btn-edit" onclick="event.stopPropagation(); openEditSlayerModal('${p.name.replace(/'/g, "\\'")}')" style="margin-right:6px;"><i class="fas fa-pen"></i></button>`;
-                    if (isDeleteMode) adminBtns += `<button class="ctrl-btn btn-del" onclick="event.stopPropagation(); deleteSlayer('${p.name.replace(/'/g, "\\'")}')"><i class="fas fa-trash"></i></button>`;
-                }
-
-                return `<div class="player-top-card" onclick="openPlayerProfile('${p.name.replace(/'/g, "\\'")}')">
-                    <div class="player-top-rank ${rankClass}">${rankDisplay}</div>
-                    <div class="player-top-avatar">🌙</div>
-                    <div class="player-top-info">
-                        <div class="player-top-name">${escapeHtml(p.name)}</div>
-                        <div class="player-top-meta">${completionText}</div>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        ${adminBtns !== '' ? `<div style="display:flex;">${adminBtns}</div>` : ''}
-                        <div>
-                            <div class="player-top-points">${pts}</div>
-                            <span class="player-top-pts-label">pts</span>
-                        </div>
-                    </div>
-                </div>`;
-            }).join('');
-        }
-        function deleteItem(k, p) { if(confirm("Подтверждаете удаление?")) db.ref(p+'/'+k).remove(); }
-
-        db.ref('maintenance').on('value', s => {
-            const on = s.val() === true;
-            const overlay = document.getElementById('maintenanceOverlay');
-            if (on && !isModerator) { overlay.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
-            else { overlay.style.display = 'none'; document.body.style.overflow = ''; }
-        });
-
-
-
-        // ===== PLAYER PROFILE =====
-        function openPlayerProfile(playerName) {
-            document.getElementById('detailModal').style.display = 'none';
-
-            const completions = [];
-            demons.forEach(demon => {
-                if (!demon.victors) return;
-                Object.values(demon.victors).forEach(v => {
-                    if (v.name && v.name.toLowerCase() === playerName.toLowerCase()) {
-                        completions.push({ demon, victor: v });
-                    }
-                });
-            });
-
-            let totalPoints = 0;
-            completions.forEach(c => {
-                const perc = parseInt((c.victor.perc || '0').replace('%',''));
-                if (perc < 100) return;
-                const pts = parseFloat(c.demon.points);
-                if (!isNaN(pts)) totalPoints += pts;
-            });
-
-            let topDemon = '—';
-            if (completions.length > 0) {
-                const sorted = [...completions].sort((a, b) => (a.demon.order || 999) - (b.demon.order || 999));
-                topDemon = sorted[0].demon.name;
-            }
-
-            let bestPerc = '—';
-            if (completions.length > 0) {
-                const percs = completions.map(c => {
-                    const p = parseInt((c.victor.perc || '0').replace('%',''));
-                    return isNaN(p) ? 0 : p;
-                });
-                bestPerc = Math.max(...percs) + '%';
-            }
-
-            document.getElementById('profileName').textContent = playerName;
-            document.getElementById('profilePoints').textContent = totalPoints % 1 === 0 ? totalPoints : totalPoints.toFixed(2);
-            document.getElementById('profileCompCount').textContent = completions.length;
-            document.getElementById('profileTopDemon').textContent = topDemon.length > 10 ? topDemon.substring(0,10)+'…' : topDemon;
-            document.getElementById('profileBestPerc').textContent = bestPerc;
-
-            const grid = document.getElementById('profileCompletionsGrid');
-            if (completions.length === 0) {
-                grid.innerHTML = '<p style="color:#555;font-size:0.85rem;grid-column:1/-1;text-align:center;padding:20px 0;">Нет прохождений</p>';
-            } else {
-                grid.innerHTML = completions.map(c => {
-                    const pts = c.demon.points ? `<span class="profile-completion-pts">⚡ ${c.demon.points}</span>` : '';
-                    const videoBlock = c.victor.vid
-                        ? `<iframe src="https://www.youtube.com/embed/${c.victor.vid}" allowfullscreen loading="lazy"></iframe>`
-                        : `<div class="no-video"><i class="fab fa-youtube"></i><span>Нет видео</span></div>`;
-                    return `<div class="profile-completion-card">
-                        <div class="profile-completion-video">${videoBlock}</div>
-                        <div class="profile-completion-info">
-                            <div class="profile-completion-name" title="${c.demon.name}">${c.demon.name}</div>
-                            <div class="profile-completion-meta">
-                                <span class="profile-completion-perc">${c.victor.perc || '100%'} · ${c.victor.att || '0'} att</span>
-                                ${pts}
-                            </div>
-                        </div>
-                    </div>`;
-                }).join('');
-            }
-
-            document.getElementById('playerProfileModal').style.display = 'block';
-            document.getElementById('playerProfileModal').scrollTop = 0;
-        }
-
-        // ===== MOD QUICK PANEL FUNCTIONS =====
-        function openModQuickPanel() {
-            const sel = document.getElementById('modVicDemon');
-            if (sel) sel.innerHTML = demons.map(d => `<option value="${d.key}">${d.name}</option>`).join('');
-            document.getElementById('modQuickPanel').style.display = 'block';
-        }
-
-        function modToggleEditMode() {
-            isEditMode = !isEditMode;
-            if (isEditMode) isDeleteMode = false;
-            const btn = document.getElementById('modEditBtnText');
-            if (btn) btn.textContent = isEditMode ? 'Выключить редактирование' : 'Включить редактирование';
-            const editBtn = document.getElementById('modEditBtn');
-            if (editBtn) {
-                editBtn.style.background = isEditMode ? 'rgba(243,156,18,0.25)' : 'rgba(243,156,18,0.1)';
-                editBtn.style.borderColor = isEditMode ? 'rgba(243,156,18,0.6)' : 'rgba(243,156,18,0.3)';
-            }
-            render();
-            showToast(isEditMode ? '✏️ Режим редактирования включён' : '✏️ Режим редактирования выключён');
-            document.getElementById('modQuickPanel').style.display = 'none';
-        }
-
-        function showModVictorForm() {
-            const form = document.getElementById('modVictorForm');
-            const sel = document.getElementById('modVicDemon');
-            if (sel) sel.innerHTML = demons.map(d => `<option value="${d.key}">${d.name}</option>`).join('');
-            form.style.display = form.style.display === 'none' ? 'block' : 'none';
-        }
-
-        function modAddDemon() {
-            const name = document.getElementById('mName').value.trim();
-            if (!name) { showToast('Введи название уровня!'); return; }
-            let r = document.getElementById('mVid').value.trim();
-            let v = r.includes('v=') ? r.split('v=')[1].split('&')[0] : r.includes('youtu.be/') ? r.split('youtu.be/')[1].split('?')[0] : r;
-            db.ref('demons').push({
-                name,
-                author: document.getElementById('mAuthor').value.trim(),
-                levelID: document.getElementById('mID').value.trim(),
-                tag: document.getElementById('mTag').value.trim(),
-                verifier: document.getElementById('mVerifier').value.trim(),
-                img: document.getElementById('mImg').value.trim(),
-                vid: v,
-                points: document.getElementById('mPoints').value.trim(),
-                order: demons.length
-            }).then(() => {
-                showToast('✅ Демон добавлен!');
-                ['mName','mAuthor','mID','mTag','mVerifier','mImg','mVid'].forEach(id => document.getElementById(id).value = '');
-                document.getElementById('modQuickPanel').style.display = 'none';
-            }).catch(e => showToast('Ошибка: ' + e.message));
-        }
-
-        function modAddVictor() {
-            const dKey = document.getElementById('modVicDemon').value;
-            const name = document.getElementById('modVicName').value.trim();
-            if (!name) { showToast('Введи ник игрока!'); return; }
-            const mVidRaw = document.getElementById('modVicVid').value.trim();
-            let mVid = mVidRaw;
-            if (mVidRaw.includes('v=')) mVid = mVidRaw.split('v=')[1].split('&')[0];
-            else if (mVidRaw.includes('youtu.be/')) mVid = mVidRaw.split('youtu.be/')[1].split('?')[0];
-            db.ref(`demons/${dKey}/victors`).push({
-                name,
-                perc: document.getElementById('modVicPerc').value.trim(),
-                att: document.getElementById('modVicAtt').value.trim(),
-                vid: mVid
-            }).then(() => {
-                showToast('🏆 Рекорд добавлен!');
-                document.getElementById('modVicName').value = '';
-                document.getElementById('modVicPerc').value = '';
-                document.getElementById('modVicAtt').value = '';
-                document.getElementById('modVicVid').value = '';
-                document.getElementById('modVictorForm').style.display = 'none';
-                document.getElementById('modQuickPanel').style.display = 'none';
-            }).catch(e => showToast('Ошибка: ' + e.message));
-        }
-
-        // ===== MOD LOGIN PAGE =====
-        function openModLoginPage() {
-            document.getElementById('modLoginPage').style.display = 'flex';
-            document.getElementById('modLoginEmail').value = '';
-            document.getElementById('modLoginPass').value = '';
-            document.getElementById('modLoginError').style.display = 'none';
-            document.body.style.overflow = 'hidden';
-            setTimeout(() => document.getElementById('modLoginEmail').focus(), 200);
-        }
-
-        function closeModLoginPage() {
-            document.getElementById('modLoginPage').style.display = 'none';
-            document.body.style.overflow = '';
-            history.replaceState(null, '', window.location.pathname + window.location.search);
-        }
-
-        function toggleModPassVis() {
-            const inp = document.getElementById('modLoginPass');
-            const icon = document.getElementById('modPassEyeIcon');
-            if (inp.type === 'password') {
-                inp.type = 'text';
-                icon.className = 'fas fa-eye-slash';
-            } else {
-                inp.type = 'password';
-                icon.className = 'fas fa-eye';
-            }
-        }
-
-        async function doModLogin() {
-            const email = document.getElementById('modLoginEmail').value.trim();
-            const pass  = document.getElementById('modLoginPass').value;
-            const errEl = document.getElementById('modLoginError');
-            const btn   = document.getElementById('modLoginBtn');
-
-            errEl.style.display = 'none';
-            if (!email || !pass) {
-                errEl.textContent = 'Введи email и пароль';
-                errEl.style.display = 'block';
-                return;
-            }
-
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Входим...';
-
-            try {
-                await auth.signInWithEmailAndPassword(email, pass);
-                document.getElementById('modLoginPage').style.display = 'none';
-                document.body.style.overflow = '';
-                history.replaceState(null, '', window.location.pathname + window.location.search);
-                showToast('✅ Добро пожаловать в команду!');
-            } catch(e) {
-                let msg = 'Неверный email или пароль';
-                if (e.code === 'auth/too-many-requests') msg = 'Слишком много попыток. Подожди немного.';
-                if (e.code === 'auth/user-disabled') msg = 'Аккаунт заблокирован.';
-                errEl.textContent = msg;
-                errEl.style.display = 'block';
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> ВОЙТИ';
-            }
-        }
-
-        function checkHash() {
-            if (window.location.hash === '#mod-login') {
-                if (!isModerator) {
-                    openModLoginPage();
-                } else {
-                    history.replaceState(null, '', window.location.pathname + window.location.search);
-                    showToast('Ты уже вошёл как ' + (currentUserRole === 'admin' ? 'администратор' : 'модератор'));
-                }
-            }
-        }
-
-        window.addEventListener('hashchange', checkHash);
-        window.addEventListener('load', checkHash);
-        if (window.location.hash === '#mod-login') {
-            setTimeout(checkHash, 300);
-        }
-    </script>
-</body>
-</html>
+if __name__ == '__main__':
+    print(f"🚀 Бот {VERSION} успешно запущен на безотказной Reply-логике ответа...")
+    bot.polling(none_stop=True)
