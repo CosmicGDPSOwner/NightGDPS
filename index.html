@@ -12,7 +12,7 @@ sys.stdout = sys.stderr
 TOKEN = '8679279294:AAEfnadFvfuhHD-22-At-CqUWuCarjv5UMU'
 ADMIN_CHAT_ID = -1003802502537  # ID вашего закрытого чата модераторов
 ADMIN_ID = 7606858072          # ТВОЙ личный ID в Telegram
-VERSION = "0.0.2v"
+VERSION = "0.0.3v"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 db_path = os.path.join(BASE_DIR, 'bot_data.db')
@@ -31,11 +31,10 @@ def init_db():
 
 init_db()
 
-# Для этой логики StateMemoryStorage больше НЕ нужен, убираем лишнюю нагрузку
+# Инициализируем бота без StateMemoryStorage
 bot = telebot.TeleBot(TOKEN)
 
-# Вспомогательный класс для имитации состояний при заполнении заявок пользователями в ЛС
-# (Оставляем только для обычных юзеров, чтобы они заполняли анкеты)
+# Надежное кастомное хранилище состояний (работает безотказно)
 class SimpleStorage:
     def __init__(self):
         self.data = {}
@@ -72,7 +71,6 @@ def get_cancel_menu():
 
 def get_reply_keyboard(user_id, application_type):
     markup = types.InlineKeyboardMarkup()
-    # Храним тип и ID прямо в callback-данных кнопки
     markup.add(types.InlineKeyboardButton("💬 Ответить", callback_data=f"setup_{application_type}_{user_id}"))
     return markup
 
@@ -143,21 +141,17 @@ def setup_reply_to_user(call):
     try: bot.answer_callback_query(call.id)
     except: pass
     
-    # Извлекаем данные из кнопки
     data_parts = call.data.split('_')
     app_type = data_parts[1]
     target_user_id = data_parts[2]
-    
     type_names = {"req": "Реквест", "app": "Апелляцию", "vic": "Рекорд"}
     
-    # Бот присылает специальное сообщение-инструкцию
-    # Мы зашиваем ID получателя и тип заявки прямо в текст сообщения бота, чтобы потом их прочитать!
     instruction_msg = (
         f"✍️ **Ответ на {type_names.get(app_type, 'заявку')}**\n"
         f"🎯 Получатель ID: `{target_user_id}`\n"
         f"📦 Тип: `{app_type}`\n"
         f"ーーーーーーーーーーーー\n"
-        f"⚠️ **Важно:** Отправьте текст вашего ответа ОБЯЗАТЕЛЬНО используя функцию **Ответить (Reply)** на это сообщение бота."
+        f"⚠️ **Важно:** Отправьте текст вашего ответа ОБЯЗАТЕЛЬНО используя функцию **Ответить (Reply)** на это сообщение."
     )
     bot.send_message(call.message.chat.id, instruction_msg, parse_mode="Markdown")
 
@@ -166,12 +160,10 @@ def setup_reply_to_user(call):
 def handle_moderator_reply(message):
     reply_to = message.reply_to_message
     
-    # Проверяем, что модератор ответил именно на инструкцию бота, содержащую ID получателя
     if "🎯 Получатель ID:" not in reply_to.text or "📦 Тип:" not in reply_to.text:
-        return # Если это просто случайный реплай в чате, игнорируем
+        return 
 
     try:
-        # Парсим ID пользователя и тип заявки прямо из текста сообщения бота
         lines = reply_to.text.split('\n')
         target_user_id = None
         app_type = "🔔 УВЕДОМЛЕНИЕ"
@@ -189,18 +181,18 @@ def handle_moderator_reply(message):
             bot.reply_to(message, "❌ Ошибка: не удалось считать ID пользователя из сообщения.")
             return
 
-        user_msg = f"{app_type}\nーーーーーーーーーーーー\n{message.text}"
+        # 🛡 Экранируем спецсимволы в ответе модератора, чтобы бот не падал из-за кривого Markdown
+        safe_mod_text = message.text.replace("_", "\\_").replace("*", "\\*").replace("`", "\\`").replace("[", "\\[")
+        user_msg = f"{app_type}\nーーーーーーーーーーーー\n{safe_mod_text}"
         
-        # 1. Отправляем в ЛС пользователю
         bot.send_message(int(target_user_id), user_msg, parse_mode="Markdown")
         
-        # 2. Логируем успех
         moderator_name = f"@{message.from_user.username}" if message.from_user.username else message.from_user.first_name
         success_log = (
             f"🟢 **Заявка успешно обработана!**\n"
             f"👤 Модератор: {moderator_name}\n"
             f"🎯 Доставлено в ЛС ID: `{target_user_id}`\n"
-            f"📝 Текст ответа:\n_{message.text}_"
+            f"📝 Текст ответа:\n_{safe_mod_text}_"
         )
         bot.send_message(ADMIN_CHAT_ID, success_log, parse_mode="Markdown")
 
@@ -231,7 +223,7 @@ def callback_inline(call):
         rules = "📜 **ПРАВИЛА ВЕРИФА/РЕКОРДА:**\n- ВИДЕН ФПС\n- ВИДЕН КПС\n- ВИДЕО НА ЮТУБЕ\n- ЧИТ-ИНДИКАТОР\n\nОтправьте ссылку:"
         bot.send_message(chat_id, rules, parse_mode="Markdown", reply_markup=get_cancel_menu())
 
-# --- ПЕРЕХВАТ ТЕКСТОВЫХ КОМАНД И АНКЕТ ---
+# --- ПЕРЕХВАТ ТЕКСТОВЫХ КОМАНД ---
 @bot.message_handler(commands=['request', 'appeal', 'victory'])
 def cmd_handlers(message):
     u_id = message.from_user.id
@@ -246,31 +238,37 @@ def cmd_handlers(message):
         rules = "📜 **ПРАВИЛА ВЕРИФА/РЕКОРДА:**\n- ВИДЕН ФПС\n- ВИДЕН КПС\n- ВИДЕО НА ЮТУБЕ\n- ЧИТ-ИНДИКАТОР\n\nОтправьте ссылку:"
         bot.send_message(message.chat.id, rules, parse_mode="Markdown", reply_markup=get_cancel_menu())
 
+# --- ПЕРЕХВАТ ТЕКСТА И АНКЕТ ---
 @bot.message_handler(func=lambda message: message.chat.id != ADMIN_CHAT_ID)
 def handle_user_text(message):
     u_id = message.from_user.id
     state = user_storage.get_state(u_id)
     user = f"@{message.from_user.username}" if message.from_user.username else message.from_user.first_name
     
+    # 🛡 Броня от Markdown-ошибок (экранируем спецсимволы в никах и тексте)
+    safe_user = user.replace("_", "\\_").replace("*", "\\*").replace("`", "\\`").replace("[", "\\[")
+    safe_text = message.text.replace("_", "\\_").replace("*", "\\*").replace("`", "\\`").replace("[", "\\[")
+    
     if state == "waiting_request":
-        msg_text = f"📥 **НОВЫЙ РЕКВЕСТ**\n👤 От: {user} (ID: `{u_id}`)\nーーーーーーーーーーーー\n{message.text}"
+        msg_text = f"📥 **НОВЫЙ РЕКВЕСТ**\n👤 От: {safe_user} (ID: `{u_id}`)\nーーーーーーーーーーーー\n{safe_text}"
         bot.send_message(ADMIN_CHAT_ID, msg_text, parse_mode="Markdown", reply_markup=get_reply_keyboard(u_id, "req"))
         user_storage.set_state(u_id, "idle")
         bot.reply_to(message, "✅ Успешно отправлено модераторам!", reply_markup=get_main_menu(u_id))
         
     elif state == "waiting_appeal":
-        msg_text = f"⚖️ **НОВАЯ АПЕЛЛЯЦИЯ**\n👤 От: {user} (ID: `{u_id}`)\nーーーーーーーーーーーー\n{message.text}"
+        msg_text = f"⚖️ **НОВАЯ АПЕЛЛЯЦИЯ**\n👤 От: {safe_user} (ID: `{u_id}`)\nーーーーーーーーーーーー\n{safe_text}"
         bot.send_message(ADMIN_CHAT_ID, msg_text, parse_mode="Markdown", reply_markup=get_reply_keyboard(u_id, "app"))
         user_storage.set_state(u_id, "idle")
         bot.reply_to(message, "⏳ Апелляция принята. Ожидайте ответа.", reply_markup=get_main_menu(u_id))
         
     elif state == "waiting_victory":
-        msg_text = f"🏆 **НОВЫЙ РЕКОРД**\n👤 От: {user} (ID: `{u_id}`)\nーーーーーーーーーーーー\nСсылка: {message.text}"
+        msg_text = f"🏆 **НОВЫЙ РЕКОРД**\n👤 От: {safe_user} (ID: `{u_id}`)\nーーーーーーーーーーーー\nСсылка: {safe_text}"
         bot.send_message(ADMIN_CHAT_ID, msg_text, parse_mode="Markdown", reply_markup=get_reply_keyboard(u_id, "vic"))
         user_storage.set_state(u_id, "idle")
         bot.reply_to(message, "🚀 Рекорд отправлен на верификацию!", reply_markup=get_main_menu(u_id))
         
     elif state == "waiting_broadcast" and u_id == ADMIN_ID:
+        # Для рассылки админ может использовать Markdown осознанно, поэтому тут оставляем оригинальный текст
         news_text = f"📢 **НОВОСТИ И НОВОВВЕДЕНИЯ** (v{VERSION})\nーーーーーーーーーーーー\n{message.text}"
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
@@ -289,5 +287,5 @@ def handle_user_text(message):
         bot.reply_to(message, "🤖 Пожалуйста, выберите действие на кнопках.", reply_markup=get_main_menu(u_id))
 
 if __name__ == '__main__':
-    print(f"🚀 Бот {VERSION} успешно запущен на безотказной Reply-логике ответа...")
+    print(f"🚀 Бот {VERSION} запущен! (Защита от Markdown-ошибок включена)")
     bot.polling(none_stop=True)
