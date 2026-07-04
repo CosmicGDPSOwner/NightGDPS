@@ -31,10 +31,10 @@ def init_db():
 
 init_db()
 
-# Инициализируем бота без StateMemoryStorage
+# Инициализируем бота
 bot = telebot.TeleBot(TOKEN)
 
-# Надежное кастомное хранилище состояний (работает безотказно)
+# Надежное кастомное хранилище состояний
 class SimpleStorage:
     def __init__(self):
         self.data = {}
@@ -69,6 +69,7 @@ def get_cancel_menu():
     markup.add(types.InlineKeyboardButton("❌ Отменить действие", callback_data="btn_cancel"))
     return markup
 
+# А ВОТ И ТА САМАЯ КНОПКА ОТВЕТА ДЛЯ МОДЕРАТОРОВ:
 def get_reply_keyboard(user_id, application_type):
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("💬 Ответить", callback_data=f"setup_{application_type}_{user_id}"))
@@ -181,7 +182,7 @@ def handle_moderator_reply(message):
             bot.reply_to(message, "❌ Ошибка: не удалось считать ID пользователя из сообщения.")
             return
 
-        # 🛡 Экранируем спецсимволы в ответе модератора, чтобы бот не падал из-за кривого Markdown
+        # 🛡 Экранируем спецсимволы в ответе модератора
         safe_mod_text = message.text.replace("_", "\\_").replace("*", "\\*").replace("`", "\\`").replace("[", "\\[")
         user_msg = f"{app_type}\nーーーーーーーーーーーー\n{safe_mod_text}"
         
@@ -251,24 +252,26 @@ def handle_user_text(message):
     
     if state == "waiting_request":
         msg_text = f"📥 **НОВЫЙ РЕКВЕСТ**\n👤 От: {safe_user} (ID: `{u_id}`)\nーーーーーーーーーーーー\n{safe_text}"
+        # ЗДЕСЬ ПРИКРЕПЛЯЕТСЯ КНОПКА: reply_markup=get_reply_keyboard(...)
         bot.send_message(ADMIN_CHAT_ID, msg_text, parse_mode="Markdown", reply_markup=get_reply_keyboard(u_id, "req"))
         user_storage.set_state(u_id, "idle")
         bot.reply_to(message, "✅ Успешно отправлено модераторам!", reply_markup=get_main_menu(u_id))
         
     elif state == "waiting_appeal":
         msg_text = f"⚖️ **НОВАЯ АПЕЛЛЯЦИЯ**\n👤 От: {safe_user} (ID: `{u_id}`)\nーーーーーーーーーーーー\n{safe_text}"
+        # И ЗДЕСЬ:
         bot.send_message(ADMIN_CHAT_ID, msg_text, parse_mode="Markdown", reply_markup=get_reply_keyboard(u_id, "app"))
         user_storage.set_state(u_id, "idle")
         bot.reply_to(message, "⏳ Апелляция принята. Ожидайте ответа.", reply_markup=get_main_menu(u_id))
         
     elif state == "waiting_victory":
         msg_text = f"🏆 **НОВЫЙ РЕКОРД**\n👤 От: {safe_user} (ID: `{u_id}`)\nーーーーーーーーーーーー\nСсылка: {safe_text}"
+        # И ЗДЕСЬ:
         bot.send_message(ADMIN_CHAT_ID, msg_text, parse_mode="Markdown", reply_markup=get_reply_keyboard(u_id, "vic"))
         user_storage.set_state(u_id, "idle")
         bot.reply_to(message, "🚀 Рекорд отправлен на верификацию!", reply_markup=get_main_menu(u_id))
         
     elif state == "waiting_broadcast" and u_id == ADMIN_ID:
-        # Для рассылки админ может использовать Markdown осознанно, поэтому тут оставляем оригинальный текст
         news_text = f"📢 **НОВОСТИ И НОВОВВЕДЕНИЯ** (v{VERSION})\nーーーーーーーーーーーー\n{message.text}"
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
@@ -287,5 +290,5 @@ def handle_user_text(message):
         bot.reply_to(message, "🤖 Пожалуйста, выберите действие на кнопках.", reply_markup=get_main_menu(u_id))
 
 if __name__ == '__main__':
-    print(f"🚀 Бот {VERSION} запущен! (Защита от Markdown-ошибок включена)")
+    print(f"🚀 Бот {VERSION} запущен! (Защита от Markdown-ошибок включена, кнопка ответа на месте)")
     bot.polling(none_stop=True)
