@@ -959,6 +959,10 @@
                     <div class="profile-stat-label">Прохождений</div>
                 </div>
                 <div class="profile-stat">
+                    <div class="profile-stat-val" id="profileRecordCount">0</div>
+                    <div class="profile-stat-label">Рекордов</div>
+                </div>
+                <div class="profile-stat">
                     <div class="profile-stat-val" id="profileTopDemon">—</div>
                     <div class="profile-stat-label">Лучший демон</div>
                 </div>
@@ -967,8 +971,10 @@
                     <div class="profile-stat-label">Макс. %</div>
                 </div>
             </div>
-            <div class="profile-section-title">Прохождения</div>
+            <div class="profile-section-title" id="profileCompTitle">Прохождения</div>
             <div class="profile-completions-grid" id="profileCompletionsGrid"></div>
+            <div class="profile-section-title" id="profileRecordsTitle" style="margin-top:20px;">Рекорды</div>
+            <div class="profile-completions-grid" id="profileRecordsGrid"></div>
         </div>
     </div>
 
@@ -1961,13 +1967,15 @@
                     if (!v.name) return;
                     const name = v.name.trim();
                     if (!playerMap[name]) {
-                        playerMap[name] = { name, totalPoints: 0, completions: 0, demons: [] };
+                        playerMap[name] = { name, totalPoints: 0, completions: 0, records: 0, demons: [] };
                     }
                     const perc = parseInt((v.perc || '0').replace('%', ''));
-                    if (perc >= 100 && !isNaN(pts)) {
-                        playerMap[name].totalPoints += pts;
+                    if (perc >= 100) {
+                        if (!isNaN(pts)) playerMap[name].totalPoints += pts;
+                        playerMap[name].completions++;
+                    } else {
+                        playerMap[name].records++;
                     }
-                    playerMap[name].completions++;
                     playerMap[name].demons.push(demon.name);
                 });
             });
@@ -1987,7 +1995,9 @@
                 const rankClass = rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : 'rank-other';
                 const rankDisplay = rank <= 3 ? medals[rank - 1] : `#${rank}`;
                 const pts = p.totalPoints % 1 === 0 ? p.totalPoints : p.totalPoints.toFixed(2);
-                const completionText = `${p.completions} прохожд.`;
+                const completionText = p.records > 0
+                    ? `${p.completions} прохожд. · ${p.records} рекорд.`
+                    : `${p.completions} прохожд.`;
                 
                 let adminBtns = '';
                 if (isAdmin) {
@@ -2027,65 +2037,87 @@
         function openPlayerProfile(playerName) {
             document.getElementById('detailModal').style.display = 'none';
 
-            const completions = [];
+            // Собираем все записи игрока
+            const allEntries = [];
             demons.forEach(demon => {
                 if (!demon.victors) return;
                 Object.values(demon.victors).forEach(v => {
                     if (v.name && v.name.toLowerCase() === playerName.toLowerCase()) {
-                        completions.push({ demon, victor: v });
+                        allEntries.push({ demon, victor: v });
                     }
                 });
             });
 
+            // Разделяем на прохождения (100%) и рекорды (<100%)
+            const completions = allEntries.filter(c => parseInt((c.victor.perc || '0').replace('%','')) >= 100);
+            const records     = allEntries.filter(c => parseInt((c.victor.perc || '0').replace('%','')) < 100);
+
+            // Баллы только за 100% прохождения
             let totalPoints = 0;
             completions.forEach(c => {
-                const perc = parseInt((c.victor.perc || '0').replace('%',''));
-                if (perc < 100) return;
                 const pts = parseFloat(c.demon.points);
                 if (!isNaN(pts)) totalPoints += pts;
             });
 
+            // Лучший демон — по позиции в листе среди прохождений
             let topDemon = '—';
             if (completions.length > 0) {
                 const sorted = [...completions].sort((a, b) => (a.demon.order || 999) - (b.demon.order || 999));
                 topDemon = sorted[0].demon.name;
             }
 
+            // Максимальный % среди всех записей
             let bestPerc = '—';
-            if (completions.length > 0) {
-                const percs = completions.map(c => {
-                    const p = parseInt((c.victor.perc || '0').replace('%',''));
-                    return isNaN(p) ? 0 : p;
-                });
-                bestPerc = Math.max(...percs) + '%';
+            if (allEntries.length > 0) {
+                const percs = allEntries.map(c => parseInt((c.victor.perc || '0').replace('%',''))).filter(p => !isNaN(p));
+                if (percs.length) bestPerc = Math.max(...percs) + '%';
             }
 
+            // Заполняем шапку
             document.getElementById('profileName').textContent = playerName;
             document.getElementById('profilePoints').textContent = totalPoints % 1 === 0 ? totalPoints : totalPoints.toFixed(2);
             document.getElementById('profileCompCount').textContent = completions.length;
+            document.getElementById('profileRecordCount').textContent = records.length;
             document.getElementById('profileTopDemon').textContent = topDemon.length > 10 ? topDemon.substring(0,10)+'…' : topDemon;
             document.getElementById('profileBestPerc').textContent = bestPerc;
 
-            const grid = document.getElementById('profileCompletionsGrid');
-            if (completions.length === 0) {
-                grid.innerHTML = '<p style="color:#555;font-size:0.85rem;grid-column:1/-1;text-align:center;padding:20px 0;">Нет прохождений</p>';
-            } else {
-                grid.innerHTML = completions.map(c => {
-                    const pts = c.demon.points ? `<span class="profile-completion-pts">⚡ ${c.demon.points}</span>` : '';
-                    const videoBlock = c.victor.vid
-                        ? `<iframe src="https://www.youtube.com/embed/${c.victor.vid}" allowfullscreen loading="lazy"></iframe>`
-                        : `<div class="no-video"><i class="fab fa-youtube"></i><span>Нет видео</span></div>`;
-                    return `<div class="profile-completion-card">
-                        <div class="profile-completion-video">${videoBlock}</div>
-                        <div class="profile-completion-info">
-                            <div class="profile-completion-name" title="${c.demon.name}">${c.demon.name}</div>
-                            <div class="profile-completion-meta">
-                                <span class="profile-completion-perc">${c.victor.perc || '100%'} · ${c.victor.att || '0'} att</span>
-                                ${pts}
-                            </div>
+            // Рендерим карточки
+            function makeCard(c) {
+                const pts = c.demon.points ? `<span class="profile-completion-pts">⚡ ${c.demon.points}</span>` : '';
+                const videoBlock = c.victor.vid
+                    ? `<iframe src="https://www.youtube.com/embed/${c.victor.vid}" allowfullscreen loading="lazy"></iframe>`
+                    : `<div class="no-video"><i class="fab fa-youtube"></i><span>Нет видео</span></div>`;
+                return `<div class="profile-completion-card">
+                    <div class="profile-completion-video">${videoBlock}</div>
+                    <div class="profile-completion-info">
+                        <div class="profile-completion-name" title="${c.demon.name}">${c.demon.name}</div>
+                        <div class="profile-completion-meta">
+                            <span class="profile-completion-perc">${c.victor.perc || '100%'} · ${c.victor.att || '0'} att</span>
+                            ${pts}
                         </div>
-                    </div>`;
-                }).join('');
+                    </div>
+                </div>`;
+            }
+
+            // Секция прохождений
+            const compGrid = document.getElementById('profileCompletionsGrid');
+            const compTitle = document.getElementById('profileCompTitle');
+            if (completions.length === 0) {
+                compGrid.innerHTML = '<p style="color:#555;font-size:0.85rem;grid-column:1/-1;text-align:center;padding:10px 0;">Нет прохождений (100%)</p>';
+            } else {
+                compGrid.innerHTML = completions.map(makeCard).join('');
+            }
+            compTitle.style.display = 'flex';
+
+            // Секция рекордов
+            const recGrid = document.getElementById('profileRecordsGrid');
+            const recTitle = document.getElementById('profileRecordsTitle');
+            if (records.length === 0) {
+                recGrid.innerHTML = '';
+                recTitle.style.display = 'none';
+            } else {
+                recGrid.innerHTML = records.map(makeCard).join('');
+                recTitle.style.display = 'flex';
             }
 
             document.getElementById('playerProfileModal').style.display = 'block';
