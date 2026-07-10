@@ -249,6 +249,47 @@
 
         .demon-tag { position: absolute; top: 15px; left: 15px; background: linear-gradient(135deg, #7b5ea7, #3d85c8); color: #fff; padding: 5px 12px; border-radius: 8px; font-weight: 900; font-size: 0.72rem; z-index: 50; box-shadow: 0 4px 15px rgba(0,0,0,0.5); text-transform: uppercase; letter-spacing: 1px; }
 
+        /* ===== SKELETON LOADING ===== */
+        @keyframes skeletonShimmer {
+            0%   { background-position: -600px 0; }
+            100% { background-position: 600px 0; }
+        }
+        .skeleton-card {
+            display: flex; background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06); border-radius: 16px;
+            overflow: hidden; height: 108px; pointer-events: none;
+        }
+        .skeleton-img {
+            width: 220px; flex-shrink: 0;
+            background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.09) 50%, rgba(255,255,255,0.04) 75%);
+            background-size: 600px 100%;
+            animation: skeletonShimmer 1.4s infinite linear;
+        }
+        .skeleton-body { flex: 1; padding: 18px; display: flex; flex-direction: column; gap: 10px; justify-content: center; }
+        .skeleton-line {
+            border-radius: 6px; height: 12px;
+            background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.09) 50%, rgba(255,255,255,0.04) 75%);
+            background-size: 600px 100%;
+            animation: skeletonShimmer 1.4s infinite linear;
+        }
+        .skeleton-line.short { width: 40%; }
+        .skeleton-line.medium { width: 65%; }
+        .skeleton-line.long { width: 85%; }
+        .skeleton-line.pill { width: 80px; height: 28px; border-radius: 8px; }
+        @media (max-width: 580px) { .skeleton-img { width: 120px; } }
+
+        /* ===== LEVEL STATUS BADGES ===== */
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 0.6rem; font-weight: 900; letter-spacing: 1px;
+            text-transform: uppercase; padding: 3px 8px; border-radius: 6px;
+            position: absolute; top: 7px; right: 7px; z-index: 20;
+            backdrop-filter: blur(4px);
+        }
+        .status-badge.legacy  { background: rgba(251,191,36,0.15); border: 1px solid rgba(251,191,36,0.4); color: #fbbf24; }
+        .status-badge.watch   { background: rgba(96,165,250,0.15); border: 1px solid rgba(96,165,250,0.4);  color: #60a5fa; }
+        .status-badge.frozen  { background: rgba(167,139,250,0.15); border: 1px solid rgba(167,139,250,0.4); color: #a78bfa; }
+
         .level-id-box { display: flex; align-items: center; gap: 8px; background: rgba(167,139,250,0.07); padding: 10px 15px; border-radius: 10px; color: var(--accent); cursor: pointer; margin-bottom: 20px; font-weight: 700; transition: 0.2s; width: fit-content; font-size: 0.85rem; border: 1px solid rgba(167,139,250,0.12); }
         .level-id-box:hover { background: rgba(167,139,250,0.14); border-color: rgba(167,139,250,0.3); }
 
@@ -826,11 +867,22 @@
             <i class="fas fa-arrows-alt"></i> Drag & Drop активен
         </div>
         
-        <div class="container" id="mainContainer"></div>
+        <div class="container" id="mainContainer">
+            <!-- Skeleton placeholders — replaced when Firebase data arrives -->
+            <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-body"><div class="skeleton-line short"></div><div class="skeleton-line long"></div><div class="skeleton-line medium"></div><div class="skeleton-line pill"></div></div></div>
+            <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-body"><div class="skeleton-line short"></div><div class="skeleton-line long"></div><div class="skeleton-line medium"></div><div class="skeleton-line pill"></div></div></div>
+            <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-body"><div class="skeleton-line short"></div><div class="skeleton-line long"></div><div class="skeleton-line medium"></div><div class="skeleton-line pill"></div></div></div>
+            <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-body"><div class="skeleton-line short"></div><div class="skeleton-line long"></div><div class="skeleton-line medium"></div><div class="skeleton-line pill"></div></div></div>
+            <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-body"><div class="skeleton-line short"></div><div class="skeleton-line long"></div><div class="skeleton-line medium"></div><div class="skeleton-line pill"></div></div></div>
+            <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-body"><div class="skeleton-line short"></div><div class="skeleton-line long"></div><div class="skeleton-line medium"></div><div class="skeleton-line pill"></div></div></div>
+        </div>
 
         <div class="player-top-section" id="playerTopSection" style="display:none;">
+            <div id="countryFilterWrap" style="display:flex;justify-content:center;margin-bottom:16px;"></div>
             <div class="player-top-list" id="playerTopList">
-                <div class="player-top-empty">Загрузка рейтинга...</div>
+                <div class="skeleton-player-card" style="display:flex;align-items:center;gap:14px;padding:14px 18px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:14px;margin-bottom:8px;"><div style="width:40px;height:40px;border-radius:50%;flex-shrink:0;background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.09) 50%,rgba(255,255,255,0.04) 75%);background-size:600px 100%;animation:skeletonShimmer 1.4s infinite linear;"></div><div style="flex:1;display:flex;flex-direction:column;gap:8px;"><div class="skeleton-line medium"></div><div class="skeleton-line short"></div></div><div class="skeleton-line" style="width:50px;height:20px;border-radius:6px;"></div></div>
+                <div class="skeleton-player-card" style="display:flex;align-items:center;gap:14px;padding:14px 18px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:14px;margin-bottom:8px;"><div style="width:40px;height:40px;border-radius:50%;flex-shrink:0;background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.09) 50%,rgba(255,255,255,0.04) 75%);background-size:600px 100%;animation:skeletonShimmer 1.4s infinite linear;"></div><div style="flex:1;display:flex;flex-direction:column;gap:8px;"><div class="skeleton-line long"></div><div class="skeleton-line short"></div></div><div class="skeleton-line" style="width:50px;height:20px;border-radius:6px;"></div></div>
+                <div class="skeleton-player-card" style="display:flex;align-items:center;gap:14px;padding:14px 18px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:14px;margin-bottom:8px;"><div style="width:40px;height:40px;border-radius:50%;flex-shrink:0;background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.09) 50%,rgba(255,255,255,0.04) 75%);background-size:600px 100%;animation:skeletonShimmer 1.4s infinite linear;"></div><div style="flex:1;display:flex;flex-direction:column;gap:8px;"><div class="skeleton-line medium"></div><div class="skeleton-line short"></div></div><div class="skeleton-line" style="width:50px;height:20px;border-radius:6px;"></div></div>
             </div>
         </div>
 
@@ -942,6 +994,7 @@
                 <option value="delete_all_demons">🗑️ Удалить ВСЕХ демонов</option>
                 <option value="maintenance">🔧 Техперерыв вкл/выкл</option>
                 <option value="drag_drop">🖱️ Drag & Drop режим</option>
+                <option value="set_country">Страна игрока</option>
             </select>
             <div id="fields_main">
                 <input type="text" id="itemName" placeholder="Название / Ник">
@@ -961,6 +1014,11 @@
                 <input type="text" id="vicPerc" placeholder="Проценты">
                 <input type="text" id="vicAtt" placeholder="Попытки">
                 <input type="text" id="vicVid" placeholder="Ссылка на YouTube видео (необязательно)">
+            </div>
+            <div id="fields_country" style="display:none;">
+                <input type="text" id="countryNick" placeholder="Ник игрока (точно)">
+                <input type="text" id="countryCode" placeholder="Код страны (RU, UA, PL, US ...)">
+                <p style="color:#555;font-size:0.75rem;margin:2px 0 0;">ISO 3166-1 alpha-2: 2 буквы — RU, UA, DE, PL, BR...</p>
             </div>
             <button class="btn-more" style="background:linear-gradient(135deg,#7b5ea7,#3d85c8);color:#fff;margin-top:15px;border:none;" onclick="processAdmin()">ВЫПОЛНИТЬ</button>
             <button class="btn-more" style="background:transparent;border:1px solid #e74c3c;color:#e74c3c;margin-top:10px;" onclick="adminLogout()">ВЫЙТИ ИЗ АККАУНТА</button>
@@ -996,9 +1054,17 @@
             <label class="edit-field-label">Ссылка на YouTube</label>
             <input type="text" id="editVid" class="edit-field-input" placeholder="https://youtube.com/...">
 
-            <label class="edit-field-label">⚡ Баллы сложности</label>
+            <label class="edit-field-label">Баллы сложности</label>
             <input type="text" id="editPoints" class="edit-field-input" placeholder="напр. 0.31 или 1.50">
             <p style="color:#555;font-size:0.75rem;margin:4px 0 0;line-height:1.4;">Отображается на карточке. Можно оставить пустым.</p>
+
+            <label class="edit-field-label">Статус уровня</label>
+            <select id="editStatus" class="edit-field-input" style="cursor:pointer;">
+                <option value="">— Нет статуса —</option>
+                <option value="legacy">Возможно легасится</option>
+                <option value="watch">Под наблюдением</option>
+                <option value="frozen">Заморожен</option>
+            </select>
 
             <div class="edit-btn-row">
                 <button class="edit-btn-cancel" onclick="closeEditModal()">Отмена</button>
@@ -1029,7 +1095,7 @@
             
             <div class="edit-btn-row">
                 <button class="edit-btn-cancel" onclick="document.getElementById('editRecordModal').style.display='none'">Отмена</button>
-                <button class="edit-btn-save" onclick="saveRecordEdit()"><i class="fas fa-save"></i> Сохранить</button>
+                <button class="edit-btn-save" onclick="saveRecordEdit()"><i class="fas fa-save"></i> ��охранить</button>
             </div>
         </div>
     </div>
@@ -1100,7 +1166,10 @@
             <!-- Avatar + name centered -->
             <div class="profile-top-header">
                 <div class="profile-avatar-lg">&#127769;</div>
-                <div class="profile-name" id="profileName">—</div>
+                <div class="profile-name" style="display:flex;align-items:center;gap:8px;justify-content:center;">
+                    <span id="profileFlag" style="font-size:1.4rem;display:none;"></span>
+                    <span id="profileName">—</span>
+                </div>
             </div>
 
             <!-- Rank + Score cards -->
@@ -1599,6 +1668,7 @@
             document.getElementById('editImg').value = d.img || '';
             document.getElementById('editVid').value = d.vid ? `https://youtube.com/watch?v=${d.vid}` : '';
             document.getElementById('editPoints').value = d.points || '';
+            document.getElementById('editStatus').value = d.status || '';
             updateImgPreview();
             
             document.getElementById('editDemonModal').style.display = 'block';
@@ -1639,7 +1709,8 @@
             else if (vidRaw.includes('youtu.be/')) vid = vidRaw.split('youtu.be/')[1].split('?')[0];
 
             const points = document.getElementById('editPoints').value.trim();
-            const updates = { name, author, verifier, levelID, tag, img, vid, points };
+            const status = document.getElementById('editStatus').value;
+            const updates = { name, author, verifier, levelID, tag, img, vid, points, status };
             
             db.ref(`${type}/` + key).update(updates).then(() => {
                 showToast('Успешно обновлено!');
@@ -1851,6 +1922,32 @@
             document.querySelectorAll('.dropdown-content.show').forEach(d => d.classList.remove('show'));
         }
 
+        // ===== PLAYER COUNTRIES =====
+        // playerCountries: { 'NickName': 'RU' }  (ISO 3166-1 alpha-2)
+        let playerCountries = {};
+        let countryFilter = 'all';
+
+        // ISO code -> emoji flag (works on all modern platforms via regional indicator letters)
+        function countryFlag(code) {
+            if (!code || code.length !== 2) return '';
+            const offset = 0x1F1E6 - 65; // 'A' = 65
+            return String.fromCodePoint(code.toUpperCase().charCodeAt(0) + offset) +
+                   String.fromCodePoint(code.toUpperCase().charCodeAt(1) + offset);
+        }
+
+        // ===== LEVEL STATUS BADGES =====
+        const STATUS_CONFIG = {
+            legacy:  { icon: 'fa-arrow-down', labelRU: 'Легасится',     labelEN: 'Going Legacy' },
+            watch:   { icon: 'fa-eye',         labelRU: 'Наблюдение',    labelEN: 'Under Watch'  },
+            frozen:  { icon: 'fa-snowflake',   labelRU: 'Заморожен',     labelEN: 'Frozen'       },
+        };
+        function statusBadgeHtml(status) {
+            const cfg = STATUS_CONFIG[status];
+            if (!cfg) return '';
+            const label = currentLang === 'EN' ? cfg.labelEN : cfg.labelRU;
+            return `<div class="status-badge ${status}"><i class="fas ${cfg.icon}"></i>${label}</div>`;
+        }
+
         // ===== SCORING FORMULA =====
         // Threshold: 60%. Below 60% — no points, entry not counted.
         // 60%–99%: ((perc - 60) / 40)^1.5 * ptsMax  (steep curve, rewards near-completions)
@@ -1922,9 +2019,10 @@
             container.innerHTML = results.map(p => {
                 const rank = allSorted.findIndex(x => x.name === p.name) + 1;
                 const pts = p.totalPoints < 0.01 ? '0' : p.totalPoints.toFixed(2);
+                const flag = countryFlag(playerCountries[p.name.toLowerCase()]);
                 return `<div class="player-top-card" onclick="openPlayerProfile('${p.name.replace(/'/g,"\\'")}')" style="cursor:pointer;margin-bottom:8px;">
                     <div class="player-top-rank ${rank===1?'rank-1':rank===2?'rank-2':rank===3?'rank-3':'rank-other'}">${rank<=3?['#1','#2','#3'][rank-1]:'#'+rank}</div>
-                    <div class="player-top-avatar" style="font-size:1.2rem;">&#127769;</div>
+                    <div class="player-top-avatar" style="font-size:1.3rem;">${flag || '&#127769;'}</div>
                     <div class="player-top-info" style="flex:1;min-width:0;">
                         <div class="player-top-name">${escapeHtml(p.name)}</div>
                         <div class="player-top-meta" style="display:flex;gap:12px;flex-wrap:wrap;">
@@ -2062,9 +2160,9 @@
                         </div>`;
                     }
 
-                    // Compute points range: min = points, max = points * 4 (same logic as demonlist.app)
+                    // Points display: score at 80% and max (100%)
                     const pts = parseFloat(d.points);
-                    const ptsMin = !isNaN(pts) ? pts.toFixed(2) : null;
+                    const pts80 = !isNaN(pts) ? calcPts(80, pts).toFixed(2) : null;
                     const ptsMax = !isNaN(pts) ? (pts * 4).toFixed(2) : null;
                     const verifierName = (d.verifier || '').trim();
 
@@ -2075,6 +2173,7 @@
                             ${d.tag ? `<div class="demon-tag">${d.tag}</div>` : ''}
                             <img src="${d.img}" class="card-img" loading="lazy" decoding="async" alt="${d.name}" onerror="this.src='https://via.placeholder.com/400x220/0c1026/a78bfa?text=Night+GDPS'">
                             ${verifierName ? `<div class="card-verified-stamp">VERIFIED</div>` : ''}
+                            ${statusBadgeHtml(d.status)}
                         </div>
                         <div class="card-body">
                             <div class="card-rank-name">
@@ -2084,7 +2183,7 @@
                             <div class="card-meta">
                                 <span class="card-author">${d.author}</span>
                                 ${verifierName ? `<span class="card-meta-sep">|</span><span class="card-verifier-name">${verifierName}</span>` : ''}
-                                ${ptsMin ? `<span class="card-meta-sep">·</span><span class="card-pts-val">${ptsMin}</span><span style="color:#4b5563;margin:0 3px;">&mdash;</span><span class="card-pts-max">${ptsMax}</span><span style="color:#4b5563;font-size:0.75rem;margin-left:3px;">pts</span>` : ''}
+                                ${pts80 ? `<span class="card-meta-sep">·</span><span class="card-pts-val">${pts80}</span><span style="color:#4b5563;margin:0 3px;">&rarr;</span><span class="card-pts-max">${ptsMax}</span><span style="color:#4b5563;font-size:0.75rem;margin-left:3px;">pts</span>` : ''}
                             </div>
                             <div class="card-actions">
                                 <div class="level-id-box" onclick="copyID('${d.levelID}')" style="margin:0; padding:6px 12px; font-size:0.78rem;"><i class="fas fa-hashtag" style="font-size:0.68rem;"></i> ${d.levelID}</div>
@@ -2100,6 +2199,18 @@
         // ===== PROCESS ADMIN ACTIONS =====
         function processAdmin() {
             const act = document.getElementById('admAction').value;
+
+            if (act === 'set_country') {
+                if (!isModerator) { alert('Нет доступа!'); return; }
+                const nick = document.getElementById('countryNick').value.trim();
+                const code = document.getElementById('countryCode').value.trim().toUpperCase();
+                if (!nick || code.length !== 2) { showToast('Введи ник и 2-буквенный код страны'); return; }
+                db.ref(`players/${nick}/country`).set(code).then(() => {
+                    showToast(`Страна ${countryFlag(code)} ${code} сохранена для ${nick}`);
+                    closeAdmin();
+                }).catch(e => showToast('Ошибка: ' + e.message));
+                return;
+            }
 
             if (act === 'add_victor') {
                 if (!isModerator) { alert('Нет доступа!'); return; }
@@ -2331,9 +2442,9 @@
             const d = list.find(x => x.key === key);
             const realIndex = list.indexOf(d);
 
-            // Points range
+            // Points display: score at 80% threshold and max (100%)
             const pts = parseFloat(d.points);
-            const ptsMin = !isNaN(pts) ? pts.toFixed(2) : null;
+            const pts80 = !isNaN(pts) ? calcPts(80, pts).toFixed(2) : null;
             const ptsMax = !isNaN(pts) ? (pts * 4).toFixed(2) : null;
 
             // Records list
@@ -2396,6 +2507,9 @@
                 ${realIndex > 0 ? `<button onclick="showInfoByKey('${list[realIndex-1].key}','${type}')" title="${currentLang==='EN'?'Previous':'Предыдущий'}" style="position:absolute;top:50%;left:-16px;transform:translateY(-50%);background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.25);color:var(--accent);width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.85rem;transition:background 0.2s;z-index:10;" onmouseover="this.style.background='rgba(167,139,250,0.25)'" onmouseout="this.style.background='rgba(167,139,250,0.12)'"><i class="fas fa-chevron-left"></i></button>` : ''}
                 ${realIndex < list.length - 1 ? `<button onclick="showInfoByKey('${list[realIndex+1].key}','${type}')" title="${currentLang==='EN'?'Next':'Следующий'}" style="position:absolute;top:50%;right:-16px;transform:translateY(-50%);background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.25);color:var(--accent);width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.85rem;transition:background 0.2s;z-index:10;" onmouseover="this.style.background='rgba(167,139,250,0.25)'" onmouseout="this.style.background='rgba(167,139,250,0.12)'"><i class="fas fa-chevron-right"></i></button>` : ''}
 
+                <!-- Status badge if present -->
+                ${d.status && STATUS_CONFIG[d.status] ? (() => { const cfg = STATUS_CONFIG[d.status]; const lbl = currentLang==='EN'?cfg.labelEN:cfg.labelRU; return `<div style="display:flex;justify-content:center;margin-bottom:10px;"><span class="status-badge ${d.status}" style="position:relative;top:auto;right:auto;"><i class="fas ${cfg.icon}"></i>${lbl}</span></div>`; })() : ''}
+
                 <!-- Header: rank + name -->
                 <div style="text-align:center;margin:0 44px 16px 0;">
                     <div style="display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;">
@@ -2418,20 +2532,20 @@
                 </div>` : ''}
 
                 <!-- Stats grid -->
-                <div style="display:grid;grid-template-columns:${ptsMin ? '1fr 1fr 1fr' : '1fr'};gap:10px;margin-bottom:18px;">
+                <div style="display:grid;grid-template-columns:${pts80 ? '1fr 1fr 1fr' : '1fr'};gap:10px;margin-bottom:18px;">
                     <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:14px;text-align:center;cursor:pointer;" onclick="copyID('${d.levelID}')">
                         <div style="font-size:0.62rem;color:#6b7280;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;">ID</div>
                         <div style="font-family:'Orbitron';font-size:1rem;font-weight:900;color:#fff;margin-bottom:4px;">${d.levelID}</div>
                         <div style="font-size:0.68rem;color:var(--accent);display:flex;align-items:center;justify-content:center;gap:4px;"><i class="fas fa-copy"></i> ${currentLang === 'EN' ? 'Click to copy' : 'Нажми чтобы скопировать'}</div>
                     </div>
-                    ${ptsMin ? `
+                    ${pts80 ? `
                     <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:14px;text-align:center;">
-                        <div style="font-size:0.62rem;color:#6b7280;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;">${currentLang === 'EN' ? 'Total Score (100%)' : 'Очки (100%)'}</div>
+                        <div style="font-size:0.62rem;color:#6b7280;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;">${currentLang === 'EN' ? 'Max Score (100%)' : 'Макс. очки (100%)'}</div>
                         <div style="font-family:'Orbitron';font-size:1rem;font-weight:900;color:var(--accent);">${ptsMax}</div>
                     </div>
                     <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:14px;text-align:center;">
                         <div style="font-size:0.62rem;color:#6b7280;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;">${currentLang === 'EN' ? 'Score at 80%' : 'Очки за 80%'}</div>
-                        <div style="font-family:'Orbitron';font-size:1rem;font-weight:900;color:#60a5fa;">${!isNaN(pts) ? calcPts(80, pts).toFixed(2) : '—'}</div>
+                        <div style="font-family:'Orbitron';font-size:1rem;font-weight:900;color:#60a5fa;">${pts80}</div>
                     </div>` : ''}
                 </div>
 
@@ -2527,6 +2641,7 @@
             document.getElementById('fields_main').style.display = (a === 'add_demon' || a === 'add_challenge' || a === 'add_creator') ? 'block' : 'none';
             document.getElementById('fields_demon').style.display = (a === 'add_demon' || a === 'add_challenge') ? 'block' : 'none';
             document.getElementById('fields_victor').style.display = a === 'add_victor' ? 'block' : 'none';
+            document.getElementById('fields_country').style.display = a === 'set_country' ? 'block' : 'none';
         }
         function closeAdmin() { document.getElementById('adminPanel').style.display='none'; }
         
@@ -2639,43 +2754,67 @@
         function renderPlayerTop() {
             const list = document.getElementById('playerTopList');
             if (!list) return;
+            const lbl = currentLang === 'EN';
 
             const playerMap = {};
             const collect = (level) => {
-                const pts = parseFloat(level.points);
                 getLevelEntries(level).forEach(v => {
                     const name = v.name.trim();
                     if (!playerMap[name]) { playerMap[name] = { name, totalPoints: 0, completions: 0, records: 0, demons: [] }; }
                     const perc = parseInt((v.perc || '0').replace('%', ''));
-                    if (perc < MIN_PERC) return; // below threshold — skip entirely
+                    if (perc < MIN_PERC) return;
                     playerMap[name].totalPoints += calcPts(perc, level.points);
                     if (perc >= 100) { playerMap[name].completions++; } else { playerMap[name].records++; }
                     playerMap[name].demons.push(level.name);
                 });
             };
-            // Учитываем демонов и челленджи (включая вериферов)
             demons.forEach(collect);
             challenges.forEach(collect);
 
-            const players = Object.values(playerMap)
+            const allPlayers = Object.values(playerMap)
                 .sort((a, b) => b.totalPoints - a.totalPoints)
                 .filter(p => p.totalPoints > 0 || p.completions > 0);
 
+            // Build country filter dropdown
+            const usedCountries = [...new Set(
+                allPlayers.map(p => playerCountries[p.name.toLowerCase()]).filter(Boolean)
+            )].sort();
+            const filterWrap = document.getElementById('countryFilterWrap');
+            if (filterWrap) {
+                if (usedCountries.length > 0) {
+                    const opts = [`<option value="all">${lbl ? 'All countries' : 'Все страны'}</option>`]
+                        .concat(usedCountries.map(c => `<option value="${c}">${countryFlag(c)} ${c}${countryFilter===c?' *':''}</option>`))
+                        .join('');
+                    filterWrap.innerHTML = `<select onchange="countryFilter=this.value;renderPlayerTop();" style="background:#0f1225;border:1px solid rgba(167,139,250,0.25);color:#e2d4f0;padding:8px 14px;border-radius:10px;font-family:'Nunito';font-size:0.85rem;cursor:pointer;outline:none;">
+                        ${opts}
+                    </select>`;
+                    filterWrap.querySelector('select').value = countryFilter;
+                } else {
+                    filterWrap.innerHTML = '';
+                }
+            }
+
+            // Apply filter
+            const players = countryFilter === 'all'
+                ? allPlayers
+                : allPlayers.filter(p => (playerCountries[p.name.toLowerCase()] || '') === countryFilter);
+
             if (players.length === 0) {
-                list.innerHTML = '<div class="player-top-empty">Рейтинг пуст. Добавьте рекорды в демон лист!</div>';
+                list.innerHTML = `<div class="player-top-empty">${lbl ? 'No players found.' : 'Рейтинг пуст.'}</div>`;
                 return;
             }
 
-            const medals = ['🥇', '🥈', '🥉'];
+            const medals = ['#1', '#2', '#3'];
             list.innerHTML = players.map((p, i) => {
                 const rank = i + 1;
                 const rankClass = rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : 'rank-other';
                 const rankDisplay = rank <= 3 ? medals[rank - 1] : `#${rank}`;
                 const pts = p.totalPoints % 1 === 0 ? p.totalPoints : p.totalPoints.toFixed(2);
                 const completionText = p.records > 0
-                    ? `${p.completions} прохожд. · ${p.records} рекорд.`
-                    : `${p.completions} прохожд.`;
-                
+                    ? `${p.completions} ${lbl?'compl.':'прохожд.'} · ${p.records} ${lbl?'rec.':'рекорд.'}`
+                    : `${p.completions} ${lbl?'completions':'прохождений'}`;
+                const flag = countryFlag(playerCountries[p.name.toLowerCase()]);
+
                 let adminBtns = '';
                 if (isAdmin) {
                     if (isEditMode) adminBtns += `<button class="ctrl-btn btn-edit" onclick="event.stopPropagation(); openEditSlayerModal('${p.name.replace(/'/g, "\\'")}')" style="margin-right:6px;"><i class="fas fa-pen"></i></button>`;
@@ -2684,7 +2823,7 @@
 
                 return `<div class="player-top-card" onclick="openPlayerProfile('${p.name.replace(/'/g, "\\'")}')">
                     <div class="player-top-rank ${rankClass}">${rankDisplay}</div>
-                    <div class="player-top-avatar">🌙</div>
+                    <div class="player-top-avatar" style="font-size:1.3rem;">${flag || '&#127769;'}</div>
                     <div class="player-top-info">
                         <div class="player-top-name">${escapeHtml(p.name)}</div>
                         <div class="player-top-meta">${completionText}</div>
@@ -2700,6 +2839,17 @@
             }).join('');
         }
         function deleteItem(k, p) { if(confirm("Подтверждаете удаление?")) db.ref(p+'/'+k).remove(); }
+
+        db.ref('players').on('value', snap => {
+            playerCountries = {};
+            if (snap.val()) {
+                Object.entries(snap.val()).forEach(([nick, data]) => {
+                    if (data && data.country) playerCountries[nick.toLowerCase()] = data.country;
+                });
+            }
+            // Re-render top if currently visible
+            if (currentTab === 'players') renderPlayerTop();
+        });
 
         db.ref('maintenance').on('value', s => {
             const on = s.val() === true;
@@ -2773,6 +2923,14 @@
             document.getElementById('profileName').textContent = playerName;
             document.getElementById('profilePoints').textContent = totalPoints < 0.01 ? '0' : totalPoints.toFixed(2);
             document.getElementById('profileRank').textContent = rank > 0 ? '#' + rank : '—';
+
+            // Show country flag next to name
+            const profileFlag = document.getElementById('profileFlag');
+            if (profileFlag) {
+                const flag = countryFlag(playerCountries[playerName.toLowerCase()]);
+                profileFlag.textContent = flag;
+                profileFlag.style.display = flag ? 'inline' : 'none';
+            }
 
             // Hardest level
             const hardestWrap = document.getElementById('profileHardestWrap');
