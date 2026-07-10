@@ -807,6 +807,9 @@
             <button id="tabCreatorTopBtn" class="search-mode-btn" onclick="switchTab('creatortop')" style="flex:1; max-width:160px; padding:11px 14px;">
                 <i class="fas fa-hammer"></i> <span id="tabCreatorsLabel">Топ Креаторов</span>
             </button>
+            <button id="tabPlayerSearchBtn" class="search-mode-btn" onclick="switchTab('playersearch')" style="flex:1; max-width:160px; padding:11px 14px;">
+                <i class="fas fa-user-magnifying-glass"></i> <span id="tabPlayerSearchLabel">Поиск игрока</span>
+            </button>
         </div>
 
         <div class="search-box" id="searchBoxWrap">
@@ -835,6 +838,18 @@
             <div class="player-top-list" id="creatorTopList">
                 <div class="player-top-empty">Загрузка рейтинга...</div>
             </div>
+        </div>
+
+        <!-- Player search section -->
+        <div id="playerSearchSection" style="display:none; padding: 0 16px 40px; max-width:800px; margin:0 auto; width:100%;">
+            <div class="search-box" style="margin-bottom:20px;">
+                <div class="search-input-wrap">
+                    <i class="fas fa-user search-icon"></i>
+                    <input type="text" id="playerSearchInput" class="search-input" placeholder="Введите ник игрока..." oninput="debouncedPlayerSearch()">
+                </div>
+            </div>
+            <div id="playerSearchResults"></div>
+        </div>
         </div>
     </main>
 
@@ -995,7 +1010,7 @@
     <div id="editRecordModal" class="edit-modal">
         <div class="edit-modal-content" style="max-width: 400px;">
             <button class="modal-close-pin" onclick="document.getElementById('editRecordModal').style.display='none'"><i class="fas fa-times"></i></button>
-            <h2>✏️ РЕДАКТИРОВАТЬ РЕКОРД</h2>
+            <h2>✏️ РЕДАКТИРОВА��Ь РЕКОРД</h2>
             <input type="hidden" id="editRecDemonKey">
             <input type="hidden" id="editRecKey">
             <input type="hidden" id="editRecType">
@@ -1426,7 +1441,7 @@
             if (!text) { showToast('Напиши текст отзыва!'); return; }
             if (!selectedReviewRating) { showToast('Поставь оценку звёздами!'); return; }
             if (isNaN(userCaptchaAnswer) || userCaptchaAnswer !== reviewCaptchaAnswer) {
-                showToast('❌ Неверный ответ на пример. Попробуй ещё раз!');
+                showToast('❌ Невер��ый ответ на пример. Попробуй ещё раз!');
                 generateReviewCaptcha();
                 return;
             }
@@ -1836,6 +1851,131 @@
             document.querySelectorAll('.dropdown-content.show').forEach(d => d.classList.remove('show'));
         }
 
+        // ===== SCORING FORMULA =====
+        // Threshold: 60%. Below 60% — no points, entry not counted.
+        // 60%–99%: ((perc - 60) / 40)^1.5 * ptsMax  (steep curve, rewards near-completions)
+        // 100%: full ptsMax
+        // Examples (ptsMax=4): 60%→0, 70%→0.56, 80%→1.59, 90%→2.85, 95%→3.41, 100%→4.00
+        const MIN_PERC = 60;
+        function calcPts(perc, levelPoints) {
+            const ptsMax = parseFloat(levelPoints) * 4;
+            if (isNaN(ptsMax) || perc < MIN_PERC) return 0;
+            if (perc >= 100) return ptsMax;
+            return ptsMax * Math.pow((perc - MIN_PERC) / (100 - MIN_PERC), 1.5);
+        }
+
+        // ===== PLAYER SEARCH =====
+        let playerSearchDebounce = null;
+        function debouncedPlayerSearch() {
+            clearTimeout(playerSearchDebounce);
+            playerSearchDebounce = setTimeout(renderPlayerSearch, 180);
+        }
+
+        function renderPlayerSearch() {
+            const container = document.getElementById('playerSearchResults');
+            if (!container) return;
+            const query = (document.getElementById('playerSearchInput')?.value || '').trim().toLowerCase();
+            const lbl = currentLang === 'EN';
+
+            if (query.length < 2) {
+                container.innerHTML = `<p style="color:#4b5563;text-align:center;padding:28px 0;font-size:0.88rem;">${lbl ? 'Type at least 2 characters to search' : 'Введите минимум 2 символа для поиска'}</p>`;
+                return;
+            }
+
+            // Collect all unique players across demons + challenges
+            const playerMap = {};
+            const collectForSearch = (level, listType) => {
+                getLevelEntries(level).forEach(v => {
+                    const name = v.name ? v.name.trim() : '';
+                    if (!name) return;
+                    if (!playerMap[name]) playerMap[name] = { name, totalPoints: 0, completions: 0, records: 0, hardest: null, hardestIdx: Infinity };
+                    const perc = parseInt((v.perc || '0').replace('%', ''));
+                    if (perc < MIN_PERC) return;
+                    playerMap[name].totalPoints += calcPts(perc, level.points);
+                    if (perc >= 100) {
+                        playerMap[name].completions++;
+                        const allList = [...demons, ...challenges];
+                        const idx = allList.indexOf(level);
+                        if (idx < playerMap[name].hardestIdx) {
+                            playerMap[name].hardestIdx = idx;
+                            playerMap[name].hardest = level.name;
+                        }
+                    } else {
+                        playerMap[name].records++;
+                    }
+                });
+            };
+            demons.forEach(d => collectForSearch(d, 'demons'));
+            challenges.forEach(d => collectForSearch(d, 'challenges'));
+
+            const results = Object.values(playerMap).filter(p => p.name.toLowerCase().includes(query));
+            results.sort((a, b) => b.totalPoints - a.totalPoints);
+
+            if (results.length === 0) {
+                container.innerHTML = `<p style="color:#4b5563;text-align:center;padding:28px 0;font-size:0.88rem;">${lbl ? 'No players found' : 'Игроки не найдены'}</p>`;
+                return;
+            }
+
+            // Full sorted leaderboard to get ranks
+            const allSorted = Object.values(playerMap).sort((a, b) => b.totalPoints - a.totalPoints);
+
+            container.innerHTML = results.map(p => {
+                const rank = allSorted.findIndex(x => x.name === p.name) + 1;
+                const pts = p.totalPoints < 0.01 ? '0' : p.totalPoints.toFixed(2);
+                return `<div class="player-top-card" onclick="openPlayerProfile('${p.name.replace(/'/g,"\\'")}')" style="cursor:pointer;margin-bottom:8px;">
+                    <div class="player-top-rank ${rank===1?'rank-1':rank===2?'rank-2':rank===3?'rank-3':'rank-other'}">${rank<=3?['#1','#2','#3'][rank-1]:'#'+rank}</div>
+                    <div class="player-top-avatar" style="font-size:1.2rem;">&#127769;</div>
+                    <div class="player-top-info" style="flex:1;min-width:0;">
+                        <div class="player-top-name">${escapeHtml(p.name)}</div>
+                        <div class="player-top-meta" style="display:flex;gap:12px;flex-wrap:wrap;">
+                            <span><i class="fas fa-check" style="color:#4ade80;margin-right:4px;font-size:0.65rem;"></i>${p.completions} ${lbl?'compl.':'прохожд.'}</span>
+                            ${p.records > 0 ? `<span><i class="fas fa-chart-line" style="color:#60a5fa;margin-right:4px;font-size:0.65rem;"></i>${p.records} ${lbl?'records':'рекордов'}</span>` : ''}
+                            ${p.hardest ? `<span style="color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;" title="${p.hardest}"><i class="fas fa-fire" style="color:#fb923c;margin-right:4px;font-size:0.65rem;"></i>${p.hardest}</span>` : ''}
+                        </div>
+                    </div>
+                    <div style="text-align:right;flex-shrink:0;">
+                        <div class="player-top-points">${pts}</div>
+                        <span class="player-top-pts-label">pts</span>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        // ===== KEYBOARD NAVIGATION =====
+        // Tracks which demon/challenge is open so arrows can navigate
+        let currentModalKey = null;
+        let currentModalType = 'demons';
+
+        document.addEventListener('keydown', function(e) {
+            // ESC: close any open modal/panel
+            if (e.key === 'Escape') {
+                const modals = [
+                    'detailModal', 'playerProfileModal', 'editRecordModal',
+                    'adminPanel', 'modPanel', 'editModal'
+                ];
+                for (const id of modals) {
+                    const el = document.getElementById(id);
+                    if (el && el.style.display !== 'none' && el.style.display !== '') {
+                        el.style.display = 'none';
+                        return;
+                    }
+                }
+            }
+
+            // Arrow keys: navigate between demons inside the detail modal
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                const modal = document.getElementById('detailModal');
+                if (!modal || modal.style.display === 'none' || !currentModalKey) return;
+                e.preventDefault();
+                const list = currentModalType === 'demons' ? demons : challenges;
+                const idx = list.findIndex(d => d.key === currentModalKey);
+                if (idx === -1) return;
+                const next = e.key === 'ArrowRight' ? idx + 1 : idx - 1;
+                if (next < 0 || next >= list.length) return;
+                showInfoByKey(list[next].key, currentModalType);
+            }
+        });
+
         // Загружает YouTube iframe только по клику на превью (оптимизация)
         function loadYtVideo(el, vid) {
             el.outerHTML = `<iframe src="https://www.youtube.com/embed/${vid}?autoplay=1" allowfullscreen allow="autoplay" loading="lazy"></iframe>`;
@@ -2081,7 +2221,7 @@
                     dlTitle: "СКАЧАТЬ ИГРУ", dlVersion: "Версия 2.2081",
                     dlDescPC: "Скачать .zip архив для игры на компьютере",
                     dlDescAnd: "Скачать .apk файл для игры на телефоне",
-                    tabDemons: "Демоны", tabChallenges: "Челленджи", tabPlayers: "Топ Слееров", tabCreators: "Топ Креаторов",
+                    tabDemons: "Демоны", tabChallenges: "Челленджи", tabPlayers: "Топ Слееров", tabCreators: "Топ Креаторов", tabPlayerSearch: "Поиск игрока",
                     navDropDemons: "Demon List", navDropChallenges: "Challenge List", navDropCreators: "Топ Креаторов", navDropPlayers: "Топ Слееров",
                     heroTitle: "DEMON LIST", heroBanner: "✦ ТОП 50 ✦",
                     profileCompletions: "Прохождений", profileRecords: "Рекордов",
@@ -2101,7 +2241,7 @@
                     dlTitle: "DOWNLOAD GAME", dlVersion: "Version 2.2081",
                     dlDescPC: "Download .zip archive to play on PC",
                     dlDescAnd: "Download .apk file to play on mobile",
-                    tabDemons: "Demons", tabChallenges: "Challenges", tabPlayers: "Top Slayers", tabCreators: "Top Creators",
+                    tabDemons: "Demons", tabChallenges: "Challenges", tabPlayers: "Top Slayers", tabCreators: "Top Creators", tabPlayerSearch: "Player Search",
                     navDropDemons: "Demon List", navDropChallenges: "Challenge List", navDropCreators: "Top Creators", navDropPlayers: "Top Slayers",
                     heroTitle: "DEMON LIST", heroBanner: "✦ TOP 50 ✦",
                     profileCompletions: "Completions", profileRecords: "Records",
@@ -2129,6 +2269,8 @@
             set('searchModeTag', t.searchT);
             const si = document.getElementById('searchInput');
             if (si) si.placeholder = t.searchP;
+            const psi = document.getElementById('playerSearchInput');
+            if (psi) psi.placeholder = lang === 'EN' ? 'Enter player nickname...' : 'Введите ник игрока...';
 
             // List section hero
             set('txtHero', t.heroTitle);
@@ -2139,6 +2281,7 @@
             set('tabChallengesLabel', t.tabChallenges);
             set('tabPlayersLabel', t.tabPlayers);
             set('tabCreatorsLabel', t.tabCreators);
+            set('tabPlayerSearchLabel', t.tabPlayerSearch);
 
             // Navbar dropdown items
             set('navDropDemonsLabel', t.navDropDemons);
@@ -2180,6 +2323,10 @@
 
         // ===== DETAIL MODAL =====
         function showInfoByKey(key, type = 'demons') {
+            // Track for arrow key navigation
+            currentModalKey = key;
+            currentModalType = type;
+
             const list = type === 'demons' ? demons : challenges;
             const d = list.find(x => x.key === key);
             const realIndex = list.indexOf(d);
@@ -2209,10 +2356,45 @@
                     </div>`).join('')
                 : `<p style="color:#4b5563;text-align:center;padding:20px 0;font-size:0.88rem;">${currentLang==='EN'?'No records yet':'Рекордов пока нет'}</p>`;
 
+            // Build position history SVG chart
+            const historyData = d.history ? Object.values(d.history).sort((a,b) => (a.date||'').localeCompare(b.date||'')) : [];
+            const historyHtml = (() => {
+                if (historyData.length < 2) {
+                    return historyData.length === 0
+                        ? `<p style="color:#4b5563;font-size:0.78rem;text-align:center;padding:10px 0;">${currentLang==='EN'?'No position history yet':'История позиций пока не записана'}</p>`
+                        : '';
+                }
+                const W = 400, H = 80, PAD = 24;
+                const positions = historyData.map(h => h.pos);
+                const minPos = Math.min(...positions);
+                const maxPos = Math.max(...positions);
+                const range = maxPos === minPos ? 1 : maxPos - minPos;
+                const xStep = (W - PAD * 2) / (historyData.length - 1);
+                const toY = p => PAD + ((p - minPos) / range) * (H - PAD * 2);
+                const points = historyData.map((h, i) => `${PAD + i * xStep},${toY(h.pos)}`).join(' ');
+                const firstPos = positions[0], lastPos = positions[positions.length - 1];
+                const trend = lastPos < firstPos ? '#4ade80' : lastPos > firstPos ? '#f87171' : '#a78bfa';
+                const dots = historyData.map((h, i) => {
+                    const x = PAD + i * xStep, y = toY(h.pos);
+                    const label = h.date ? h.date.slice(5) : '';
+                    return `<circle cx="${x}" cy="${y}" r="4" fill="${trend}" stroke="#111827" stroke-width="2"/>
+                            <text x="${x}" y="${H - 4}" text-anchor="middle" font-size="9" fill="#4b5563">${label}</text>
+                            <title>#${h.pos} — ${h.date||''}</title>`;
+                }).join('');
+                return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:80px;overflow:visible;" role="img" aria-label="Position history">
+                    <polyline points="${points}" fill="none" stroke="${trend}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+                    ${dots}
+                </svg>`;
+            })();
+
             document.getElementById('modalData').innerHTML = `
                 <button class="modal-close-pin" onclick="document.getElementById('detailModal').style.display='none'">
                     <i class="fas fa-times"></i>
                 </button>
+
+                <!-- Arrow navigation -->
+                ${realIndex > 0 ? `<button onclick="showInfoByKey('${list[realIndex-1].key}','${type}')" title="${currentLang==='EN'?'Previous':'Предыдущий'}" style="position:absolute;top:50%;left:-16px;transform:translateY(-50%);background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.25);color:var(--accent);width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.85rem;transition:background 0.2s;z-index:10;" onmouseover="this.style.background='rgba(167,139,250,0.25)'" onmouseout="this.style.background='rgba(167,139,250,0.12)'"><i class="fas fa-chevron-left"></i></button>` : ''}
+                ${realIndex < list.length - 1 ? `<button onclick="showInfoByKey('${list[realIndex+1].key}','${type}')" title="${currentLang==='EN'?'Next':'Следующий'}" style="position:absolute;top:50%;right:-16px;transform:translateY(-50%);background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.25);color:var(--accent);width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.85rem;transition:background 0.2s;z-index:10;" onmouseover="this.style.background='rgba(167,139,250,0.25)'" onmouseout="this.style.background='rgba(167,139,250,0.12)'"><i class="fas fa-chevron-right"></i></button>` : ''}
 
                 <!-- Header: rank + name -->
                 <div style="text-align:center;margin:0 44px 16px 0;">
@@ -2248,18 +2430,29 @@
                         <div style="font-family:'Orbitron';font-size:1rem;font-weight:900;color:var(--accent);">${ptsMax}</div>
                     </div>
                     <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:14px;text-align:center;">
-                        <div style="font-size:0.62rem;color:#6b7280;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;">${currentLang === 'EN' ? 'List Score (25%)' : 'Очки (25%)'}</div>
-                        <div style="font-family:'Orbitron';font-size:1rem;font-weight:900;color:#60a5fa;">${ptsMin}</div>
+                        <div style="font-size:0.62rem;color:#6b7280;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;">${currentLang === 'EN' ? 'Score at 80%' : 'Очки за 80%'}</div>
+                        <div style="font-family:'Orbitron';font-size:1rem;font-weight:900;color:#60a5fa;">${!isNaN(pts) ? calcPts(80, pts).toFixed(2) : '—'}</div>
                     </div>` : ''}
                 </div>
 
                 <!-- Records section -->
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
                     <i class="fas fa-trophy" style="color:#fbbf24;font-size:0.9rem;"></i>
-                    <span style="font-size:0.78rem;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:1.5px;">Records</span>
+                    <span style="font-size:0.78rem;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:1.5px;">${currentLang==='EN'?'Records':'Рекорды'}</span>
                     <span style="font-size:0.72rem;color:#4b5563;">${victorEntries.length} total</span>
                 </div>
-                <div style="display:flex;flex-direction:column;gap:8px;max-height:260px;overflow-y:auto;padding-right:4px;">${vicsHtml}</div>`;
+                <div style="display:flex;flex-direction:column;gap:8px;max-height:260px;overflow-y:auto;padding-right:4px;">${vicsHtml}</div>
+
+                <!-- Position history chart -->
+                ${historyData.length > 0 ? `
+                <div style="margin-top:20px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:14px 16px;">
+                    <div style="display:flex;align-items:center;gap:7px;margin-bottom:10px;">
+                        <i class="fas fa-chart-line" style="color:var(--accent);font-size:0.8rem;"></i>
+                        <span style="font-size:0.72rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:1.5px;">${currentLang==='EN'?'Position History':'История позиций'}</span>
+                    </div>
+                    ${historyHtml}
+                </div>` : ''}
+                `;
                 
             document.getElementById('detailModal').style.display='block';
             document.getElementById('detailModal').scrollTop = 0;
@@ -2317,10 +2510,16 @@
         function moveItem(index, dir, type = 'demons') { 
             const list = type === 'demons' ? demons : challenges;
             let target = index + dir; 
-            if (target < 0 || target >= list.length) return; 
+            if (target < 0 || target >= list.length) return;
             const updates = {}; 
             updates[`/${type}/${list[index].key}/order`] = target; 
-            updates[`/${type}/${list[target].key}/order`] = index; 
+            updates[`/${type}/${list[target].key}/order`] = index;
+            // Record a history snapshot for both affected items
+            const today = new Date().toISOString().slice(0,10);
+            const snapA = db.ref(`/${type}/${list[index].key}/history`).push();
+            const snapB = db.ref(`/${type}/${list[target].key}/history`).push();
+            snapA.set({ pos: target + 1, date: today });
+            snapB.set({ pos: index + 1, date: today });
             db.ref().update(updates); 
         }
         function toggleAdmFields() {
@@ -2333,20 +2532,26 @@
         
         function switchTab(t) {
             currentTab = t;
-            const tabs = { demons: 'tabDemonsBtn', challenges: 'tabChallengesBtn', creators: 'tabCreatorsBtn', players: 'tabPlayersBtn', creatortop: 'tabCreatorTopBtn' };
+            const tabs = {
+                demons: 'tabDemonsBtn', challenges: 'tabChallengesBtn',
+                creators: 'tabCreatorsBtn', players: 'tabPlayersBtn',
+                creatortop: 'tabCreatorTopBtn', playersearch: 'tabPlayerSearchBtn'
+            };
             Object.entries(tabs).forEach(([key, btnId]) => {
                 const btn = document.getElementById(btnId);
                 if (btn) btn.classList.toggle('active', key === t);
             });
-            const mainContainer = document.getElementById('mainContainer');
-            const playerTopSection = document.getElementById('playerTopSection');
-            const creatorTopSection = document.getElementById('creatorTopSection');
-            const searchBoxWrap = document.getElementById('searchBoxWrap');
-            const top50Banner = document.getElementById('top50Banner');
+            const mainContainer       = document.getElementById('mainContainer');
+            const playerTopSection    = document.getElementById('playerTopSection');
+            const creatorTopSection   = document.getElementById('creatorTopSection');
+            const playerSearchSection = document.getElementById('playerSearchSection');
+            const searchBoxWrap       = document.getElementById('searchBoxWrap');
+            const top50Banner         = document.getElementById('top50Banner');
 
             if (mainContainer) mainContainer.style.display = 'none';
             if (playerTopSection) playerTopSection.style.display = 'none';
             if (creatorTopSection) creatorTopSection.style.display = 'none';
+            if (playerSearchSection) playerSearchSection.style.display = 'none';
             if (searchBoxWrap) searchBoxWrap.style.display = 'none';
             if (top50Banner) top50Banner.style.display = 'none';
 
@@ -2356,8 +2561,12 @@
                 renderPlayerTop();
             } else if (t === 'creatortop') {
                 if (creatorTopSection) creatorTopSection.style.display = 'block';
-                document.getElementById('txtHero').innerText = currentLang === 'EN' ? 'CREATOR TOP' : 'ТОП СОЗДАТЕЛЕЙ';
+                document.getElementById('txtHero').innerText = currentLang === 'EN' ? 'CREATOR TOP' : 'ТОП КРЕАТОРОВ';
                 renderCreatorTop();
+            } else if (t === 'playersearch') {
+                if (playerSearchSection) playerSearchSection.style.display = 'block';
+                document.getElementById('txtHero').innerText = currentLang === 'EN' ? 'PLAYER SEARCH' : 'ПОИСК ИГРОКА';
+                renderPlayerSearch();
             } else {
                 if (mainContainer) mainContainer.style.display = 'grid';
                 if (searchBoxWrap) searchBoxWrap.style.display = 'block';
@@ -2438,11 +2647,8 @@
                     const name = v.name.trim();
                     if (!playerMap[name]) { playerMap[name] = { name, totalPoints: 0, completions: 0, records: 0, demons: [] }; }
                     const perc = parseInt((v.perc || '0').replace('%', ''));
-                    if (!isNaN(pts)) {
-                        // Квадратичная формула: (perc/100)^2 * ptsMax
-                        const ptsMax = pts * 4;
-                        playerMap[name].totalPoints += ptsMax * Math.pow(perc / 100, 2);
-                    }
+                    if (perc < MIN_PERC) return; // below threshold — skip entirely
+                    playerMap[name].totalPoints += calcPts(perc, level.points);
                     if (perc >= 100) { playerMap[name].completions++; } else { playerMap[name].records++; }
                     playerMap[name].demons.push(level.name);
                 });
@@ -2520,27 +2726,26 @@
             demons.forEach(collectProfile);
             challenges.forEach(collectProfile);
 
-            const completions = allEntries.filter(c => parseInt((c.victor.perc || '0').replace('%','')) >= 100);
-            const records     = allEntries.filter(c => parseInt((c.victor.perc || '0').replace('%','')) < 100);
+            const getPerc = c => parseInt((c.victor.perc || '0').replace('%',''));
+            const completions = allEntries.filter(c => getPerc(c) >= 100);
+            const records     = allEntries.filter(c => { const p = getPerc(c); return p >= MIN_PERC && p < 100; });
 
-            // Points: quadratic formula (perc/100)^2 * ptsMax
+            // Points: threshold 60%, curve ((perc-60)/40)^1.5 * ptsMax
             let totalPoints = 0;
             allEntries.forEach(c => {
-                const pts = parseFloat(c.demon.points);
-                if (isNaN(pts)) return;
-                const perc = parseInt((c.victor.perc || '0').replace('%', ''));
-                totalPoints += (pts * 4) * Math.pow(perc / 100, 2);
+                const perc = getPerc(c);
+                if (perc < MIN_PERC) return;
+                totalPoints += calcPts(perc, c.demon.points);
             });
 
             // Rank: find position in sorted leaderboard
             const playerMap = {};
             const collectAll = (level) => {
-                const pts = parseFloat(level.points);
                 getLevelEntries(level).forEach(v => {
                     const n = v.name.trim();
                     if (!playerMap[n]) playerMap[n] = { totalPoints: 0 };
                     const perc = parseInt((v.perc || '0').replace('%',''));
-                    if (!isNaN(pts)) playerMap[n].totalPoints += (pts * 4) * Math.pow(perc / 100, 2);
+                    if (perc >= MIN_PERC) playerMap[n].totalPoints += calcPts(perc, level.points);
                 });
             };
             demons.forEach(collectAll); challenges.forEach(collectAll);
