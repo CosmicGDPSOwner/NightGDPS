@@ -410,11 +410,7 @@
             .card-body { padding: 18px; }
             .card-img { height: 155px; }
             .home-video-section { padding: 0 14px; margin-bottom: 48px; }
-
-            /* Модальные окна на мобильных */
             .modal-content, .profile-modal-content, .edit-modal-content, .mod-panel, #modQuickPanel, .admin-form { margin: 8px auto 30px; padding: 16px 14px; width: calc(100% - 16px); border-radius: 16px; }
-
-            /* Профиль игрока на мобильных */
             .profile-header { gap: 12px; }
             .profile-avatar { width: 50px; height: 50px; font-size: 1.4rem; }
             .profile-name { font-size: clamp(1rem, 5vw, 1.4rem); }
@@ -422,26 +418,18 @@
             .profile-stat { padding: 10px 10px; min-width: 60px; }
             .profile-stat-val { font-size: 1.1rem; }
             .profile-stat-label { font-size: 0.65rem; }
-
-            /* Топ слееров на мобильных */
             .player-top-card { padding: 12px 14px; gap: 10px; }
             .player-top-rank { font-size: 0.95rem; min-width: 28px; }
             .player-top-avatar { width: 36px; height: 36px; font-size: 1rem; }
             .player-top-name { font-size: 0.9rem; }
             .player-top-points { font-size: 0.88rem; }
-
-            /* Отзывы на мобильных */
             .review-form { padding: 20px 14px; margin: 0 0 30px; }
             .reviews-section { padding: 0 12px; }
             .reviews-grid { grid-template-columns: 1fr; }
             .review-captcha-row { flex-direction: column; align-items: flex-start; gap: 8px; }
             .review-captcha-input { width: 100% !important; flex: none !important; }
-
-            /* Кнопки в карточках */
             .btn-more { padding: 12px; font-size: 0.8rem; }
             .level-id-box { font-size: 0.8rem; padding: 8px 12px; }
-
-            /* Drag indicator */
             .drag-indicator { top: 70px; right: 10px; padding: 8px 14px; font-size: 0.8rem; }
         }
 
@@ -689,6 +677,9 @@
             <button id="tabDemonsBtn" class="search-mode-btn active" onclick="switchTab('demons')" style="flex:1; max-width:160px; padding:11px 14px;">
                 <i class="fas fa-skull"></i> Демоны
             </button>
+            <button id="tabChallengesBtn" class="search-mode-btn" onclick="switchTab('challenges')" style="flex:1; max-width:160px; padding:11px 14px;">
+                <i class="fas fa-fire"></i> Челленджи
+            </button>
             <button id="tabPlayersBtn" class="search-mode-btn" onclick="switchTab('players')" style="flex:1; max-width:160px; padding:11px 14px;">
                 <i class="fas fa-trophy"></i> Топ слееров
             </button>
@@ -792,7 +783,6 @@
         </button>
     </div>
 
-    <!-- ===== ADMIN PANEL ===== -->
     <div id="adminPanel" class="admin-form">
         <button onclick="closeAdmin()" style="position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:8px;background:rgba(255,70,70,0.13);border:1px solid rgba(255,70,70,0.3);color:#ff6868;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">
             <i class="fas fa-times"></i>
@@ -807,6 +797,7 @@
         <div id="adminControls" style="display:none;">
             <select id="admAction" onchange="toggleAdmFields()">
                 <option value="add_demon">Добавить Демона</option>
+                <option value="add_challenge">🔥 Добавить Челлендж</option>
                 <option value="add_creator">Добавить Креатора</option>
                 <option value="add_victor">Добавить Рекорд</option>
                 <option value="delete_mode">Удаление / Движение (Все)</option>
@@ -840,12 +831,12 @@
         </div>
     </div>
 
-    <!-- ===== EDIT DEMON MODAL ===== -->
     <div id="editDemonModal" class="edit-modal">
         <div class="edit-modal-content">
             <button class="modal-close-pin" onclick="closeEditModal()"><i class="fas fa-times"></i></button>
-            <h2>✏️ РЕДАКТИРОВАТЬ ДЕМОНА</h2>
+            <h2>✏️ РЕДАКТИРОВАТЬ</h2>
             <input type="hidden" id="editDemonKey">
+            <input type="hidden" id="editItemType">
 
             <label class="edit-field-label">Название уровня</label>
             <input type="text" id="editName" class="edit-field-input" placeholder="Название уровня">
@@ -871,7 +862,7 @@
 
             <label class="edit-field-label">⚡ Баллы сложности</label>
             <input type="text" id="editPoints" class="edit-field-input" placeholder="напр. 0.31 или 1.50">
-            <p style="color:#555;font-size:0.75rem;margin:4px 0 0;line-height:1.4;">Отображается на карточке демона. Можно оставить пустым.</p>
+            <p style="color:#555;font-size:0.75rem;margin:4px 0 0;line-height:1.4;">Отображается на карточке. Можно оставить пустым.</p>
 
             <div class="edit-btn-row">
                 <button class="edit-btn-cancel" onclick="closeEditModal()">Отмена</button>
@@ -880,7 +871,33 @@
         </div>
     </div>
 
-    <!-- ===== EDIT CREATOR MODAL ===== -->
+    <div id="editRecordModal" class="edit-modal">
+        <div class="edit-modal-content" style="max-width: 400px;">
+            <button class="modal-close-pin" onclick="document.getElementById('editRecordModal').style.display='none'"><i class="fas fa-times"></i></button>
+            <h2>✏️ РЕДАКТИРОВАТЬ РЕКОРД</h2>
+            <input type="hidden" id="editRecDemonKey">
+            <input type="hidden" id="editRecKey">
+            <input type="hidden" id="editRecType">
+            
+            <label class="edit-field-label">Игрок</label>
+            <input type="text" id="editRecName" class="edit-field-input" placeholder="Никнейм">
+            
+            <label class="edit-field-label">Проценты</label>
+            <input type="text" id="editRecPerc" class="edit-field-input" placeholder="100%">
+            
+            <label class="edit-field-label">Попытки</label>
+            <input type="text" id="editRecAtt" class="edit-field-input" placeholder="Попытки">
+            
+            <label class="edit-field-label">Видео (YouTube)</label>
+            <input type="text" id="editRecVid" class="edit-field-input" placeholder="Ссылка">
+            
+            <div class="edit-btn-row">
+                <button class="edit-btn-cancel" onclick="document.getElementById('editRecordModal').style.display='none'">Отмена</button>
+                <button class="edit-btn-save" onclick="saveRecordEdit()"><i class="fas fa-save"></i> Сохранить</button>
+            </div>
+        </div>
+    </div>
+
     <div id="editCreatorModal" class="edit-modal">
         <div class="edit-modal-content" style="max-width: 400px;">
             <button class="modal-close-pin" onclick="document.getElementById('editCreatorModal').style.display='none'"><i class="fas fa-times"></i></button>
@@ -900,7 +917,6 @@
         </div>
     </div>
 
-    <!-- ===== EDIT SLAYER MODAL ===== -->
     <div id="editSlayerModal" class="edit-modal">
         <div class="edit-modal-content" style="max-width: 400px;">
             <button class="modal-close-pin" onclick="document.getElementById('editSlayerModal').style.display='none'"><i class="fas fa-times"></i></button>
@@ -909,7 +925,7 @@
             
             <label class="edit-field-label">Новый ник игрока</label>
             <input type="text" id="editSlayerNewName" class="edit-field-input" placeholder="Никнейм">
-            <p style="color:#888; font-size:0.8rem; margin-top:8px; line-height:1.4;">Изменение ника обновит его во всех рекордах демонов. Для удаления используйте кнопку корзины в списке.</p>
+            <p style="color:#888; font-size:0.8rem; margin-top:8px; line-height:1.4;">Изменение ника обновит его во всех рекордах. Для удаления используйте кнопку корзины в списке.</p>
             
             <div class="edit-btn-row">
                 <button class="edit-btn-cancel" onclick="document.getElementById('editSlayerModal').style.display='none'">Отмена</button>
@@ -918,7 +934,6 @@
         </div>
     </div>
 
-    <!-- ===== MODERATORS PANEL ===== -->
     <div id="modPanel" class="mod-panel">
         <button onclick="closeModPanel()" style="position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:8px;background:rgba(255,70,70,0.13);border:1px solid rgba(255,70,70,0.3);color:#ff6868;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;"><i class="fas fa-times"></i></button>
         <h2>👥 МОДЕРАТОРЫ</h2>
@@ -940,7 +955,6 @@
     </div>
 
 
-    <!-- ===== PLAYER PROFILE MODAL ===== -->
     <div id="playerProfileModal" class="profile-modal">
         <div class="profile-modal-content">
             <button class="modal-close-pin" onclick="document.getElementById('playerProfileModal').style.display='none'" style="position:absolute;top:14px;right:14px;">
@@ -980,7 +994,6 @@
 
     <div id="detailModal" class="modal"><div class="modal-content" id="modalData"></div></div>
 
-    <!-- ===== MOD LOGIN PAGE ===== -->
     <div id="modLoginPage">
         <div class="mod-login-box">
             <div class="mod-login-moon">🌙</div>
@@ -1039,10 +1052,14 @@
         let isDragDropMode = false;
         let searchMode = 'main';
         let currentTab = 'demons';
+        
+        // Массивы данных
         let demons = [];
+        let challenges = []; // Добавлен массив челленджей
         let creators = [];
         let moderators = [];
         let reviews = [];
+        
         let selectedReviewRating = 0;
         let draggedItem = null;
         let draggedIndex = -1;
@@ -1424,11 +1441,15 @@
             toggleAdmFields();
         }
 
-        // ===== EDIT DEMON =====
-        function openEditModal(key) {
+        // ===== EDIT DEMON/CHALLENGE =====
+        function openEditModal(key, type = 'demons') {
             if (!isModerator) return;
-            const d = demons.find(x => x.key === key);
+            
+            const list = type === 'demons' ? demons : challenges;
+            const d = list.find(x => x.key === key);
             if (!d) return;
+
+            document.getElementById('editItemType').value = type;
             document.getElementById('editDemonKey').value = key;
             document.getElementById('editName').value = d.name || '';
             document.getElementById('editAuthor').value = d.author || '';
@@ -1439,6 +1460,7 @@
             document.getElementById('editVid').value = d.vid ? `https://youtube.com/watch?v=${d.vid}` : '';
             document.getElementById('editPoints').value = d.points || '';
             updateImgPreview();
+            
             document.getElementById('editDemonModal').style.display = 'block';
             document.getElementById('editDemonModal').scrollTop = 0;
         }
@@ -1460,6 +1482,7 @@
         }
 
         function saveDemonEdit() {
+            const type = document.getElementById('editItemType').value;
             const key = document.getElementById('editDemonKey').value;
             const name = document.getElementById('editName').value.trim();
             const author = document.getElementById('editAuthor').value.trim();
@@ -1477,8 +1500,9 @@
 
             const points = document.getElementById('editPoints').value.trim();
             const updates = { name, author, verifier, levelID, tag, img, vid, points };
-            db.ref('demons/' + key).update(updates).then(() => {
-                showToast('Демон обновлён!');
+            
+            db.ref(`${type}/` + key).update(updates).then(() => {
+                showToast('Успешно обновлено!');
                 closeEditModal();
             }).catch(e => { showToast('Ошибка: ' + e.message); });
         }
@@ -1526,12 +1550,19 @@
             }
 
             let updates = {};
+            // Обновляем в демонах
             demons.forEach(d => {
                 if(d.victors) {
                     Object.entries(d.victors).forEach(([vk, v]) => {
-                        if(v.name === oldName) {
-                            updates[`demons/${d.key}/victors/${vk}/name`] = newName;
-                        }
+                        if(v.name === oldName) { updates[`demons/${d.key}/victors/${vk}/name`] = newName; }
+                    });
+                }
+            });
+            // Обновляем в челленджах
+            challenges.forEach(c => {
+                if(c.victors) {
+                    Object.entries(c.victors).forEach(([vk, v]) => {
+                        if(v.name === oldName) { updates[`challenges/${c.key}/victors/${vk}/name`] = newName; }
                     });
                 }
             });
@@ -1553,9 +1584,14 @@
             demons.forEach(d => {
                 if(d.victors) {
                     Object.entries(d.victors).forEach(([vk, v]) => {
-                        if(v.name === name) {
-                            updates[`demons/${d.key}/victors/${vk}`] = null;
-                        }
+                        if(v.name === name) { updates[`demons/${d.key}/victors/${vk}`] = null; }
+                    });
+                }
+            });
+            challenges.forEach(c => {
+                if(c.victors) {
+                    Object.entries(c.victors).forEach(([vk, v]) => {
+                        if(v.name === name) { updates[`challenges/${c.key}/victors/${vk}`] = null; }
                     });
                 }
             });
@@ -1607,8 +1643,16 @@
             demons = val ? Object.entries(val).map(([k, d]) => ({ key: k, ...d })).sort((a,b)=>(a.order||0)-(b.order||0)) : [];
             const sel = document.getElementById('selectDemon');
             if(sel) sel.innerHTML = demons.map(d => `<option value="${d.key}">${d.name}</option>`).join('');
-            render();
+            if (currentTab === 'demons') render();
         });
+        
+        // Слушатель для челленджей
+        db.ref('challenges').on('value', s => {
+            const val = s.val();
+            challenges = val ? Object.entries(val).map(([k, d]) => ({ key: k, ...d })).sort((a,b)=>(a.order||0)-(b.order||0)) : [];
+            if (currentTab === 'challenges') render();
+        });
+
         db.ref('creators').on('value', s => {
             const val = s.val();
             creators = val ? Object.entries(val).map(([k, d]) => ({ key: k, ...d })).sort((a,b)=>parseInt(b.points)-parseInt(a.points)) : [];
@@ -1627,7 +1671,8 @@
         // ===== DRAG & DROP =====
         function handleDragStart(index, event) {
             if (!isDragDropMode) { event.preventDefault(); return; }
-            draggedIndex = index; draggedItem = demons[index];
+            draggedIndex = index; 
+            draggedItem = currentTab === 'demons' ? demons[index] : challenges[index];
             event.dataTransfer.setData('text/plain', index);
             event.currentTarget.classList.add('dragging');
         }
@@ -1641,13 +1686,19 @@
         function handleDrop(targetIndex, event) {
             event.preventDefault(); event.currentTarget.classList.remove('drag-over');
             if (!isDragDropMode || draggedIndex === -1 || draggedIndex === targetIndex) return;
-            const newDemons = [...demons];
-            const dragged = newDemons[draggedIndex];
-            newDemons.splice(draggedIndex, 1);
-            newDemons.splice(targetIndex, 0, dragged);
+            
+            const list = currentTab === 'demons' ? demons : challenges;
+            const dbRef = currentTab === 'demons' ? '/demons/' : '/challenges/';
+            
+            const newList = [...list];
+            const dragged = newList[draggedIndex];
+            newList.splice(draggedIndex, 1);
+            newList.splice(targetIndex, 0, dragged);
+            
             const updates = {};
-            newDemons.forEach((demon, idx) => { if (demon.order !== idx) { updates[`/demons/${demon.key}/order`] = idx; } });
+            newList.forEach((item, idx) => { if (item.order !== idx) { updates[`${dbRef}${item.key}/order`] = idx; } });
             db.ref().update(updates).then(() => { showToast('Порядок обновлён!'); });
+            
             draggedIndex = -1; draggedItem = null;
         }
         function handleDragEnd(event) {
@@ -1677,26 +1728,32 @@
             
             const container = document.getElementById('mainContainer');
             const isDem = (currentTab === 'demons');
+            const isChal = (currentTab === 'challenges');
+            
             const query = document.getElementById('searchInput').value.toLowerCase();
             const topBanner = document.getElementById('top50Banner');
             
             container.innerHTML = '';
             container.style.display = 'grid';
-            document.getElementById('txtHero').innerText = isDem ? (currentLang==='EN'?'DEMON LIST':'СПИСОК ДЕМОНОВ') : (currentLang==='EN'?'CREATOR TOP':'ТОП КРЕАТОРОВ');
             topBanner.style.display = isDem ? 'block' : 'none';
 
             const canEdit = isModerator;
             const canDelete = isAdmin;
 
-            if(isDem) {
-                const filtered = demons.filter(d => {
+            if(isDem || isChal) {
+                const listToRender = isDem ? demons : challenges;
+                const listType = isDem ? 'demons' : 'challenges';
+
+                const filtered = listToRender.filter(d => {
                     if (searchMode === 'tag') { return d.tag && d.tag.toLowerCase().includes(query); }
                     return d.name.toLowerCase().includes(query) || d.author.toLowerCase().includes(query);
                 });
+
                 filtered.forEach((d, i) => {
-                    const realIndex = demons.findIndex(x => x.key === d.key);
+                    const realIndex = listToRender.findIndex(x => x.key === d.key);
                     const card = document.createElement('div');
                     card.className = 'card';
+                    
                     if (isDragDropMode && isAdmin) {
                         card.setAttribute('draggable', 'true');
                         card.setAttribute('data-index', i);
@@ -1710,16 +1767,16 @@
                     let adminHtml = '';
                     if (isDeleteMode && canDelete) {
                         adminHtml = `<div class="admin-controls">
-                            <button class="ctrl-btn btn-up" onclick="moveItem(${i}, -1)"><i class="fas fa-arrow-up"></i></button>
-                            <button class="ctrl-btn btn-down" onclick="moveItem(${i}, 1)"><i class="fas fa-arrow-down"></i></button>
-                            <button class="ctrl-btn btn-edit" onclick="openEditModal('${d.key}')"><i class="fas fa-pen"></i></button>
-                            <button class="ctrl-btn btn-del" onclick="deleteItem('${d.key}','demons')"><i class="fas fa-trash"></i></button>
+                            <button class="ctrl-btn btn-up" onclick="moveItem(${i}, -1, '${listType}')"><i class="fas fa-arrow-up"></i></button>
+                            <button class="ctrl-btn btn-down" onclick="moveItem(${i}, 1, '${listType}')"><i class="fas fa-arrow-down"></i></button>
+                            <button class="ctrl-btn btn-edit" onclick="openEditModal('${d.key}', '${listType}')"><i class="fas fa-pen"></i></button>
+                            <button class="ctrl-btn btn-del" onclick="deleteItem('${d.key}', '${listType}')"><i class="fas fa-trash"></i></button>
                         </div>`;
                     } else if (isEditMode && canEdit) {
                         adminHtml = `<div class="admin-controls">
-                            <button class="ctrl-btn btn-up" onclick="moveItem(${i}, -1)"><i class="fas fa-arrow-up"></i></button>
-                            <button class="ctrl-btn btn-down" onclick="moveItem(${i}, 1)"><i class="fas fa-arrow-down"></i></button>
-                            <button class="ctrl-btn btn-edit" onclick="openEditModal('${d.key}')"><i class="fas fa-pen"></i></button>
+                            <button class="ctrl-btn btn-up" onclick="moveItem(${i}, -1, '${listType}')"><i class="fas fa-arrow-up"></i></button>
+                            <button class="ctrl-btn btn-down" onclick="moveItem(${i}, 1, '${listType}')"><i class="fas fa-arrow-down"></i></button>
+                            <button class="ctrl-btn btn-edit" onclick="openEditModal('${d.key}', '${listType}')"><i class="fas fa-pen"></i></button>
                         </div>`;
                     }
 
@@ -1733,7 +1790,7 @@
                             <h3 style="margin:0; color:var(--accent); font-size:1.2rem; font-family:'Orbitron';">#${realIndex+1} ${d.name}</h3>
                             <p style="color:#888; margin:6px 0 15px; font-size:0.9rem;">by <span style="color:#c4b5fd;">${d.author}</span></p>
                             <div class="level-id-box" onclick="copyID('${d.levelID}')"><i class="fas fa-hashtag" style="font-size:0.75rem;"></i> ${d.levelID}</div>
-                            <button class="btn-more" onclick="showInfoByKey('${d.key}')">${currentLang==='EN'?'DETAILS':'ПОДРОБНЕЕ'}</button>
+                            <button class="btn-more" onclick="showInfoByKey('${d.key}', '${listType}')">${currentLang==='EN'?'DETAILS':'ПОДРОБНЕЕ'}</button>
                         </div>`;
                     container.appendChild(card);
                 });
@@ -1760,11 +1817,24 @@
                 closeAdmin();
                 return;
             }
-            if (act === 'add_demon') {
+            if (act === 'add_demon' || act === 'add_challenge') {
                 if (!isModerator) { alert('Нет доступа!'); return; }
+                const targetDb = act === 'add_demon' ? 'demons' : 'challenges';
+                const targetList = act === 'add_demon' ? demons : challenges;
+
                 let r = document.getElementById('itemVid').value;
                 let v = r.includes('v=') ? r.split('v=')[1].split('&')[0] : r.includes('youtu.be/') ? r.split('youtu.be/')[1].split('?')[0] : r;
-                db.ref('demons').push({ name: document.getElementById('itemName').value, author: document.getElementById('itemVal').value, levelID: document.getElementById('itemID').value, tag: document.getElementById('itemTag').value, verifier: document.getElementById('itemVerifier').value, img: document.getElementById('itemImgURL').value, vid: v, points: document.getElementById('itemPoints').value.trim(), order: demons.length });
+                db.ref(targetDb).push({ 
+                    name: document.getElementById('itemName').value, 
+                    author: document.getElementById('itemVal').value, 
+                    levelID: document.getElementById('itemID').value, 
+                    tag: document.getElementById('itemTag').value, 
+                    verifier: document.getElementById('itemVerifier').value, 
+                    img: document.getElementById('itemImgURL').value, 
+                    vid: v, 
+                    points: document.getElementById('itemPoints').value.trim(), 
+                    order: targetList.length 
+                });
                 closeAdmin();
                 return;
             }
@@ -1839,50 +1909,106 @@
         }
 
         // ===== DETAIL MODAL =====
-        function showInfoByKey(key) {
-            const d = demons.find(x => x.key === key);
+        function showInfoByKey(key, type = 'demons') {
+            const list = type === 'demons' ? demons : challenges;
+            const d = list.find(x => x.key === key);
+            
             const vics = d.victors ? Object.entries(d.victors).map(([vk, v]) => `
                 <div class="record-item">
                     <div style="display:flex;flex-direction:column;gap:6px;flex:1;min-width:0;">
                         <span><b style="color:#fff;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(167,139,250,0.4);" onclick="openPlayerProfile(\'${v.name}\')" title="Открыть профиль">${v.name}</b> — <span style="color:var(--accent); font-weight:700;">${v.perc || '100%'}</span> <span style="color:#888;">(${v.att || '0'} att)</span></span>
                         ${v.vid ? `<a href="https://youtube.com/watch?v=${v.vid}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,0,0,0.1);border:1px solid rgba(255,0,0,0.25);color:#ff6b6b;padding:4px 10px;border-radius:7px;font-size:0.75rem;font-weight:700;text-decoration:none;width:fit-content;transition:0.2s;" onmouseover="this.style.background='rgba(255,0,0,0.2)'" onmouseout="this.style.background='rgba(255,0,0,0.1)'"><i class="fab fa-youtube"></i> Смотреть видео</a>` : ''}
                     </div>
-                    ${isDeleteMode && isAdmin ? `<i class="fas fa-times" style="color:#ff4d4d; cursor:pointer; flex-shrink:0;" onclick="deleteVictor('${d.key}', '${vk}')"></i>` : ''}
+                    <div style="display:flex; gap: 8px; align-items:center;">
+                        ${isEditMode && isModerator ? `<button style="background:transparent; border:none; color:#f39c12; cursor:pointer;" onclick="openEditRecordModal('${d.key}', '${vk}', '${type}')"><i class="fas fa-pen"></i></button>` : ''}
+                        ${isDeleteMode && isAdmin ? `<button style="background:transparent; border:none; color:#ff4d4d; cursor:pointer;" onclick="deleteVictor('${d.key}', '${vk}', '${type}')"><i class="fas fa-trash"></i></button>` : ''}
+                    </div>
                 </div>`).join('') : `<p style='color:#555;'>${currentLang==='EN'?'No records yet':'Рекордов пока нет'}</p>`;
+                
             document.getElementById('modalData').innerHTML = `
                 <button class="modal-close-pin" onclick="document.getElementById('detailModal').style.display='none'">
                     <i class="fas fa-times"></i>
                 </button>
                 <h2 style="font-family:Orbitron; font-size:clamp(1.1rem,4vw,1.7rem); margin:0 44px 4px 0; color:#fff; background:var(--main-grad); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">${d.name}</h2>
                 <p style="color:#888; font-size:0.9rem; margin:0 0 14px;">by <span style="color:var(--accent);">${d.author}</span> ${d.verifier ? '| Verified by ' + d.verifier : ''}</p>
-                ${isModerator ? `<button onclick="document.getElementById('detailModal').style.display='none'; openEditModal('${d.key}')" style="margin-bottom:14px; padding:8px 18px; background:rgba(243,156,18,0.12); border:1px solid rgba(243,156,18,0.3); color:#f39c12; border-radius:10px; cursor:pointer; font-size:0.82rem; font-weight:700; font-family:'Nunito'; text-transform:uppercase; transition:0.2s;"><i class="fas fa-pen"></i> Редактировать</button>` : ''}
                 <iframe style="width:100%; aspect-ratio:16/9; border-radius:14px; margin:0 0 18px; border:1px solid rgba(167,139,250,0.2);" src="https://www.youtube.com/embed/${d.vid}" frameborder="0" allowfullscreen></iframe>
                 <h3 style="margin-bottom:12px; font-size:1rem; color:#fff; font-family:Orbitron;">Victors & Records:</h3>
                 <div style="max-height:220px; overflow-y:auto; padding-right:6px;">${vics}</div>
                 <button class="btn-more" style="background:transparent; border:1px solid #333; color:#666; margin-top:20px;" onclick="document.getElementById('detailModal').style.display='none'">${currentLang==='EN'?'CLOSE':'ЗАКРЫТЬ'}</button>`;
+                
             document.getElementById('detailModal').style.display='block';
             document.getElementById('detailModal').scrollTop = 0;
         }
 
+        function openEditRecordModal(dKey, vKey, type) {
+            const list = type === 'demons' ? demons : challenges;
+            const d = list.find(x => x.key === dKey);
+            const v = d.victors[vKey];
+            
+            document.getElementById('editRecDemonKey').value = dKey;
+            document.getElementById('editRecKey').value = vKey;
+            document.getElementById('editRecType').value = type;
+            
+            document.getElementById('editRecName').value = v.name || '';
+            document.getElementById('editRecPerc').value = v.perc || '';
+            document.getElementById('editRecAtt').value = v.att || '';
+            document.getElementById('editRecVid').value = v.vid ? `https://youtube.com/watch?v=${v.vid}` : '';
+            
+            document.getElementById('editRecordModal').style.display = 'block';
+        }
+
+        function saveRecordEdit() {
+            const type = document.getElementById('editRecType').value;
+            const dKey = document.getElementById('editRecDemonKey').value;
+            const vKey = document.getElementById('editRecKey').value;
+            
+            let mVidRaw = document.getElementById('editRecVid').value.trim();
+            let mVid = mVidRaw;
+            if (mVidRaw.includes('v=')) mVid = mVidRaw.split('v=')[1].split('&')[0];
+            else if (mVidRaw.includes('youtu.be/')) mVid = mVidRaw.split('youtu.be/')[1].split('?')[0];
+
+            db.ref(`${type}/${dKey}/victors/${vKey}`).update({
+                name: document.getElementById('editRecName').value.trim(),
+                perc: document.getElementById('editRecPerc').value.trim(),
+                att: document.getElementById('editRecAtt').value.trim(),
+                vid: mVid
+            }).then(() => {
+                showToast('✅ Рекорд обновлен!');
+                document.getElementById('editRecordModal').style.display = 'none';
+                showInfoByKey(dKey, type); 
+            }).catch(e => showToast('Ошибка: ' + e.message));
+        }
+
         // ===== UTILS =====
-        function deleteVictor(dk, vk) {
+        function deleteVictor(dk, vk, type = 'demons') {
             if(confirm(currentLang==='EN'?"Delete record?":"Удалить рекорд?")) {
-                db.ref(`demons/${dk}/victors/${vk}`).remove().then(() => { document.getElementById('detailModal').style.display='none'; });
+                db.ref(`${type}/${dk}/victors/${vk}`).remove().then(() => { 
+                    document.getElementById('detailModal').style.display='none'; 
+                    showToast('🗑️ Рекорд удален');
+                });
             }
         }
         function copyID(id) { navigator.clipboard.writeText(id); const t = document.getElementById("copyToast"); t.className = "show"; setTimeout(() => t.className = "", 3000); }
-        function moveItem(index, dir) { let target = index + dir; if (target < 0 || target >= demons.length) return; const updates = {}; updates[`/demons/${demons[index].key}/order`] = target; updates[`/demons/${demons[target].key}/order`] = index; db.ref().update(updates); }
+        function moveItem(index, dir, type = 'demons') { 
+            const list = type === 'demons' ? demons : challenges;
+            let target = index + dir; 
+            if (target < 0 || target >= list.length) return; 
+            const updates = {}; 
+            updates[`/${type}/${list[index].key}/order`] = target; 
+            updates[`/${type}/${list[target].key}/order`] = index; 
+            db.ref().update(updates); 
+        }
         function toggleAdmFields() {
             const a = document.getElementById('admAction').value;
-            document.getElementById('fields_main').style.display = (a === 'add_demon' || a === 'add_creator') ? 'block' : 'none';
-            document.getElementById('fields_demon').style.display = a === 'add_demon' ? 'block' : 'none';
+            document.getElementById('fields_main').style.display = (a === 'add_demon' || a === 'add_challenge' || a === 'add_creator') ? 'block' : 'none';
+            document.getElementById('fields_demon').style.display = (a === 'add_demon' || a === 'add_challenge') ? 'block' : 'none';
             document.getElementById('fields_victor').style.display = a === 'add_victor' ? 'block' : 'none';
         }
         function closeAdmin() { document.getElementById('adminPanel').style.display='none'; }
         
         function switchTab(t) {
             currentTab = t;
-            const tabs = { demons: 'tabDemonsBtn', creators: 'tabCreatorsBtn', players: 'tabPlayersBtn', creatortop: 'tabCreatorTopBtn' };
+            const tabs = { demons: 'tabDemonsBtn', challenges: 'tabChallengesBtn', creators: 'tabCreatorsBtn', players: 'tabPlayersBtn', creatortop: 'tabCreatorTopBtn' };
             Object.entries(tabs).forEach(([key, btnId]) => {
                 const btn = document.getElementById(btnId);
                 if (btn) btn.classList.toggle('active', key === t);
@@ -1910,6 +2036,8 @@
             } else {
                 if (mainContainer) mainContainer.style.display = 'grid';
                 if (searchBoxWrap) searchBoxWrap.style.display = 'block';
+                if (t === 'demons') document.getElementById('txtHero').innerText = currentLang === 'EN' ? 'DEMON LIST' : 'СПИСОК ДЕМОНОВ';
+                if (t === 'challenges') document.getElementById('txtHero').innerText = currentLang === 'EN' ? 'CHALLENGE LIST' : 'ЧЕЛЛЕНДЖИ';
                 render();
             }
         }
@@ -1960,23 +2088,36 @@
             if (!list) return;
 
             const playerMap = {};
+            // Учитываем демонов
             demons.forEach(demon => {
                 if (!demon.victors) return;
                 const pts = parseFloat(demon.points);
                 Object.values(demon.victors).forEach(v => {
                     if (!v.name) return;
                     const name = v.name.trim();
-                    if (!playerMap[name]) {
-                        playerMap[name] = { name, totalPoints: 0, completions: 0, records: 0, demons: [] };
-                    }
+                    if (!playerMap[name]) { playerMap[name] = { name, totalPoints: 0, completions: 0, records: 0, demons: [] }; }
                     const perc = parseInt((v.perc || '0').replace('%', ''));
                     if (perc >= 100) {
                         if (!isNaN(pts)) playerMap[name].totalPoints += pts;
                         playerMap[name].completions++;
-                    } else {
-                        playerMap[name].records++;
-                    }
+                    } else { playerMap[name].records++; }
                     playerMap[name].demons.push(demon.name);
+                });
+            });
+            // Учитываем челленджи
+            challenges.forEach(chal => {
+                if (!chal.victors) return;
+                const pts = parseFloat(chal.points);
+                Object.values(chal.victors).forEach(v => {
+                    if (!v.name) return;
+                    const name = v.name.trim();
+                    if (!playerMap[name]) { playerMap[name] = { name, totalPoints: 0, completions: 0, records: 0, demons: [] }; }
+                    const perc = parseInt((v.perc || '0').replace('%', ''));
+                    if (perc >= 100) {
+                        if (!isNaN(pts)) playerMap[name].totalPoints += pts;
+                        playerMap[name].completions++;
+                    } else { playerMap[name].records++; }
+                    playerMap[name].demons.push(chal.name);
                 });
             });
 
@@ -2037,14 +2178,18 @@
         function openPlayerProfile(playerName) {
             document.getElementById('detailModal').style.display = 'none';
 
-            // Собираем все записи игрока
+            // Собираем все записи игрока из демонов и челленджей
             const allEntries = [];
             demons.forEach(demon => {
                 if (!demon.victors) return;
                 Object.values(demon.victors).forEach(v => {
-                    if (v.name && v.name.toLowerCase() === playerName.toLowerCase()) {
-                        allEntries.push({ demon, victor: v });
-                    }
+                    if (v.name && v.name.toLowerCase() === playerName.toLowerCase()) { allEntries.push({ demon, victor: v }); }
+                });
+            });
+            challenges.forEach(chal => {
+                if (!chal.victors) return;
+                Object.values(chal.victors).forEach(v => {
+                    if (v.name && v.name.toLowerCase() === playerName.toLowerCase()) { allEntries.push({ demon: chal, victor: v }); }
                 });
             });
 
