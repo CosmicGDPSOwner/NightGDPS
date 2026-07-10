@@ -99,13 +99,17 @@
             100% { opacity: 1; }
         }
 
-        .orb { position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.12; animation: float 14s ease-in-out infinite; will-change: transform; transform: translateZ(0); }
-        .orb-1 { width: 700px; height: 700px; background: radial-gradient(circle, #7b5ea7, #3d85c8); top: -15%; left: -15%; }
-        .orb-2 { width: 600px; height: 600px; background: radial-gradient(circle, #f472b6, #7b5ea7); bottom: -10%; right: -10%; animation-delay: -7s; }
-        .orb-3 { width: 400px; height: 400px; background: radial-gradient(circle, #60a5fa, #a78bfa); top: 40%; left: 30%; animation-delay: -3.5s; opacity: 0.07; }
-        @keyframes float { 0%,100% { transform: translate(0,0); } 50% { transform: translate(25px, 35px); } }
+        .orb { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.10; animation: float 18s ease-in-out infinite; will-change: transform; transform: translateZ(0); contain: strict; }
+        .orb-1 { width: 600px; height: 600px; background: radial-gradient(circle, #7b5ea7, #3d85c8); top: -15%; left: -15%; }
+        .orb-2 { width: 500px; height: 500px; background: radial-gradient(circle, #f472b6, #7b5ea7); bottom: -10%; right: -10%; animation-delay: -9s; }
+        .orb-3 { display: none; } /* removed — third orb is barely visible and costs GPU */
+        @keyframes float { 0%,100% { transform: translate(0,0); } 50% { transform: translate(20px, 28px); } }
+        /* Disable all decorative animations for users who prefer reduced motion or slow devices */
+        @media (prefers-reduced-motion: reduce) {
+            .orb, .stars-layer-2, .moon::after { animation: none; }
+        }
 
-        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 6%; background: rgba(4,5,13,0.88); backdrop-filter: blur(20px); position: fixed; width: 100%; top: 0; z-index: 1000; border-bottom: 1px solid rgba(167,139,250,0.15); }
+        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 6%; background: rgba(4,5,13,0.93); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); position: fixed; width: 100%; top: 0; z-index: 1000; border-bottom: 1px solid rgba(167,139,250,0.15); }
         .logo { font-family: 'Orbitron'; font-size: 1.5rem; font-weight: 900; background: var(--main-grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; cursor: pointer; transition: 0.3s; letter-spacing: 2px; display: flex; align-items: center; gap: 10px; }
         .logo-icon { font-size: 1.3rem; -webkit-text-fill-color: var(--accent); }
         .logo:hover { transform: scale(1.05); filter: drop-shadow(0 0 12px rgba(167,139,250,0.6)); }
@@ -138,7 +142,7 @@
         .burger-btn.open span:nth-child(2) { opacity: 0; }
         .burger-btn.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
 
-        .mobile-menu { display: none; position: fixed; top: 60px; left: 0; width: 100%; background: rgba(4,5,13,0.97); backdrop-filter: blur(20px); z-index: 999; border-bottom: 1px solid rgba(167,139,250,0.12); padding: 14px; flex-direction: column; gap: 8px; max-height: calc(100vh - 60px); overflow-y: auto; }
+        .mobile-menu { display: none; position: fixed; top: 60px; left: 0; width: 100%; background: rgba(4,5,13,0.98); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 999; border-bottom: 1px solid rgba(167,139,250,0.12); padding: 14px; flex-direction: column; gap: 8px; max-height: calc(100vh - 60px); overflow-y: auto; }
         .mobile-menu.open { display: flex; animation: mSlide 0.25s ease; }
         @keyframes mSlide { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
         .m-btn { width: 100%; padding: 15px 18px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 13px; color: var(--text-main); font-weight: 700; font-size: 0.95rem; text-transform: uppercase; cursor: pointer; font-family: 'Nunito', sans-serif; text-align: left; transition: 0.2s; display: flex; align-items: center; gap: 12px; text-decoration: none; box-sizing: border-box; }
@@ -201,7 +205,7 @@
         .search-mode-btn { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: var(--text-main); padding: 10px 20px; border-radius: 10px; cursor: pointer; font-size: 0.85rem; font-weight: 700; transition: 0.3s; font-family: 'Nunito'; }
         .search-mode-btn.active { background: rgba(167,139,250,0.12); color: var(--accent); border-color: rgba(167,139,250,0.4); }
         .search-input-wrap { position: relative; display: flex; align-items: center; }
-        .search-input { width: 100%; padding: 16px 20px 16px 50px; background: rgba(4,5,13,0.7); border: 1px solid rgba(167,139,250,0.15); border-radius: 15px; color: white; font-size: 1rem; outline: none; transition: 0.3s; backdrop-filter: blur(5px); font-family: 'Nunito'; }
+        .search-input { width: 100%; padding: 16px 20px 16px 50px; background: rgba(4,5,13,0.85); border: 1px solid rgba(167,139,250,0.15); border-radius: 15px; color: white; font-size: 1rem; outline: none; transition: border-color 0.2s; font-family: 'Nunito'; }
         .search-input:focus { border-color: var(--accent); box-shadow: 0 0 20px rgba(167,139,250,0.15); }
         .search-icon { position: absolute; left: 18px; color: #888; font-size: 1.1rem; pointer-events: none; z-index: 2; }
 
@@ -237,7 +241,7 @@
         .card-pts-max { color: var(--accent); font-weight: 900; font-family: 'Orbitron', sans-serif; font-size: 0.75rem; }
         .card-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 2px; }
 
-        /* TAG stays top-left over the image */
+        /* TAG top-left, STATUS badge top-right — same row, same visual weight */
         .demon-tag { position: absolute; top: 7px; left: 7px; background: linear-gradient(135deg, #7b5ea7, #3d85c8); color: #fff; padding: 3px 7px; border-radius: 5px; font-weight: 900; font-size: 0.6rem; z-index: 50; text-transform: uppercase; letter-spacing: 1px; }
 
         @media (max-width: 580px) {
@@ -246,8 +250,6 @@
             .card-rank { font-size: 0.7rem; }
             .card-body { padding: 10px 12px; }
         }
-
-        .demon-tag { position: absolute; top: 15px; left: 15px; background: linear-gradient(135deg, #7b5ea7, #3d85c8); color: #fff; padding: 5px 12px; border-radius: 8px; font-weight: 900; font-size: 0.72rem; z-index: 50; box-shadow: 0 4px 15px rgba(0,0,0,0.5); text-transform: uppercase; letter-spacing: 1px; }
 
         /* ===== SKELETON LOADING ===== */
         @keyframes skeletonShimmer {
@@ -282,9 +284,8 @@
         .status-badge {
             display: inline-flex; align-items: center; gap: 5px;
             font-size: 0.6rem; font-weight: 900; letter-spacing: 1px;
-            text-transform: uppercase; padding: 3px 8px; border-radius: 6px;
+            text-transform: uppercase; padding: 3px 7px; border-radius: 5px;
             position: absolute; top: 7px; right: 7px; z-index: 20;
-            backdrop-filter: blur(4px);
         }
         .status-badge.legacy  { background: rgba(251,191,36,0.15); border: 1px solid rgba(251,191,36,0.4); color: #fbbf24; }
         .status-badge.watch   { background: rgba(96,165,250,0.15); border: 1px solid rgba(96,165,250,0.4);  color: #60a5fa; }
@@ -887,6 +888,7 @@
         </div>
 
         <div class="player-top-section" id="creatorTopSection" style="display:none;">
+            <div id="creatorCountryFilterWrap" style="display:flex;justify-content:center;margin-bottom:16px;"></div>
             <div class="player-top-list" id="creatorTopList">
                 <div class="player-top-empty">Загрузка рейтинга...</div>
             </div>
@@ -2027,7 +2029,7 @@
                         <div class="player-top-name">${escapeHtml(p.name)}</div>
                         <div class="player-top-meta" style="display:flex;gap:12px;flex-wrap:wrap;">
                             <span><i class="fas fa-check" style="color:#4ade80;margin-right:4px;font-size:0.65rem;"></i>${p.completions} ${lbl?'compl.':'прохожд.'}</span>
-                            ${p.records > 0 ? `<span><i class="fas fa-chart-line" style="color:#60a5fa;margin-right:4px;font-size:0.65rem;"></i>${p.records} ${lbl?'records':'рекордов'}</span>` : ''}
+                            ${p.records > 0 ? `<span><i class="fas fa-chart-line" style="color:#60a5fa;margin-right:4px;font-size:0.65rem;"></i>${p.records} ${lbl?'records':'р���кордов'}</span>` : ''}
                             ${p.hardest ? `<span style="color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;" title="${p.hardest}"><i class="fas fa-fire" style="color:#fb923c;margin-right:4px;font-size:0.65rem;"></i>${p.hardest}</span>` : ''}
                         </div>
                     </div>
@@ -2086,10 +2088,10 @@
             searchDebounceTimer = setTimeout(render, 150);
         }
 
-        function showToast(message) {
+        function showToast(message, duration = 2500) {
             const toast = document.getElementById('copyToast');
             toast.innerText = message; toast.className = 'show';
-            setTimeout(() => toast.className = '', 2500);
+            setTimeout(() => toast.className = '', duration);
         }
 
         function toggleDragDropMode() {
@@ -2208,7 +2210,13 @@
                 db.ref(`players/${nick}/country`).set(code).then(() => {
                     showToast(`Страна ${countryFlag(code)} ${code} сохранена для ${nick}`);
                     closeAdmin();
-                }).catch(e => showToast('Ошибка: ' + e.message));
+                }).catch(e => {
+                    if (e.code === 'PERMISSION_DENIED' || (e.message && e.message.includes('PERMISSION_DENIED'))) {
+                        showToast('Нет прав. Добавь правило в Firebase: "players": { ".read": true, ".write": "auth != null" }', 6000);
+                    } else {
+                        showToast('Ошибка: ' + e.message);
+                    }
+                });
                 return;
             }
 
@@ -2691,23 +2699,53 @@
             }
         }
 
+        let creatorCountryFilter = 'all';
+
         function renderCreatorTop() {
             const list = document.getElementById('creatorTopList');
             if (!list) return;
+            const lbl = currentLang === 'EN';
 
             const sorted = [...creators].sort((a, b) => parseInt(b.points) - parseInt(a.points));
 
             if (sorted.length === 0) {
-                list.innerHTML = '<div class="player-top-empty">Рейтинг пуст. Добавьте создателей!</div>';
+                list.innerHTML = `<div class="player-top-empty">${lbl ? 'No creators yet.' : 'Рейтинг пуст. Добавьте создателей!'}</div>`;
                 return;
             }
 
-            const medals = ['🥇', '🥈', '🥉'];
-            list.innerHTML = sorted.map((c, i) => {
+            // Country filter dropdown
+            const usedCountries = [...new Set(
+                sorted.map(c => playerCountries[c.name.toLowerCase()]).filter(Boolean)
+            )].sort();
+            const filterWrap = document.getElementById('creatorCountryFilterWrap');
+            if (filterWrap) {
+                if (usedCountries.length > 0) {
+                    const opts = [`<option value="all">${lbl ? 'All countries' : 'Все страны'}</option>`]
+                        .concat(usedCountries.map(c => `<option value="${c}">${countryFlag(c)} ${c}</option>`))
+                        .join('');
+                    filterWrap.innerHTML = `<select onchange="creatorCountryFilter=this.value;renderCreatorTop();" style="background:#0f1225;border:1px solid rgba(167,139,250,0.25);color:#e2d4f0;padding:8px 14px;border-radius:10px;font-family:'Nunito';font-size:0.85rem;cursor:pointer;outline:none;">${opts}</select>`;
+                    filterWrap.querySelector('select').value = creatorCountryFilter;
+                } else {
+                    filterWrap.innerHTML = '';
+                }
+            }
+
+            const filtered = creatorCountryFilter === 'all'
+                ? sorted
+                : sorted.filter(c => (playerCountries[c.name.toLowerCase()] || '') === creatorCountryFilter);
+
+            if (filtered.length === 0) {
+                list.innerHTML = `<div class="player-top-empty">${lbl ? 'No creators for this country.' : 'Нет создателей для этой страны.'}</div>`;
+                return;
+            }
+
+            const medals = ['#1', '#2', '#3'];
+            list.innerHTML = filtered.map((c, i) => {
                 const rank = i + 1;
                 const rankClass = rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : 'rank-other';
                 const rankDisplay = rank <= 3 ? medals[rank - 1] : `#${rank}`;
-                
+                const flag = countryFlag(playerCountries[c.name.toLowerCase()]);
+
                 let adminBtns = '';
                 if (isAdmin) {
                     if (isEditMode) adminBtns += `<button class="ctrl-btn btn-edit" onclick="event.stopPropagation(); openEditCreatorModal('${c.key}')" style="margin-right:6px;"><i class="fas fa-pen"></i></button>`;
@@ -2716,10 +2754,10 @@
 
                 return `<div class="player-top-card" style="cursor:default;">
                     <div class="player-top-rank ${rankClass}">${rankDisplay}</div>
-                    <div class="player-top-avatar">🔨</div>
+                    <div class="player-top-avatar" style="font-size:1.3rem;">${flag || '<i class="fas fa-hammer" style="font-size:1rem;color:#a78bfa;"></i>'}</div>
                     <div class="player-top-info">
                         <div class="player-top-name">${escapeHtml(c.name)}</div>
-                        <div class="player-top-meta">Создатель</div>
+                        <div class="player-top-meta">${lbl ? 'Creator' : 'Создатель'}</div>
                     </div>
                     <div style="display:flex; align-items:center; gap:10px;">
                         ${adminBtns !== '' ? `<div style="display:flex;">${adminBtns}</div>` : ''}
@@ -2847,8 +2885,9 @@
                     if (data && data.country) playerCountries[nick.toLowerCase()] = data.country;
                 });
             }
-            // Re-render top if currently visible
+            // Re-render tops if currently visible
             if (currentTab === 'players') renderPlayerTop();
+            if (currentTab === 'creatortop') renderCreatorTop();
         });
 
         db.ref('maintenance').on('value', s => {
@@ -3073,7 +3112,7 @@
                 editBtn.style.borderColor = isEditMode ? 'rgba(243,156,18,0.6)' : 'rgba(243,156,18,0.3)';
             }
             render();
-            showToast(isEditMode ? '✏️ Режим редактирования включён' : '✏️ Режим редактирования выключён');
+            showToast(isEditMode ? '✏️ Режим ��едактирования включён' : '✏️ Режим редактирования выключён');
             document.getElementById('modQuickPanel').style.display = 'none';
         }
 
