@@ -129,6 +129,9 @@
 
         .btn-dashboard-nav { background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff !important; padding: 10px 20px; border-radius: 10px; font-weight: 900; transition: 0.3s; display: flex; align-items: center; gap: 8px; border: none; cursor: pointer; font-family: 'Nunito', sans-serif; text-transform: uppercase; font-size: 0.85rem; text-decoration: none; }
         .btn-dashboard-nav:hover { box-shadow: 0 0 20px rgba(34,197,94,0.5); transform: translateY(-2px); }
+        .btn-criteria-nav { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff !important; padding: 10px 20px; border-radius: 10px; font-weight: 900; transition: 0.3s; display: flex; align-items: center; gap: 8px; border: none; cursor: pointer; font-family: 'Nunito', sans-serif; text-transform: uppercase; font-size: 0.85rem; text-decoration: none; }
+        .btn-criteria-nav:hover { box-shadow: 0 0 20px rgba(245,158,11,0.5); transform: translateY(-2px); }
+        .m-btn.gold { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; text-decoration: none; }
 
         .nav-socials { display: flex; gap: 15px; align-items: center; margin-left: 10px; border-left: 1px solid rgba(255,255,255,0.1); padding-left: 15px; }
         .nav-socials a { font-size: 1.5rem; color: var(--text-main); transition: 0.3s; display: flex; align-items: center; text-decoration: none; }
@@ -914,7 +917,11 @@
             <a href="https://discord.gg/XPFZfDbAa" target="_blank"><i class="fab fa-discord"></i></a>
         </div>
         <p style="color:var(--text-main);">© 2026 Night GDPS. Developed with passion.</p>
-        <a href="https://t.me/nightgdps2/11198/11199" id="verifyLink" style="color:#555; text-decoration:none; font-size:0.85rem; transition:0.3s;" target="_blank">Критерии верификации</a>
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:center;">
+            <a href="https://t.me/nightgdps2/11198/11199" id="verifyLink" style="color:#555; text-decoration:none; font-size:0.85rem; transition:0.3s;" target="_blank">Критерии верификации</a>
+            <span style="color:#333;font-size:0.75rem;">|</span>
+            <a href="https://docs.google.com/document/d/10KPxp6qIB3V8H9Be4ouAaHGLpshWUUyA1NRtBxnGKcE/edit?usp=sharing" id="rateLink" style="color:#555; text-decoration:none; font-size:0.85rem; transition:0.3s;" target="_blank">Критерии рейта</a>
+        </div>
     </footer>
 
     <button id="admin-trigger" onclick="openAdmin()"><i class="fas fa-cog"></i></button>
@@ -1056,7 +1063,7 @@
             <label class="edit-field-label">Ссылка на YouTube</label>
             <input type="text" id="editVid" class="edit-field-input" placeholder="https://youtube.com/...">
 
-            <label class="edit-field-label">Баллы сложности</label>
+            <label class="edit-field-label">Баллы сложнос��и</label>
             <input type="text" id="editPoints" class="edit-field-input" placeholder="напр. 0.31 или 1.50">
             <p style="color:#555;font-size:0.75rem;margin:4px 0 0;line-height:1.4;">Отображается на карточке. Можно оставить пустым.</p>
 
@@ -2335,8 +2342,8 @@
                     welcomeD: "Окунись в мир самого амбициозного приватного сервера Geometry Dash. Стабильность, уникальные уровни и сильнейшее комьюнити игроков.",
                     play: "СКАЧАТЬ ИГРУ", list: "DEMON LIST",
                     searchM: "Название / Автор", searchT: "По тегу", searchP: "Поиск уровня или автора...",
-                    verify: "Критерии верификации", toast: "ID Скопировано!",
-                    navLists: "Списки", navDownloadText: "Скачать", navHome: "Главная",
+                    verify: "Критерии верификации", rate: "Критерии рейта", toast: "ID Скопировано!",
+                    navLists: "Списки", navDownloadText: "Скачать", navHome: "Главная", navCriteria: "Критерии рейта",
                     dlTitle: "СКАЧАТЬ ИГРУ", dlVersion: "Версия 2.2081",
                     dlDescPC: "Скачать .zip архив для игры на компьютере",
                     dlDescAnd: "Скачать .apk файл для игры на телефоне",
@@ -2355,8 +2362,8 @@
                     welcomeD: "Dive into the world of the most ambitious Geometry Dash private server. Stability, unique levels, and the strongest community.",
                     play: "DOWNLOAD GAME", list: "DEMON LIST",
                     searchM: "Name / Author", searchT: "By Tag", searchP: "Search level or creator...",
-                    verify: "Verification Criteria", toast: "ID Copied!",
-                    navLists: "Lists", navDownloadText: "Download", navHome: "Home",
+                    verify: "Verification Criteria", rate: "Rate Criteria", toast: "ID Copied!",
+                    navLists: "Lists", navDownloadText: "Download", navHome: "Home", navCriteria: "Rate Criteria",
                     dlTitle: "DOWNLOAD GAME", dlVersion: "Version 2.2081",
                     dlDescPC: "Download .zip archive to play on PC",
                     dlDescAnd: "Download .apk file to play on mobile",
@@ -2381,44 +2388,7 @@
             set('btnPlay', t.play);
             set('btnList', t.list);
             set('verifyLink', t.verify);
-            set('copyToast', t.toast);
-
-            // Search
-            set('searchModeMain', t.searchM);
-            set('searchModeTag', t.searchT);
-            const si = document.getElementById('searchInput');
-            if (si) si.placeholder = t.searchP;
-            const psi = document.getElementById('playerSearchInput');
-            if (psi) psi.placeholder = lang === 'EN' ? 'Enter player nickname...' : 'Введите ник игрока...';
-
-            // List section hero
-            set('txtHero', t.heroTitle);
-            set('top50Banner', t.heroBanner);
-
-            // Tab buttons
-            set('tabDemonsLabel', t.tabDemons);
-            set('tabChallengesLabel', t.tabChallenges);
-            set('tabPlayersLabel', t.tabPlayers);
-            set('tabCreatorsLabel', t.tabCreators);
-            set('tabPlayerSearchLabel', t.tabPlayerSearch);
-
-            // Navbar dropdown items
-            set('navDropDemonsLabel', t.navDropDemons);
-            set('navDropChallengesLabel', t.navDropChallenges);
-            set('navDropCreatorsLabel', t.navDropCreators);
-            set('navDropPlayersLabel', t.navDropPlayers);
-
-            // Mobile menu
-            set('mNavLists', t.navLists);
-            set('mNavDemons', t.navDropDemons);
-            set('mNavChallenges', t.navDropChallenges);
-            set('mNavCreators', t.navDropCreators);
-            set('mNavPlayers', t.navDropPlayers);
-
-            // Navbar
-            set('navListsLabel', t.navLists);
-            set('navDownloadText', t.navDownloadText);
-            set('navHome', t.navHome);
+            set('rateLink', t.rate);
 
             // Moderator indicator
             set('modIndicatorText', t.modText);
@@ -2771,7 +2741,7 @@
         }
 
         // Возвращает все записи игроков для уровня, включая верифера как 100% прохождение.
-        // Если верифер уже записан в victors (например, сам себя верифнул) — запись просто помечается меткой "Верифер",
+        // Если верифер уже записан в victors (например, сам себя верифнул) — запис�� просто помечается меткой "Верифер",
         // но баллы НЕ начисляются повторно, остаются как есть. Отдельная запись создаётся только если верифера ещё нет в списке.
         function getLevelEntries(level) {
             const vName = (level.verifier || '').trim();
