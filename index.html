@@ -996,7 +996,8 @@
                 <option value="add_demon">Добавить Демона</option>
                 <option value="add_challenge">🔥 Добавить Челлендж</option>
                 <option value="add_creator">Добавить Креатора</option>
-                <option value="add_victor">Добавить Рекорд</option>
+                <option value="add_victor">Добавить Рекорд (Демон)</option>
+                <option value="add_victor_challenge">🔥 Добавить Рекорд (Челлендж)</option>
                 <option value="delete_mode">Удаление / Движение (Все)</option>
                 <option value="edit_demon_mode">✏️ Режим редактирования (Все)</option>
                 <option value="manage_mods">👥 Управление модераторами</option>
@@ -1023,6 +1024,13 @@
                 <input type="text" id="vicPerc" placeholder="Проценты">
                 <input type="text" id="vicAtt" placeholder="Попытки">
                 <input type="text" id="vicVid" placeholder="Ссылка на YouTube видео (необязательно)">
+            </div>
+            <div id="fields_victor_challenge" style="display:none;">
+                <select id="selectChallenge" style="width:100%"></select>
+                <input type="text" id="chalVicName" placeholder="Ник игрока">
+                <input type="text" id="chalVicPerc" placeholder="Проценты">
+                <input type="text" id="chalVicAtt" placeholder="Попытки">
+                <input type="text" id="chalVicVid" placeholder="Ссылка на YouTube видео (необязательно)">
             </div>
             <div id="fields_country" style="display:none;">
                 <input type="text" id="countryNick" placeholder="Ник игрока (точно)">
@@ -1186,7 +1194,7 @@
                 <div class="profile-big-stat">
                     <i class="fas fa-trophy" style="color:#fbbf24;font-size:1.2rem;"></i>
                     <div>
-                        <div class="profile-big-val" id="profileRank">—</div>
+                        <div class="profile-big-val" id="profileRank">���</div>
                         <div class="profile-big-label" id="labelRank">Rank</div>
                     </div>
                 </div>
@@ -1488,7 +1496,7 @@
                 btn.style.opacity = '0.5';
                 btn.style.cursor = 'not-allowed';
             } else {
-                note.textContent = 'Отзыв появится на сайте после проверки модератором';
+                note.textContent = 'Отзыв появится на сайте после ��роверки модератором';
                 btn.disabled = false;
                 btn.style.opacity = '1';
                 btn.style.cursor = 'pointer';
@@ -1870,6 +1878,8 @@
         db.ref('challenges').on('value', s => {
             const val = s.val();
             challenges = val ? Object.entries(val).map(([k, d]) => ({ key: k, ...d })).sort((a,b)=>(a.order||0)-(b.order||0)) : [];
+            const selC = document.getElementById('selectChallenge');
+            if (selC) selC.innerHTML = challenges.map(c => `<option value="${c.key}">${c.name}</option>`).join('');
             if (currentTab === 'challenges') render();
         });
 
@@ -2242,6 +2252,29 @@
                     vid: vicVid
                 });
                 closeAdmin();
+                return;
+            }
+
+            if (act === 'add_victor_challenge') {
+                if (!isModerator) { alert('Нет доступа!'); return; }
+                const cKey = document.getElementById('selectChallenge').value;
+                if (!cKey) { showToast('Нет доступных челленджей'); return; }
+                const rawVid = document.getElementById('chalVicVid').value.trim();
+                let chalVid = rawVid;
+                if (rawVid.includes('v=')) chalVid = rawVid.split('v=')[1].split('&')[0];
+                else if (rawVid.includes('youtu.be/')) chalVid = rawVid.split('youtu.be/')[1].split('?')[0];
+                const name = document.getElementById('chalVicName').value.trim();
+                const perc = document.getElementById('chalVicPerc').value.trim();
+                if (!name || !perc) { showToast('Заполни ник и проценты'); return; }
+                db.ref(`challenges/${cKey}/victors`).push({
+                    name,
+                    perc,
+                    att: document.getElementById('chalVicAtt').value.trim(),
+                    vid: chalVid
+                }).then(() => {
+                    showToast('Рекорд для челленджа добавлен!');
+                    closeAdmin();
+                }).catch(e => showToast('Ошибка: ' + e.message));
                 return;
             }
             if (act === 'add_demon' || act === 'add_challenge') {
@@ -2620,6 +2653,7 @@
             document.getElementById('fields_main').style.display = (a === 'add_demon' || a === 'add_challenge' || a === 'add_creator') ? 'block' : 'none';
             document.getElementById('fields_demon').style.display = (a === 'add_demon' || a === 'add_challenge') ? 'block' : 'none';
             document.getElementById('fields_victor').style.display = a === 'add_victor' ? 'block' : 'none';
+            document.getElementById('fields_victor_challenge').style.display = a === 'add_victor_challenge' ? 'block' : 'none';
             document.getElementById('fields_country').style.display = a === 'set_country' ? 'block' : 'none';
         }
         function closeAdmin() { document.getElementById('adminPanel').style.display='none'; }
