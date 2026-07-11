@@ -1959,12 +1959,13 @@
 
         // ===== SCORING FORMULA =====
         // Threshold: 60%. Below 60% — no points, entry not counted.
+        // Internally set points = 100% score (ptsMax = pts as entered by moderator).
         // 60%–99%: ((perc - 60) / 40)^1.5 * ptsMax  (steep curve, rewards near-completions)
         // 100%: full ptsMax
-        // Examples (ptsMax=4): 60%→0, 70%→0.56, 80%→1.59, 90%→2.85, 95%→3.41, 100%→4.00
+        // Examples (ptsMax=10): 60%→0, 70%→1.41, 80%→3.97, 90%→7.13, 95%→8.52, 100%→10.00
         const MIN_PERC = 60;
         function calcPts(perc, levelPoints) {
-            const ptsMax = parseFloat(levelPoints) * 4;
+            const ptsMax = parseFloat(levelPoints);
             if (isNaN(ptsMax) || perc < MIN_PERC) return 0;
             if (perc >= 100) return ptsMax;
             return ptsMax * Math.pow((perc - MIN_PERC) / (100 - MIN_PERC), 1.5);
@@ -2172,7 +2173,7 @@
                     // Points display: score at 80% and max (100%)
                     const pts = parseFloat(d.points);
                     const pts80 = !isNaN(pts) ? calcPts(80, pts).toFixed(2) : null;
-                    const ptsMax = !isNaN(pts) ? (pts * 4).toFixed(2) : null;
+                    const ptsMax = !isNaN(pts) ? pts.toFixed(2) : null;
                     const verifierName = (d.verifier || '').trim();
 
                     card.innerHTML = `
@@ -2423,7 +2424,7 @@
             // Points display: score at 80% threshold and max (100%)
             const pts = parseFloat(d.points);
             const pts80 = !isNaN(pts) ? calcPts(80, pts).toFixed(2) : null;
-            const ptsMax = !isNaN(pts) ? (pts * 4).toFixed(2) : null;
+            const ptsMax = !isNaN(pts) ? pts.toFixed(2) : null;
 
             // Records list
             const victorEntries = d.victors ? Object.entries(d.victors) : [];
