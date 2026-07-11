@@ -954,17 +954,23 @@
             <i class="fas fa-pen"></i> <span id="modEditBtnText">Включить редактирование</span>
         </button>
 
-        <button onclick="showModVictorForm()" style="width:100%;padding:13px;margin-bottom:10px;background:rgba(167,139,250,0.07);border:1px solid rgba(167,139,250,0.2);color:#a78bfa;border-radius:12px;cursor:pointer;font-weight:900;font-size:0.85rem;text-transform:uppercase;font-family:Nunito;">
-            <i class="fas fa-trophy"></i> Добавить рекорд
-        </button>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+            <button onclick="showModVictorForm('demon')" style="padding:13px 8px;background:rgba(167,139,250,0.07);border:1px solid rgba(167,139,250,0.2);color:#a78bfa;border-radius:12px;cursor:pointer;font-weight:900;font-size:0.78rem;text-transform:uppercase;font-family:Nunito;">
+                <i class="fas fa-trophy"></i> Рекорд (демон)
+            </button>
+            <button onclick="showModVictorForm('challenge')" style="padding:13px 8px;background:rgba(251,146,60,0.07);border:1px solid rgba(251,146,60,0.25);color:#fb923c;border-radius:12px;cursor:pointer;font-weight:900;font-size:0.78rem;text-transform:uppercase;font-family:Nunito;">
+                <i class="fas fa-fire"></i> Рекорд (чел.)
+            </button>
+        </div>
 
         <div id="modVictorForm" style="display:none;background:rgba(167,139,250,0.05);border:1px solid rgba(167,139,250,0.12);border-radius:14px;padding:14px;margin-bottom:12px;">
-            <p style="margin:0 0 10px;font-size:0.8rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;">🏆 Добавить рекорд</p>
+            <p id="modVictorFormTitle" style="margin:0 0 10px;font-size:0.8rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;">Добавить рекорд</p>
             <select id="modVicDemon" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;"></select>
             <input type="text" id="modVicName" placeholder="Ник игрока" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
             <input type="text" id="modVicPerc" placeholder="Проценты (напр. 100%)" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
             <input type="text" id="modVicAtt" placeholder="Попытки" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
             <input type="text" id="modVicVid" placeholder="Ссылка на YouTube (необязательно)" style="width:100%;padding:10px 12px;margin:4px 0 10px;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
+            <input type="hidden" id="modVicType" value="demon">
             <button onclick="modAddVictor()" style="width:100%;padding:12px;background:linear-gradient(135deg,#7b5ea7,#3d85c8);color:#fff;border:none;border-radius:10px;font-weight:900;font-size:0.85rem;text-transform:uppercase;cursor:pointer;font-family:Nunito;">
                 <i class="fas fa-save"></i> Сохранить
             </button>
@@ -3121,11 +3127,21 @@
             document.getElementById('modQuickPanel').style.display = 'none';
         }
 
-        function showModVictorForm() {
+        function showModVictorForm(type = 'demon') {
             const form = document.getElementById('modVictorForm');
             const sel = document.getElementById('modVicDemon');
-            if (sel) sel.innerHTML = demons.map(d => `<option value="${d.key}">${d.name}</option>`).join('');
-            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+            const typeInput = document.getElementById('modVicType');
+            const title = document.getElementById('modVictorFormTitle');
+            const isChal = type === 'challenge';
+            if (typeInput) typeInput.value = type;
+            if (title) {
+                title.textContent = isChal ? 'Рекорд для челленджа' : 'Рекорд для демона';
+                title.style.color = isChal ? '#fb923c' : 'var(--accent)';
+            }
+            if (sel) sel.innerHTML = (isChal ? challenges : demons).map(d => `<option value="${d.key}">${d.name}</option>`).join('');
+            const isAlreadyOpen = form.style.display !== 'none';
+            const isSameType = typeInput && typeInput.value === type;
+            form.style.display = (isAlreadyOpen && isSameType) ? 'none' : 'block';
         }
 
         function modAddDemon() {
@@ -3153,22 +3169,22 @@
         function modAddVictor() {
             const dKey = document.getElementById('modVicDemon').value;
             const name = document.getElementById('modVicName').value.trim();
+            const vicType = document.getElementById('modVicType').value || 'demon';
+            if (!dKey) { showToast(vicType === 'challenge' ? 'Нет доступных челленджей' : 'Нет доступных демонов'); return; }
             if (!name) { showToast('Введи ник игрока!'); return; }
             const mVidRaw = document.getElementById('modVicVid').value.trim();
             let mVid = mVidRaw;
             if (mVidRaw.includes('v=')) mVid = mVidRaw.split('v=')[1].split('&')[0];
             else if (mVidRaw.includes('youtu.be/')) mVid = mVidRaw.split('youtu.be/')[1].split('?')[0];
-            db.ref(`demons/${dKey}/victors`).push({
+            const basePath = vicType === 'challenge' ? 'challenges' : 'demons';
+            db.ref(`${basePath}/${dKey}/victors`).push({
                 name,
                 perc: document.getElementById('modVicPerc').value.trim(),
                 att: document.getElementById('modVicAtt').value.trim(),
                 vid: mVid
             }).then(() => {
-                showToast('🏆 Рекорд добавлен!');
-                document.getElementById('modVicName').value = '';
-                document.getElementById('modVicPerc').value = '';
-                document.getElementById('modVicAtt').value = '';
-                document.getElementById('modVicVid').value = '';
+                showToast('Рекорд добавлен!');
+                ['modVicName','modVicPerc','modVicAtt','modVicVid'].forEach(id => document.getElementById(id).value = '');
                 document.getElementById('modVictorForm').style.display = 'none';
                 document.getElementById('modQuickPanel').style.display = 'none';
             }).catch(e => showToast('Ошибка: ' + e.message));
