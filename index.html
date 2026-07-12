@@ -1463,18 +1463,28 @@
             db.ref('reviews/' + key).remove().then(() => showToast('🗑️ Отзыв отклонён')).catch(e => showToast('Ошибка: ' + e.message));
         }
 
-        let reviewCaptchaAnswer = 0;
+        // Captcha stored in closure — NOT accessible from window/global scope
+        const _captcha = (() => {
+            let _answer = 0;
+            return {
+                generate() {
+                    const a = Math.floor(Math.random() * 9) + 2;
+                    const b = Math.floor(Math.random() * 9) + 2;
+                    const op = Math.random() < 0.5 ? '+' : (a >= b ? '-' : '+');
+                    _answer = op === '+' ? a + b : a - b;
+                    const qEl = document.getElementById('captchaQuestion');
+                    if (qEl) qEl.textContent = `${a} ${op === '+' ? '+' : '−'} ${b === _answer - a ? b : b}`;
+                    // Rewrite display cleanly
+                    if (qEl) qEl.textContent = op === '+' ? `${a} + ${b}` : `${a} − ${b}`;
+                    const aEl = document.getElementById('captchaAnswer');
+                    if (aEl) aEl.value = '';
+                },
+                verify(val) { return parseInt(val) === _answer; },
+                reset() { _answer = 0; }
+            };
+        })();
 
-        function generateReviewCaptcha() {
-            const a = Math.floor(Math.random() * 8) + 1;
-            const b = Math.floor(Math.random() * 8) + 1;
-            const useMinus = Math.random() < 0.5 && a >= b;
-            reviewCaptchaAnswer = useMinus ? (a - b) : (a + b);
-            const qEl = document.getElementById('captchaQuestion');
-            if (qEl) qEl.textContent = `${a} ${useMinus ? '−' : '+'} ${b}`;
-            const aEl = document.getElementById('captchaAnswer');
-            if (aEl) aEl.value = '';
-        }
+        function generateReviewCaptcha() { _captcha.generate(); }
 
         document.addEventListener('DOMContentLoaded', () => {
             const picker = document.getElementById('reviewStarsPicker');
@@ -1486,6 +1496,11 @@
                     stars.forEach(s => s.classList.toggle('active', parseInt(s.dataset.val) <= selectedReviewRating));
                 });
             });
+            // Migrate old key if present
+            try {
+                const oldVal = localStorage.getItem('lastReviewAt');
+                if (oldVal) { localStorage.setItem(REVIEW_LOCAL_KEY, oldVal); localStorage.removeItem('lastReviewAt'); }
+            } catch(e) {}
             updateReviewFormCooldownUI();
             generateReviewCaptcha();
         });
@@ -1509,11 +1524,111 @@
             }
         }
 
+        const REVIEW_COOLDOWN_MS = 4 * 60 * 60 * 1000; // 4 hours
+        const REVIEW_SESSION_KEY = 'rv_s';   // session marker (cleared on tab close)
+        const REVIEW_LOCAL_KEY  = 'rv_l';    // persistent marker
+
+        function _setReviewSent() {
+            const t = Date.now().toString();
+            try { sessionStorage.setItem(REVIEW_SESSION_KEY, t); } catch(e){}
+            try { localStorage.setItem(REVIEW_LOCAL_KEY, t); } catch(e){}
+        }
+
         function getReviewCooldownLeft() {
-            const last = parseInt(localStorage.getItem('lastReviewAt') || '0');
-            const cooldownMs = 4 * 60 * 60 * 1000;
-            const left = cooldownMs - (Date.now() - last);
+            let last = 0;
+            try { last = Math.max(last, parseInt(sessionStorage.getItem(REVIEW_SESSION_KEY) || '0')); } catch(e){}
+            try { last = Math.max(last, parseInt(localStorage.getItem(REVIEW_LOCAL_KEY) || '0')); } catch(e){}
+            const left = REVIEW_COOLDOWN_MS - (Date.now() - last);
             return left > 0 ? left : 0;
+        }
+
+        // In-memory submit lock — cannot be bypassed from console
+        let _reviewSubmitting = false;
+
+        function submitReview() {
+            // 1. In-flight lock
+            if (_reviewSubmitting) return;
+
+            // 2. Client-side cooldown (both storages)
+            const cooldownLeft = getReviewCooldownLeft();
+            if (cooldownLeft > 0) {
+                const hours = Math.ceil(cooldownLeft / (60 * 60 * 1000));
+                showToast(`Ты уже оставлял отзыв. Попробуй через ~${hours} ч.`);
+                return;
+            }
+
+            // 3. Field validation — enforce lengths server-side too (slice before push)
+            const name = document.getElementById('reviewName').value.trim().slice(0, 30);
+            const text = document.getElementById('reviewText').value.trim().slice(0, 400);
+
+            if (!name || name.length < 2)  { showToast('Введи ник (минимум 2 символа)!'); return; }
+            if (!text || text.length < 10) { showToast('Напиши отзыв (минимум 10 символов)!'); return; }
+            if (!selectedReviewRating || selectedReviewRating < 1 || selectedReviewRating > 5) {
+                showToast('Поставь оценку звёздами!'); return;
+            }
+
+            // 4. Captcha check via closure — not readable from window
+            const captchaVal = (document.getElementById('captchaAnswer').value || '').trim();
+            if (!_captcha.verify(captchaVal)) {
+                showToast('Неверный ответ на пример. Попробуй ещё раз!');
+                _captcha.generate();
+                return;
+            }
+
+            // 5. Basic content sanity — no pure-whitespace or repeated chars
+            if (/^(.)\1{4,}$/.test(name) || /^(.)\1{9,}$/.test(text)) {
+                showToast('Пожалуйста, введи нормальный текст!');
+                return;
+            }
+
+            // 6. Server-side duplicate check — same name + same text pending/approved
+            const dupExists = reviews.some(r =>
+                r.name.toLowerCase() === name.toLowerCase() &&
+                r.text.toLowerCase() === text.toLowerCase()
+            );
+            if (dupExists) {
+                showToast('Такой отзыв уже существует!');
+                return;
+            }
+
+            _reviewSubmitting = true;
+            const submitBtn = document.querySelector('.review-submit-btn');
+            if (submitBtn) { submitBtn.disabled = true; submitBtn.style.opacity = '0.5'; }
+
+            // 7. Write to Firebase — createdAt uses firebase.database.ServerValue.TIMESTAMP
+            //    so client cannot fake the time
+            const reviewPushPromise = db.ref('reviews').push({
+                name,
+                text,
+                rating: selectedReviewRating,
+                status: 'pending',
+                createdAt: firebase.database.ServerValue.TIMESTAMP
+            });
+
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Превышено время ожидания. Проверь соединение.')), 12000)
+            );
+
+            Promise.race([reviewPushPromise, timeoutPromise]).then(() => {
+                _setReviewSent();
+                showToast('Отзыв отправлен на проверку!');
+                document.getElementById('reviewName').value = '';
+                document.getElementById('reviewText').value = '';
+                selectedReviewRating = 0;
+                document.querySelectorAll('#reviewStarsPicker i').forEach(s => s.classList.remove('active'));
+                _captcha.generate();
+                updateReviewFormCooldownUI();
+            }).catch(e => {
+                showToast('Ошибка: ' + e.message);
+                _captcha.generate();
+            }).finally(() => {
+                _reviewSubmitting = false;
+                if (submitBtn) {
+                    const disabled = getReviewCooldownLeft() > 0;
+                    submitBtn.disabled = disabled;
+                    submitBtn.style.opacity = disabled ? '0.5' : '1';
+                }
+            });
         }
 
         function submitReview() {
