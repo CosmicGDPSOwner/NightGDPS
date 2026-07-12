@@ -1276,8 +1276,21 @@
         const auth = firebase.auth();
 
         let currentLang = 'RU';
-        let isAdmin = false;
-        let isModerator = false;
+        // Auth state — stored in closure to prevent trivial console override
+        const _auth = (() => {
+            let _isAdmin = false;
+            let _isModerator = false;
+            return {
+                setMod(v)  { _isModerator = !!v; },
+                setAdmin(v){ _isAdmin = !!v; if (!!v) _isModerator = true; },
+                get isAdmin()     { return _isAdmin; },
+                get isModerator() { return _isModerator; },
+                reset() { _isAdmin = false; _isModerator = false; }
+            };
+        })();
+        // Convenience shorthands used throughout the file — read-only getters
+        Object.defineProperty(window, 'isAdmin',     { get: () => _auth.isAdmin,     set: () => {} });
+        Object.defineProperty(window, 'isModerator', { get: () => _auth.isModerator, set: () => {} });
         let currentUserRole = null; 
         let isDeleteMode = false;
         let isEditMode = false;
@@ -1307,8 +1320,8 @@
                     const modData = snap.val();
                     if (modData) {
                         currentUserRole = modData.role || 'moderator';
-                        isModerator = true;
-                        isAdmin = (currentUserRole === 'admin');
+                        _auth.setMod(true);
+                        _auth.setAdmin(currentUserRole === 'admin');
                     } else {
                         auth.signOut();
                         return;
@@ -1316,8 +1329,7 @@
                     updateUIForRole();
                 });
             } else {
-                isAdmin = false;
-                isModerator = false;
+                _auth.reset();
                 currentUserRole = null;
                 isDeleteMode = false;
                 isEditMode = false;
@@ -2312,14 +2324,14 @@
                         <div class="card-img-wrap">
                             ${isDragDropMode && isAdmin ? `<div style="position:absolute;top:6px;right:6px;background:rgba(167,139,250,0.2);padding:3px 7px;border-radius:5px;font-size:0.65rem;color:var(--accent);z-index:50;"><i class="fas fa-grip-vertical"></i></div>` : ''}
                             ${d.tag ? `<div class="demon-tag">${d.tag}</div>` : ''}
-                            <img src="${d.img}" class="card-img" loading="lazy" decoding="async" alt="${d.name}" onerror="this.src='https://via.placeholder.com/400x220/0c1026/a78bfa?text=Night+GDPS'">
+                            <img src="${d.img}" class="card-img" loading="lazy" decoding="async" alt="${escapeHtml(d.name)}" onerror="this.src='https://via.placeholder.com/400x220/0c1026/a78bfa?text=Night+GDPS'">
                             ${verifierName ? `<div class="card-verified-stamp">VERIFIED</div>` : ''}
                             ${statusBadgeHtml(d.status)}
                         </div>
                         <div class="card-body">
                             <div class="card-rank-name">
                                 <span class="card-rank">#${realIndex+1}</span>
-                                <span class="card-title">${d.name}</span>
+                                <span class="card-title">${escapeHtml(d.name)}</span>
                             </div>
                             <div class="card-meta">
                                 <span class="card-author">${d.author}</span>
@@ -2587,7 +2599,7 @@
                     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;">
                         <div style="display:flex;flex-direction:column;gap:5px;flex:1;min-width:0;">
                             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                                <b style="color:#fff;cursor:pointer;font-size:0.92rem;" onclick="document.getElementById('detailModal').style.display='none'; openPlayerProfile('${v.name}')">${v.name}</b>
+                                <b style="color:#fff;cursor:pointer;font-size:0.92rem;" onclick="document.getElementById('detailModal').style.display='none'; openPlayerProfile('${escapeHtml(v.name)}')">${escapeHtml(v.name)}</b>
                                 <span style="background:rgba(167,139,250,0.12);color:var(--accent);font-size:0.72rem;font-weight:900;padding:2px 8px;border-radius:6px;font-family:'Orbitron';">${v.perc || '100%'}</span>
                                 ${v.att ? `<span style="color:#4b5563;font-size:0.75rem;">${v.att} att</span>` : ''}
                             </div>
@@ -2647,7 +2659,7 @@
                 <div style="text-align:center;margin:0 44px 16px 0;">
                     <div style="display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;">
                         <span style="background:rgba(167,139,250,0.15);border:1px solid rgba(167,139,250,0.3);color:var(--accent);font-family:'Orbitron';font-weight:900;font-size:0.8rem;padding:4px 12px;border-radius:8px;">#${realIndex + 1}</span>
-                        <h2 style="font-family:'Orbitron';font-size:clamp(1.1rem,4vw,1.6rem);font-weight:900;color:#fff;margin:0;">${d.name}</h2>
+                        <h2 style="font-family:'Orbitron';font-size:clamp(1.1rem,4vw,1.6rem);font-weight:900;color:#fff;margin:0;">${escapeHtml(d.name)}</h2>
                     </div>
                     <p style="color:#6b7280;font-size:0.82rem;margin:6px 0 0;">created by <span style="color:#94a3b8;font-weight:700;">${d.author}</span></p>
                 </div>
@@ -3002,7 +3014,12 @@
                 </div>`;
             }).join('');
         }
-        function deleteItem(k, p) { if(confirm("Подтверждаете удаление?")) db.ref(p+'/'+k).remove(); }
+        function deleteItem(k, p) {
+            if (!isAdmin) { showToast('Нет доступа!'); return; }
+            const allowed = ['demons', 'challenges', 'creators', 'reviews', 'players'];
+            if (!allowed.includes(p)) { showToast('Недопустимый путь!'); return; }
+            if (confirm("Подтверждаете удаление?")) db.ref(p + '/' + k).remove();
+        }
 
         db.ref('players').on('value', snap => {
             playerCountries = {};
@@ -3104,7 +3121,7 @@
                 const allList = [...demons, ...challenges];
                 const pos = allList.indexOf(hardestEntry.demon) + 1;
                 const listType = challenges.includes(hardestEntry.demon) ? 'challenges' : 'demons';
-                hardestNameEl.innerHTML = `<span><span style="color:var(--accent);font-family:'Orbitron';font-size:0.8rem;margin-right:6px;">#${pos}</span>${hardestEntry.demon.name}</span>`;
+                hardestNameEl.innerHTML = `<span><span style="color:var(--accent);font-family:'Orbitron';font-size:0.8rem;margin-right:6px;">#${pos}</span>${escapeHtml(hardestEntry.demon.name)}</span>`;
                 hardestWrap.onclick = () => {
                     document.getElementById('playerProfileModal').style.display = 'none';
                     showInfoByKey(hardestEntry.demon.key, listType);
@@ -3122,7 +3139,7 @@
             // Main completions section
             if (mainCompletions.length > 0) {
                 const pills = mainCompletions.map(c =>
-                    `<span class="profile-pill" onclick="openPlayerVideo('${playerName.replace(/'/g,"\\'")}','${c.demon.key}','demons')" title="${c.demon.name}">${c.demon.name}</span>`
+                    `<span class="profile-pill" onclick="openPlayerVideo('${escapeHtml(playerName.replace(/'/g,"\\'"))}','${c.demon.key}','demons')" title="${escapeHtml(c.demon.name)}">${escapeHtml(c.demon.name)}</span>`
                 ).join('');
                 sectionsHtml += `<div class="profile-section-card">
                     <div class="profile-section-head">
@@ -3136,7 +3153,7 @@
             // Challenges completions section
             if (challengeCompletions.length > 0) {
                 const pills = challengeCompletions.map(c =>
-                    `<span class="profile-pill" style="border-color:rgba(244,114,182,0.25);color:#f9a8d4;" onclick="openPlayerVideo('${playerName.replace(/'/g,"\\'")}','${c.demon.key}','challenges')" title="${c.demon.name}">${c.demon.name}</span>`
+                    `<span class="profile-pill" style="border-color:rgba(244,114,182,0.25);color:#f9a8d4;" onclick="openPlayerVideo('${escapeHtml(playerName.replace(/'/g,"\\'"))}','${c.demon.key}','challenges')" title="${escapeHtml(c.demon.name)}">${escapeHtml(c.demon.name)}</span>`
                 ).join('');
                 sectionsHtml += `<div class="profile-section-card" style="border-color:rgba(244,114,182,0.15);">
                     <div class="profile-section-head">
@@ -3156,7 +3173,7 @@
                         ? `<a href="https://youtube.com/watch?v=${c.victor.vid}" target="_blank" style="color:#f87171;font-size:0.78rem;"><i class="fab fa-youtube"></i></a>`
                         : '';
                     return `<div class="profile-record-row">
-                        <span class="profile-record-name">${c.demon.name}</span>
+                        <span class="profile-record-name">${escapeHtml(c.demon.name)}</span>
                         <div class="profile-record-meta">
                             ${att}
                             <span class="profile-record-perc">${perc}</span>
@@ -3176,7 +3193,7 @@
             // Verified section
             if (verifiedEntries.length > 0) {
                 const pills = verifiedEntries.map(c =>
-                    `<span class="profile-pill verified-pill" onclick="openPlayerVideo('${playerName.replace(/'/g,"\\'")}','${c.demon.key}','${challenges.includes(c.demon) ? 'challenges' : 'demons'}')" title="${c.demon.name}">${c.demon.name}</span>`
+                    `<span class="profile-pill verified-pill" onclick="openPlayerVideo('${escapeHtml(playerName.replace(/'/g,"\\'"))}','${c.demon.key}','${challenges.includes(c.demon) ? 'challenges' : 'demons'}')" title="${escapeHtml(c.demon.name)}">${escapeHtml(c.demon.name)}</span>`
                 ).join('');
                 sectionsHtml += `<div class="profile-section-card verified">
                     <div class="profile-section-head">
