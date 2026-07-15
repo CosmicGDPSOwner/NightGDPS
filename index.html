@@ -1816,6 +1816,7 @@
                 return;
             }
             container.innerHTML = moderators.map(m => {
+                console.log("[v0] mod:", m.uid, "role:", m.role, "isModRole:", (m.role || 'moderator') !== 'admin');
                 const p = m.permissions || {};
                 const isModRole = (m.role || 'moderator') !== 'admin';
                 const permBadges = isModRole ? `
