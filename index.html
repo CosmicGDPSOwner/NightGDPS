@@ -364,18 +364,26 @@
         .profile-big-label { font-size: 0.72rem; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; margin-top: 3px; }
 
         /* Hardest level orange card */
+        /* Hardest card — базовый оранжевый стиль */
         .profile-hardest-card { background: rgba(251,146,60,0.06); border: 1px solid rgba(251,146,60,0.2); border-radius: 14px; padding: 14px 18px; margin-bottom: 14px; cursor: pointer; transition: background 0.2s, border-color 0.2s; }
         .profile-hardest-card:hover { background: rgba(251,146,60,0.12); border-color: rgba(251,146,60,0.4); }
         .profile-hardest-title { font-size: 0.75rem; font-weight: 700; color: #fb923c; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; display: flex; align-items: center; gap: 7px; }
         .profile-hardest-name { font-family: 'Orbitron'; font-size: 1rem; font-weight: 900; color: #fff; display: flex; align-items: center; justify-content: space-between; }
         .profile-hardest-name::after { content: '\203A'; color: #fb923c; font-size: 1.4rem; font-weight: 300; }
-        .profile-hardest-title { display: flex; align-items: center; gap: 7px; margin-bottom: 8px; }
-        .hardest-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 0.62rem; font-weight: 900; letter-spacing: 0.5px; text-transform: uppercase; padding: 2px 8px; border-radius: 5px; }
-        .hardest-badge.challenge { background: rgba(96,165,250,0.12); border: 1px solid rgba(96,165,250,0.35); color: #60a5fa; }
-        .hardest-badge.verified  { background: rgba(34,197,94,0.12);  border: 1px solid rgba(34,197,94,0.35);  color: #4ade80; }
-        /* Подсветка карточки по типу хардеста */
-        .profile-hardest-card.is-challenge { border-color: rgba(96,165,250,0.3); background: rgba(96,165,250,0.05); }
-        .profile-hardest-card.is-verified  { border-color: rgba(34,197,94,0.3);  background: rgba(34,197,94,0.05);  }
+        /* Challenge — всё синее */
+        .profile-hardest-card.is-challenge { background: rgba(96,165,250,0.06); border-color: rgba(96,165,250,0.25); }
+        .profile-hardest-card.is-challenge:hover { background: rgba(96,165,250,0.12); border-color: rgba(96,165,250,0.45); }
+        .profile-hardest-card.is-challenge .profile-hardest-title { color: #60a5fa; }
+        .profile-hardest-card.is-challenge .profile-hardest-name::after { color: #60a5fa; }
+        /* Verified — всё зелёное */
+        .profile-hardest-card.is-verified { background: rgba(34,197,94,0.06); border-color: rgba(34,197,94,0.25); }
+        .profile-hardest-card.is-verified:hover { background: rgba(34,197,94,0.12); border-color: rgba(34,197,94,0.45); }
+        .profile-hardest-card.is-verified .profile-hardest-title { color: #4ade80; }
+        .profile-hardest-card.is-verified .profile-hardest-name::after { color: #4ade80; }
+        /* Бейджик */
+        .hardest-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 0.6rem; font-weight: 900; letter-spacing: 0.5px; text-transform: uppercase; padding: 2px 7px; border-radius: 5px; }
+        .hardest-badge.challenge { background: rgba(96,165,250,0.12); border: 1px solid rgba(96,165,250,0.3); color: #60a5fa; }
+        .hardest-badge.verified  { background: rgba(34,197,94,0.12);  border: 1px solid rgba(34,197,94,0.3);  color: #4ade80; }
 
         /* Section cards */
         .profile-section-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 14px; padding: 14px 18px; margin-bottom: 10px; }
@@ -907,7 +915,7 @@
                 <i class="fas fa-fire"></i> <span id="tabChallengesLabel">Челленджи</span>
             </button>
             <button id="tabPlayersBtn" class="search-mode-btn" onclick="switchTab('players')" style="flex:1; max-width:160px; padding:11px 14px;">
-                <i class="fas fa-trophy"></i> <span id="tabPlayersLabel">Топ Слееров</span>
+                <i class="fas fa-trophy"></i> <span id="tabPlayersLabel">Топ Слеер��в</span>
             </button>
             <button id="tabCreatorTopBtn" class="search-mode-btn" onclick="switchTab('creatortop')" style="flex:1; max-width:160px; padding:11px 14px;">
                 <i class="fas fa-hammer"></i> <span id="tabCreatorsLabel">Топ Креаторов</span>
@@ -1794,7 +1802,7 @@
             const captchaInput = document.getElementById('captchaAnswer');
             const userCaptchaAnswer = parseInt((captchaInput.value || '').trim());
 
-            if (!name) { showToast('Введи свой ник!'); return; }
+            if (!name) { showToast('Вв��ди свой ник!'); return; }
             if (!text) { showToast('Напиши текст отзыва!'); return; }
             if (!selectedReviewRating) { showToast('Поставь оценку звёздами!'); return; }
             if (isNaN(userCaptchaAnswer) || userCaptchaAnswer !== reviewCaptchaAnswer) {
@@ -3339,22 +3347,26 @@
 
                 hardestNameEl.innerHTML = `<span><span style="color:var(--accent);font-family:'Orbitron';font-size:0.8rem;margin-right:6px;">#${pos}</span>${escapeHtml(hardestEntry.demon.name)}</span>`;
 
-                // Иконка и бейджик по типу
+                // Иконка, лейбл и бейджик по типу
+                const labelEl = document.getElementById('labelHardest');
                 hardestWrap.classList.remove('is-challenge', 'is-verified');
                 if (isVerifiedHardest) {
-                    hardestIcon.innerHTML = '<i class="fas fa-shield-alt" style="color:#4ade80;"></i>';
+                    hardestIcon.innerHTML = '<i class="fas fa-shield-alt"></i>';
+                    if (labelEl) labelEl.textContent = 'Hardest Verified';
                     hardestBadge.className = 'hardest-badge verified';
                     hardestBadge.innerHTML = '<i class="fas fa-check-circle"></i> Verified';
                     hardestBadge.style.display = 'inline-flex';
                     hardestWrap.classList.add('is-verified');
                 } else if (isChallengeHardest) {
-                    hardestIcon.innerHTML = '<i class="fas fa-fire" style="color:#60a5fa;"></i>';
+                    hardestIcon.innerHTML = '<i class="fas fa-bolt"></i>';
+                    if (labelEl) labelEl.textContent = 'Hardest Challenge';
                     hardestBadge.className = 'hardest-badge challenge';
-                    hardestBadge.innerHTML = '<i class="fas fa-bolt"></i> Challenge';
+                    hardestBadge.innerHTML = '<i class="fas fa-fire"></i> Challenge';
                     hardestBadge.style.display = 'inline-flex';
                     hardestWrap.classList.add('is-challenge');
                 } else {
-                    hardestIcon.innerHTML = '<i class="fas fa-fire" style="color:#fb923c;"></i>';
+                    hardestIcon.innerHTML = '<i class="fas fa-fire"></i>';
+                    if (labelEl) labelEl.textContent = 'Hardest Level';
                     hardestBadge.style.display = 'none';
                 }
 
