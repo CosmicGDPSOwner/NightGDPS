@@ -1512,6 +1512,18 @@
             return div.innerHTML;
         }
 
+        // Исправляет битые символы (mojibake) при двойном перекодировании UTF-8 → Latin1 → UTF-8
+        function fixStr(str) {
+            if (!str || typeof str !== 'string') return str || '';
+            try {
+                // Проверяем есть ли типичные артефакты Latin1-декодирования кириллицы
+                if (/[\xC0-\xFF][\x80-\xBF]/.test(str)) {
+                    return decodeURIComponent(escape(str));
+                }
+            } catch(e) {}
+            return str;
+        }
+
         function renderStarsHtml(rating) {
             let html = '';
             for (let i = 1; i <= 5; i++) {
@@ -1792,7 +1804,7 @@
             });
 
             const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Превышено время ожидания. Проверь интернет-соединение.')), 12000)
+                setTimeout(() => reject(new Error('Превыш��но время ожидания. Проверь интернет-соединение.')), 12000)
             );
 
             Promise.race([reviewPushPromise, timeoutPromise]).then(() => {
@@ -1816,9 +1828,8 @@
                 return;
             }
             container.innerHTML = moderators.map(m => {
-                console.log("[v0] mod:", m.uid, "role:", m.role, "isModRole:", (m.role || 'moderator') !== 'admin');
                 const p = m.permissions || {};
-                const isModRole = (m.role || 'moderator') !== 'admin';
+                const isModRole = m.role !== 'admin';
                 const permBadges = isModRole ? `
                     <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:7px;">
                         <span class="perm-badge ${p.canAddDemons ? 'on' : 'off'}"><i class="fas fa-skull-crossbones"></i> Демоны</span>
@@ -2182,7 +2193,7 @@
         // ===== FIREBASE LISTENERS =====
         db.ref('demons').on('value', s => {
             const val = s.val();
-            demons = val ? Object.entries(val).map(([k, d]) => ({ key: k, ...d })).sort((a,b)=>(a.order||0)-(b.order||0)) : [];
+            demons = val ? Object.entries(val).map(([k, d]) => ({ key: k, ...d, name: fixStr(d.name), creator: fixStr(d.creator) })).sort((a,b)=>(a.order||0)-(b.order||0)) : [];
             const sel = document.getElementById('selectDemon');
             if(sel) sel.innerHTML = demons.map(d => `<option value="${escapeHtml(d.key)}">${escapeHtml(d.name)}</option>`).join('');
             if (currentTab === 'demons') render();
@@ -2191,7 +2202,7 @@
         // Слушатель для челленджей
         db.ref('challenges').on('value', s => {
             const val = s.val();
-            challenges = val ? Object.entries(val).map(([k, d]) => ({ key: k, ...d })).sort((a,b)=>(a.order||0)-(b.order||0)) : [];
+            challenges = val ? Object.entries(val).map(([k, d]) => ({ key: k, ...d, name: fixStr(d.name), creator: fixStr(d.creator) })).sort((a,b)=>(a.order||0)-(b.order||0)) : [];
             const selC = document.getElementById('selectChallenge');
             if (selC) selC.innerHTML = challenges.map(c => `<option value="${escapeHtml(c.key)}">${escapeHtml(c.name)}</option>`).join('');
             if (currentTab === 'challenges') render();
@@ -2505,7 +2516,7 @@
                         <div class="card-img-wrap">
                             ${isDragDropMode && isAdmin ? `<div style="position:absolute;top:6px;right:6px;background:rgba(167,139,250,0.2);padding:3px 7px;border-radius:5px;font-size:0.65rem;color:var(--accent);z-index:50;"><i class="fas fa-grip-vertical"></i></div>` : ''}
                             ${d.tag ? `<div class="demon-tag">${d.tag}</div>` : ''}
-                            <img src="${d.img}" class="card-img" loading="lazy" decoding="async" alt="${escapeHtml(d.name)}" onerror="this.src='https://via.placeholder.com/400x220/0c1026/a78bfa?text=Night+GDPS'">
+                            <img src="${d.img}" class="card-img" loading="lazy" decoding="async" alt="${escapeHtml(d.name)}" onerror="this.onerror=null;this.style.background='rgba(12,16,38,0.9)';this.style.display='flex';this.removeAttribute('src')">
                             ${verifierName ? `<div class="card-verified-stamp">VERIFIED</div>` : ''}
                             ${statusBadgeHtml(d.status)}
                         </div>
@@ -3307,9 +3318,11 @@
             const hardestWrap = document.getElementById('profileHardestWrap');
             const hardestNameEl = document.getElementById('profileHardestName');
             if (hardestEntry) {
-                const allList = [...demons, ...challenges];
-                const pos = allList.indexOf(hardestEntry.demon) + 1;
-                const listType = challenges.includes(hardestEntry.demon) ? 'challenges' : 'demons';
+                const isChallengeHardest = challenges.includes(hardestEntry.demon);
+                const listType = isChallengeHardest ? 'challenges' : 'demons';
+                // Позиция считается по СВОЕМУ листу (демоны или челленджи), не по объединённому
+                const ownList = isChallengeHardest ? challenges : demons;
+                const pos = ownList.indexOf(hardestEntry.demon) + 1;
                 hardestNameEl.innerHTML = `<span><span style="color:var(--accent);font-family:'Orbitron';font-size:0.8rem;margin-right:6px;">#${pos}</span>${escapeHtml(hardestEntry.demon.name)}</span>`;
                 hardestWrap.onclick = () => {
                     document.getElementById('playerProfileModal').style.display = 'none';
@@ -3560,7 +3573,7 @@
                 document.getElementById('modLoginPage').style.display = 'none';
                 document.body.style.overflow = '';
                 history.replaceState(null, '', window.location.pathname + window.location.search);
-                showToast('✅ Добро пожаловать в команду!');
+                showToast('✅ Добро пожаловать в кома��ду!');
             } catch(e) {
                 let msg = 'Неверный email или пароль';
                 if (e.code === 'auth/too-many-requests') msg = 'Слишком много попыток. Подожди немного.';
