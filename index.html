@@ -369,6 +369,13 @@
         .profile-hardest-title { font-size: 0.75rem; font-weight: 700; color: #fb923c; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; display: flex; align-items: center; gap: 7px; }
         .profile-hardest-name { font-family: 'Orbitron'; font-size: 1rem; font-weight: 900; color: #fff; display: flex; align-items: center; justify-content: space-between; }
         .profile-hardest-name::after { content: '\203A'; color: #fb923c; font-size: 1.4rem; font-weight: 300; }
+        .profile-hardest-title { display: flex; align-items: center; gap: 7px; margin-bottom: 8px; }
+        .hardest-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 0.62rem; font-weight: 900; letter-spacing: 0.5px; text-transform: uppercase; padding: 2px 8px; border-radius: 5px; }
+        .hardest-badge.challenge { background: rgba(96,165,250,0.12); border: 1px solid rgba(96,165,250,0.35); color: #60a5fa; }
+        .hardest-badge.verified  { background: rgba(34,197,94,0.12);  border: 1px solid rgba(34,197,94,0.35);  color: #4ade80; }
+        /* Подсветка карточки по типу хардеста */
+        .profile-hardest-card.is-challenge { border-color: rgba(96,165,250,0.3); background: rgba(96,165,250,0.05); }
+        .profile-hardest-card.is-verified  { border-color: rgba(34,197,94,0.3);  background: rgba(34,197,94,0.05);  }
 
         /* Section cards */
         .profile-section-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 14px; padding: 14px 18px; margin-bottom: 10px; }
@@ -1323,7 +1330,11 @@
 
             <!-- Hardest level -->
             <div class="profile-hardest-card" id="profileHardestWrap">
-                <div class="profile-hardest-title"><i class="fas fa-fire" style="color:#fb923c;"></i> <span id="labelHardest">Hardest level</span></div>
+                <div class="profile-hardest-title">
+                    <span id="profileHardestIcon"><i class="fas fa-fire" style="color:#fb923c;"></i></span>
+                    <span id="labelHardest">Hardest level</span>
+                    <span id="profileHardestBadge" style="display:none;"></span>
+                </div>
                 <div class="profile-hardest-name" id="profileHardestName">—</div>
             </div>
 
@@ -3315,15 +3326,38 @@
             }
 
             // Hardest level
-            const hardestWrap = document.getElementById('profileHardestWrap');
+            const hardestWrap   = document.getElementById('profileHardestWrap');
             const hardestNameEl = document.getElementById('profileHardestName');
+            const hardestBadge  = document.getElementById('profileHardestBadge');
+            const hardestIcon   = document.getElementById('profileHardestIcon');
             if (hardestEntry) {
                 const isChallengeHardest = challenges.includes(hardestEntry.demon);
+                const isVerifiedHardest  = hardestEntry.victor.isVerifier;
                 const listType = isChallengeHardest ? 'challenges' : 'demons';
-                // Позиция считается по СВОЕМУ листу (демоны или челленджи), не по объединённому
-                const ownList = isChallengeHardest ? challenges : demons;
-                const pos = ownList.indexOf(hardestEntry.demon) + 1;
+                const ownList  = isChallengeHardest ? challenges : demons;
+                const pos      = ownList.indexOf(hardestEntry.demon) + 1;
+
                 hardestNameEl.innerHTML = `<span><span style="color:var(--accent);font-family:'Orbitron';font-size:0.8rem;margin-right:6px;">#${pos}</span>${escapeHtml(hardestEntry.demon.name)}</span>`;
+
+                // Иконка и бейджик по типу
+                hardestWrap.classList.remove('is-challenge', 'is-verified');
+                if (isVerifiedHardest) {
+                    hardestIcon.innerHTML = '<i class="fas fa-shield-alt" style="color:#4ade80;"></i>';
+                    hardestBadge.className = 'hardest-badge verified';
+                    hardestBadge.innerHTML = '<i class="fas fa-check-circle"></i> Verified';
+                    hardestBadge.style.display = 'inline-flex';
+                    hardestWrap.classList.add('is-verified');
+                } else if (isChallengeHardest) {
+                    hardestIcon.innerHTML = '<i class="fas fa-fire" style="color:#60a5fa;"></i>';
+                    hardestBadge.className = 'hardest-badge challenge';
+                    hardestBadge.innerHTML = '<i class="fas fa-bolt"></i> Challenge';
+                    hardestBadge.style.display = 'inline-flex';
+                    hardestWrap.classList.add('is-challenge');
+                } else {
+                    hardestIcon.innerHTML = '<i class="fas fa-fire" style="color:#fb923c;"></i>';
+                    hardestBadge.style.display = 'none';
+                }
+
                 hardestWrap.onclick = () => {
                     document.getElementById('playerProfileModal').style.display = 'none';
                     showInfoByKey(hardestEntry.demon.key, listType);
@@ -3332,6 +3366,7 @@
             } else {
                 hardestWrap.onclick = null;
                 hardestWrap.style.display = 'none';
+                hardestBadge.style.display = 'none';
             }
 
             // Build sections
