@@ -119,9 +119,28 @@
         .orb-2 { width: 500px; height: 500px; background: radial-gradient(circle, #f472b6, #7b5ea7); bottom: -10%; right: -10%; animation-delay: -9s; }
         .orb-3 { display: none; } /* removed — third orb is barely visible and costs GPU */
         @keyframes float { 0%,100% { transform: translate(0,0); } 50% { transform: translate(20px, 28px); } }
-        /* Disable all decorative animations for users who prefer reduced motion or slow devices */
+        /* Reduce motion */
         @media (prefers-reduced-motion: reduce) {
             .orb, .stars-layer-2, .moon::after { animation: none; }
+        }
+        /* Mobile performance: disable heavy GPU effects on small screens */
+        @media (max-width: 768px) {
+            .orb { display: none; }
+            .stars-layer-2 { animation: none; }
+            .navbar, .mobile-menu, .download-container, .modal-content {
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+            }
+            .section-page { animation: none; }
+            .card { transition: none; }
+            .btn-main::before { display: none; }
+            /* Stats grid на мобильных — 2 колонки */
+            #statsSection [style*="grid-template-columns:repeat(auto-fit,minmax(180px"] {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+            #statsSection [style*="grid-template-columns:1fr 1fr"] {
+                grid-template-columns: 1fr !important;
+            }
         }
 
         .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 6%; background: rgba(4,5,13,0.93); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); position: fixed; width: 100%; top: 0; z-index: 1000; border-bottom: 1px solid rgba(167,139,250,0.15); }
@@ -226,6 +245,48 @@
         .search-input { width: 100%; padding: 16px 20px 16px 50px; background: rgba(4,5,13,0.85); border: 1px solid rgba(167,139,250,0.15); border-radius: 15px; color: white; font-size: 1rem; outline: none; transition: border-color 0.2s; font-family: 'Nunito'; }
         .search-input:focus { border-color: var(--accent); box-shadow: 0 0 20px rgba(167,139,250,0.15); }
         .search-icon { position: absolute; left: 18px; color: #888; font-size: 1.1rem; pointer-events: none; z-index: 2; }
+
+        /* ===== Search bar + filter system ===== */
+        .search-bar-row { display: flex; align-items: center; gap: 10px; }
+        .filter-toggle-btn { flex-shrink: 0; width: 52px; height: 52px; border-radius: 14px; background: rgba(167,139,250,0.15); border: 1px solid rgba(167,139,250,0.3); color: var(--accent); font-size: 1.05rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s, color 0.2s; position: relative; }
+        .filter-toggle-btn:hover { background: rgba(167,139,250,0.25); }
+        .filter-toggle-btn.active { background: var(--accent); color: #fff; }
+        .filter-toggle-btn.has-filters::after { content: ''; position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; border-radius: 50%; background: #f472b6; border: 2px solid rgba(4,5,13,0.9); }
+
+        .filter-panel { position: absolute; top: calc(100% + 10px); left: 20px; z-index: 200; width: 320px; max-width: calc(100vw - 40px); background: rgba(12,16,38,0.98); border: 1px solid rgba(167,139,250,0.2); border-radius: 18px; padding: 22px; box-shadow: 0 20px 50px rgba(0,0,0,0.6); backdrop-filter: blur(12px); display: none; text-align: left; }
+        .filter-panel.open { display: block; animation: filterPanelIn 0.18s ease; }
+        @keyframes filterPanelIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+        .filter-panel-title { display: flex; align-items: center; gap: 9px; font-weight: 900; font-size: 1.05rem; color: #fff; margin-bottom: 6px; font-family: 'Nunito'; }
+        .filter-section-label { font-size: 0.66rem; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; color: #6b7280; margin: 18px 0 10px; }
+        .filter-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+        .filter-pill { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: #cbd5e1; font-size: 0.8rem; font-weight: 700; padding: 8px 13px; border-radius: 10px; cursor: pointer; transition: 0.18s; font-family: 'Nunito'; }
+        .filter-pill:hover { background: rgba(255,255,255,0.08); }
+        .filter-pill.active { background: var(--accent); color: #fff; border-color: transparent; }
+        .filter-pill i { font-size: 0.72rem; }
+
+        .filter-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; padding: 11px 13px; background: rgba(255,255,255,0.03); border-radius: 11px; }
+        .filter-toggle-row > span { font-size: 0.84rem; font-weight: 700; color: #e2e8f0; display: flex; align-items: center; gap: 9px; }
+        .filter-toggle-row > span i { color: var(--accent); font-size: 0.85rem; }
+        .switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .switch-slider { position: absolute; inset: 0; background: rgba(255,255,255,0.15); border-radius: 24px; transition: 0.2s; cursor: pointer; }
+        .switch-slider::before { content: ''; position: absolute; height: 18px; width: 18px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: 0.2s; }
+        .switch input:checked + .switch-slider { background: var(--accent); }
+        .switch input:checked + .switch-slider::before { transform: translateX(20px); }
+
+        .range-wrap { position: relative; height: 30px; margin-top: 6px; }
+        .range-track { position: absolute; top: 13px; left: 8px; right: 8px; height: 4px; background: rgba(255,255,255,0.12); border-radius: 4px; }
+        .range-fill { position: absolute; top: 13px; height: 4px; background: var(--accent); border-radius: 4px; }
+        .range-wrap input[type=range] { position: absolute; top: 5px; left: 0; width: 100%; margin: 0; -webkit-appearance: none; appearance: none; background: none; pointer-events: none; height: 20px; }
+        .range-wrap input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; pointer-events: auto; width: 17px; height: 17px; border-radius: 50%; background: #fff; border: 3px solid var(--accent); cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
+        .range-wrap input[type=range]::-moz-range-thumb { pointer-events: auto; width: 13px; height: 13px; border-radius: 50%; background: #fff; border: 3px solid var(--accent); cursor: pointer; }
+        .range-labels { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
+        .range-label { background: rgba(255,255,255,0.06); border-radius: 6px; padding: 3px 11px; font-size: 0.74rem; font-weight: 800; color: #cbd5e1; font-family: 'Orbitron'; min-width: 40px; text-align: center; }
+        .range-dash { color: #4b5563; }
+
+        .filter-reset-btn { width: 100%; margin-top: 18px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #cbd5e1; font-size: 0.8rem; font-weight: 700; padding: 10px; border-radius: 11px; cursor: pointer; transition: 0.2s; font-family: 'Nunito'; }
+        .filter-reset-btn:hover { background: rgba(244,114,182,0.12); border-color: rgba(244,114,182,0.3); color: #f472b6; }
+
 
         .container { max-width: 900px; margin: 0 auto; display: grid; grid-template-columns: 1fr; gap: 10px; padding: 0 16px 16px; }
 
@@ -384,6 +445,83 @@
         .hardest-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 0.6rem; font-weight: 900; letter-spacing: 0.5px; text-transform: uppercase; padding: 2px 7px; border-radius: 5px; }
         .hardest-badge.challenge { background: rgba(96,165,250,0.12); border: 1px solid rgba(96,165,250,0.3); color: #60a5fa; }
         .hardest-badge.verified  { background: rgba(34,197,94,0.12);  border: 1px solid rgba(34,197,94,0.3);  color: #4ade80; }
+
+        /* Stats Section */
+        .stat-big-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 16px; padding: 22px 16px; text-align: center; transition: border-color 0.2s, background 0.2s; }
+        .stat-big-card:hover { background: rgba(255,255,255,0.05); border-color: rgba(167,139,250,0.2); }
+        .stat-big-icon { font-size: 1.6rem; margin-bottom: 10px; }
+        .stat-big-value { font-family: 'Orbitron'; font-size: 1.9rem; font-weight: 900; color: #fff; margin-bottom: 4px; }
+        .stat-big-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #4b5563; }
+        .stat-detail-card { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 16px 18px; }
+        .stat-detail-title { font-size: 0.72rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #6b7280; display: flex; align-items: center; gap: 7px; }
+        .stat-recent-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px; cursor: pointer; transition: background 0.2s; }
+        .stat-recent-item:hover { background: rgba(167,139,250,0.06); border-color: rgba(167,139,250,0.15); }
+        .stat-recent-type { font-size: 0.6rem; font-weight: 900; letter-spacing: 0.5px; text-transform: uppercase; padding: 2px 7px; border-radius: 5px; flex-shrink: 0; }
+        .stat-recent-type.demon { background: rgba(167,139,250,0.12); border: 1px solid rgba(167,139,250,0.25); color: #a78bfa; }
+        .stat-recent-type.challenge { background: rgba(244,114,182,0.12); border: 1px solid rgba(244,114,182,0.25); color: #f472b6; }
+
+        /* Скелетон для статистики */
+        .stat-skel { background: rgba(255,255,255,0.06); border-radius: 8px; animation: skeletonShimmer 1.4s infinite linear; }
+        .stat-skel-val { height: 36px; width: 70%; margin: 6px auto 4px; border-radius: 8px; }
+        .stat-skel-lbl { height: 12px; width: 50%; margin: 0 auto; border-radius: 6px; }
+        .stat-skel-line { height: 14px; width: 80%; border-radius: 6px; margin-bottom: 8px; }
+        .stat-skel-line.short { width: 50%; }
+
+        /* Кнопка Наверх */
+        #backToTopBtn {
+            position: fixed; bottom: 28px; right: 24px; z-index: 8000;
+            width: 44px; height: 44px; border-radius: 50%;
+            background: rgba(167,139,250,0.15); border: 1px solid rgba(167,139,250,0.35);
+            color: #a78bfa; font-size: 1.1rem; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.25s, transform 0.25s, background 0.2s;
+            transform: translateY(10px);
+            backdrop-filter: blur(8px);
+        }
+        #backToTopBtn.visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
+        #backToTopBtn:hover { background: rgba(167,139,250,0.28); border-color: rgba(167,139,250,0.6); }
+
+        /* Модалка сравнения игроков */
+        #compareModal { display: none; position: fixed; inset: 0; background: rgba(6,8,20,0.97); z-index: 6000; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .compare-content { max-width: 720px; margin: 40px auto; padding: 0 16px 40px; }
+        .compare-header { text-align: center; margin-bottom: 28px; }
+        .compare-header h2 { font-family: 'Orbitron'; font-size: 1.2rem; font-weight: 900; margin: 0 0 6px; color: #fff; }
+        /* Селекты — вертикальные боксы с ярлыком A/B, чтобы всё было видно */
+        .compare-selects { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 14px; margin-bottom: 20px; }
+        .compare-select-box { display: flex; flex-direction: column; gap: 6px; }
+        .compare-select-tag { font-family: 'Orbitron'; font-size: 0.62rem; font-weight: 900; letter-spacing: 1px; color: #a78bfa; text-transform: uppercase; }
+        .compare-select {
+            background: #12152b; border: 1px solid rgba(167,139,250,0.25); border-radius: 10px;
+            color: #fff; font-size: 0.88rem; font-weight: 600; padding: 12px 14px; width: 100%;
+            outline: none; cursor: pointer; appearance: none; -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a78bfa' stroke-width='3'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 12px center; padding-right: 34px;
+        }
+        .compare-select:focus { border-color: rgba(167,139,250,0.6); }
+        .compare-select option { background: #12152b; color: #fff; }
+        .compare-vs { font-family: 'Orbitron'; font-size: 1.1rem; font-weight: 900; color: #a78bfa; align-self: end; padding-bottom: 12px; }
+        .compare-btn { background: linear-gradient(135deg,#a78bfa,#7c3aed); border: none; border-radius: 10px; color: #fff; font-size: 0.82rem; font-weight: 700; letter-spacing: 1px; padding: 12px 22px; cursor: pointer; transition: opacity 0.2s; display: block; margin: 0 auto 24px; }
+        .compare-btn:hover { opacity: 0.85; }
+        @media (max-width: 480px) {
+            .compare-selects { grid-template-columns: 1fr; gap: 10px; }
+            .compare-vs { align-self: center; padding: 4px 0; }
+        }
+        .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .compare-col { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 20px; }
+        .compare-col.winner { border-color: rgba(167,139,250,0.3); background: rgba(167,139,250,0.04); }
+        .compare-col-name { font-family: 'Orbitron'; font-size: 0.95rem; font-weight: 900; color: #fff; text-align: center; margin-bottom: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .compare-stat-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 0.82rem; }
+        .compare-stat-row:last-child { border-bottom: none; }
+        .compare-stat-label { color: #6b7280; text-transform: uppercase; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.5px; }
+        .compare-stat-val { color: #e2e8f0; font-weight: 700; font-family: 'Orbitron'; font-size: 0.8rem; }
+        .compare-stat-val.better { color: #4ade80; }
+        .compare-stat-val.worse { color: #f87171; }
+        .compare-hardest { margin-top: 12px; padding: 10px 12px; background: rgba(251,146,60,0.06); border: 1px solid rgba(251,146,60,0.15); border-radius: 10px; font-size: 0.78rem; }
+        .compare-hardest-label { color: #fb923c; font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+        .compare-hardest-name { color: #fff; font-weight: 700; }
+        .compare-crown { color: #fbbf24; font-size: 0.9rem; }
+        @media (max-width: 580px) { .compare-grid { grid-template-columns: 1fr; } }
 
         /* Section cards */
         .profile-section-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 14px; padding: 14px 18px; margin-bottom: 10px; }
@@ -755,6 +893,7 @@
                     <a onclick="openSection('listSection'); switchTab('players'); closeAllDropdowns();" id="navDropPlayers"><i class="fas fa-trophy" style="margin-right:8px;color:#fbbf24;"></i><span id="navDropPlayersLabel">Топ Слееров</span></a>
                 </div>
             </div>
+            <button class="nav-item" onclick="openSection('statsSection')" id="navStats" style="font-size:0.82rem;">Статистика</button>
             <button class="btn-download-nav" onclick="openSection('downloadSection')">
                 <i class="fas fa-download"></i> <span id="navDownloadText">Скачать</span>
             </button>
@@ -882,6 +1021,76 @@
         </section>
     </main>
 
+    <!-- Stats Section -->
+    <main id="statsSection" class="section-page">
+        <div style="max-width:900px;margin:0 auto;padding:40px 20px;">
+            <div style="text-align:center;margin-bottom:40px;">
+                <h1 id="statsPageTitle" style="font-family:'Orbitron';font-size:clamp(1.4rem,4vw,2rem);font-weight:900;margin:0 0 8px;background:linear-gradient(135deg,#a78bfa,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">СТАТИСТИКА СЕРВЕРА</h1>
+                <p style="color:#6b7280;font-size:0.88rem;margin:0;" id="statsUpdatedAt"></p>
+            </div>
+
+            <!-- Главные карточки -->
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:32px;">
+                <div class="stat-big-card">
+                    <div class="stat-big-icon" style="color:#a78bfa;"><i class="fas fa-skull-crossbones"></i></div>
+                    <div class="stat-big-value" id="statTotalDemons"><span class="stat-skel stat-skel-val"></span></div>
+                    <div class="stat-big-label" id="statLabelDemons">Демоны</div>
+                </div>
+                <div class="stat-big-card">
+                    <div class="stat-big-icon" style="color:#f472b6;"><i class="fas fa-bolt"></i></div>
+                    <div class="stat-big-value" id="statTotalChallenges"><span class="stat-skel stat-skel-val"></span></div>
+                    <div class="stat-big-label" id="statLabelChallenges">Челленджи</div>
+                </div>
+                <div class="stat-big-card">
+                    <div class="stat-big-icon" style="color:#fbbf24;"><i class="fas fa-trophy"></i></div>
+                    <div class="stat-big-value" id="statTotalPlayers"><span class="stat-skel stat-skel-val"></span></div>
+                    <div class="stat-big-label" id="statLabelPlayers">Игроки</div>
+                </div>
+                <div class="stat-big-card">
+                    <div class="stat-big-icon" style="color:#4ade80;"><i class="fas fa-medal"></i></div>
+                    <div class="stat-big-value" id="statTotalRecords"><span class="stat-skel stat-skel-val"></span></div>
+                    <div class="stat-big-label" id="statLabelRecords">Рекорды</div>
+                </div>
+                <div class="stat-big-card">
+                    <div class="stat-big-icon" style="color:#60a5fa;"><i class="fas fa-hammer"></i></div>
+                    <div class="stat-big-value" id="statTotalCreators"><span class="stat-skel stat-skel-val"></span></div>
+                    <div class="stat-big-label" id="statLabelCreators">Создатели</div>
+                </div>
+            </div>
+
+            <!-- Детали -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:32px;">
+                <!-- Топ игрок -->
+                <div class="stat-detail-card">
+                    <div class="stat-detail-title"><i class="fas fa-crown" style="color:#fbbf24;"></i> <span id="statLabelTopSlayer">Топ Слеер</span></div>
+                    <div id="statTopSlayer" style="color:#fff;font-weight:700;font-size:0.95rem;margin-top:6px;"><span class="stat-skel stat-skel-line"></span></div>
+                    <div id="statTopSlayerPts" style="color:#6b7280;font-size:0.78rem;margin-top:4px;"><span class="stat-skel stat-skel-line short"></span></div>
+                </div>
+                <div class="stat-detail-card">
+                    <div class="stat-detail-title"><i class="fas fa-star" style="color:#a78bfa;"></i> <span id="statLabelTopCreator">Топ Создатель</span></div>
+                    <div id="statTopCreator" style="color:#fff;font-weight:700;font-size:0.95rem;margin-top:6px;"><span class="stat-skel stat-skel-line"></span></div>
+                    <div id="statTopCreatorPts" style="color:#6b7280;font-size:0.78rem;margin-top:4px;"><span class="stat-skel stat-skel-line short"></span></div>
+                </div>
+                <div class="stat-detail-card">
+                    <div class="stat-detail-title"><i class="fas fa-fire" style="color:#fb923c;"></i> <span id="statLabelHardestDemon">Сложнейший Демон</span></div>
+                    <div id="statHardestDemon" style="color:#fff;font-weight:700;font-size:0.95rem;margin-top:6px;"><span class="stat-skel stat-skel-line"></span></div>
+                    <div id="statLabelHardestDemonPos" style="color:#6b7280;font-size:0.78rem;margin-top:2px;">#1 в листе</div>
+                </div>
+                <div class="stat-detail-card">
+                    <div class="stat-detail-title"><i class="fas fa-bolt" style="color:#f472b6;"></i> <span id="statLabelHardestChallenge">Сложнейший Челлендж</span></div>
+                    <div id="statHardestChallenge" style="color:#fff;font-weight:700;font-size:0.95rem;margin-top:6px;"><span class="stat-skel stat-skel-line"></span></div>
+                    <div id="statLabelHardestChallengePos" style="color:#6b7280;font-size:0.78rem;margin-top:2px;">#1 в листе</div>
+                </div>
+            </div>
+
+            <!-- Последние добавленные -->
+                <div class="stat-detail-card" style="margin-bottom:14px;">
+                    <div class="stat-detail-title" style="margin-bottom:12px;"><i class="fas fa-clock" style="color:#60a5fa;"></i> <span id="statLabelRecent">Недавно добавленные</span></div>
+                <div id="statRecentlyAdded" style="display:flex;flex-direction:column;gap:8px;"></div>
+            </div>
+        </div>
+    </main>
+
     <main id="downloadSection" class="section-page">
         <div class="download-container">
             <h2 class="dl-title" id="dlTitle">СКАЧАТЬ ИГРУ</h2>
@@ -915,7 +1124,7 @@
                 <i class="fas fa-fire"></i> <span id="tabChallengesLabel">Челленджи</span>
             </button>
             <button id="tabPlayersBtn" class="search-mode-btn" onclick="switchTab('players')" style="flex:1; max-width:160px; padding:11px 14px;">
-                <i class="fas fa-trophy"></i> <span id="tabPlayersLabel">Топ Слеер��в</span>
+                <i class="fas fa-trophy"></i> <span id="tabPlayersLabel">Топ Слееров</span>
             </button>
             <button id="tabCreatorTopBtn" class="search-mode-btn" onclick="switchTab('creatortop')" style="flex:1; max-width:160px; padding:11px 14px;">
                 <i class="fas fa-hammer"></i> <span id="tabCreatorsLabel">Топ Креаторов</span>
@@ -926,13 +1135,48 @@
         </div>
 
         <div class="search-box" id="searchBoxWrap">
-            <div class="search-modes">
-                <button id="searchModeMain" class="search-mode-btn active" onclick="setSearchMode('main')">Название / Автор</button>
-                <button id="searchModeTag" class="search-mode-btn" onclick="setSearchMode('tag')">По тегу</button>
+            <div class="search-bar-row">
+                <button class="filter-toggle-btn" id="filterToggleBtn" onclick="toggleFilterPanel(event)" aria-label="Фильтры"><i class="fas fa-sliders-h"></i></button>
+                <div class="search-input-wrap" style="flex:1;">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="searchInput" class="search-input" placeholder="Поиск уровня или автора..." oninput="debouncedRender()">
+                </div>
             </div>
-            <div class="search-input-wrap">
-                <i class="fas fa-search search-icon"></i>
-                <input type="text" id="searchInput" class="search-input" placeholder="Поиск уровня или автора..." oninput="debouncedRender()">
+            <div class="filter-panel" id="filterPanel" onclick="event.stopPropagation()">
+                <div class="filter-panel-title"><i class="fas fa-sliders-h" style="color:var(--accent);"></i> <span id="filterTitleLbl">Фильтры</span></div>
+
+                <div class="filter-section-label" id="filterStatusLbl">Статус</div>
+                <div class="filter-pills" id="filterStatusPills">
+                    <button class="filter-pill active" data-status="all" onclick="setStatusFilter('all')"><i class="fas fa-list"></i> <span id="fpStatusAll">Все</span></button>
+                    <button class="filter-pill" data-status="none" onclick="setStatusFilter('none')"><i class="fas fa-circle-check"></i> <span id="fpStatusNone">Активные</span></button>
+                    <button class="filter-pill" data-status="legacy" onclick="setStatusFilter('legacy')"><i class="fas fa-arrow-down"></i> <span id="fpStatusLegacy">Легасится</span></button>
+                    <button class="filter-pill" data-status="watch" onclick="setStatusFilter('watch')"><i class="fas fa-eye"></i> <span id="fpStatusWatch">Наблюдение</span></button>
+                    <button class="filter-pill" data-status="frozen" onclick="setStatusFilter('frozen')"><i class="fas fa-snowflake"></i> <span id="fpStatusFrozen">Заморожен</span></button>
+                </div>
+
+                <div class="filter-section-label" id="filterPtsLbl">Баллы</div>
+                <div class="range-wrap">
+                    <div class="range-track"></div>
+                    <div class="range-fill" id="rangeFill"></div>
+                    <input type="range" id="rangeMin" min="0" max="1000" value="0" oninput="onRangeInput()">
+                    <input type="range" id="rangeMax" min="0" max="1000" value="1000" oninput="onRangeInput()">
+                </div>
+                <div class="range-labels">
+                    <span class="range-label" id="rangeLblMin">0</span>
+                    <span class="range-dash">—</span>
+                    <span class="range-label" id="rangeLblMax">&infin;</span>
+                </div>
+
+                <div class="filter-toggle-row">
+                    <span><i class="fas fa-shield-halved"></i> <span id="filterVerLbl">Только верифицированные</span></span>
+                    <label class="switch"><input type="checkbox" id="filterVerified" onchange="onFilterChange()"><span class="switch-slider"></span></label>
+                </div>
+                <div class="filter-toggle-row">
+                    <span><i class="fas fa-clock"></i> <span id="filterNewLbl">Только новые</span></span>
+                    <label class="switch"><input type="checkbox" id="filterNew" onchange="onFilterChange()"><span class="switch-slider"></span></label>
+                </div>
+
+                <button class="filter-reset-btn" onclick="resetFilters()" id="filterResetBtn">Сбросить фильтры</button>
             </div>
         </div>
         <div id="dragIndicator" class="drag-indicator" style="display: none;">
@@ -950,6 +1194,9 @@
         </div>
 
         <div class="player-top-section" id="playerTopSection" style="display:none;">
+            <div style="display:flex;justify-content:center;margin-bottom:12px;">
+                <button onclick="openCompareModal()" style="background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.25);border-radius:10px;color:#a78bfa;font-size:0.78rem;font-weight:700;letter-spacing:0.5px;padding:8px 18px;cursor:pointer;transition:background 0.2s;" id="compareBtnNav">Сравнить игроков</button>
+            </div>
             <div id="countryFilterWrap" style="display:flex;justify-content:center;margin-bottom:16px;"></div>
             <div class="player-top-list" id="playerTopList">
                 <div class="skeleton-player-card" style="display:flex;align-items:center;gap:14px;padding:14px 18px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:14px;margin-bottom:8px;"><div style="width:40px;height:40px;border-radius:50%;flex-shrink:0;background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.09) 50%,rgba(255,255,255,0.04) 75%);background-size:600px 100%;animation:skeletonShimmer 1.4s infinite linear;"></div><div style="flex:1;display:flex;flex-direction:column;gap:8px;"><div class="skeleton-line medium"></div><div class="skeleton-line short"></div></div><div class="skeleton-line" style="width:50px;height:20px;border-radius:6px;"></div></div>
@@ -1009,7 +1256,7 @@
             <input type="text" id="mAuthor" placeholder="Автор" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
             <input type="text" id="mID" placeholder="ID уровня" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
             <input type="text" id="mTag" placeholder="Тег (напр. Top 1)" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
-            <input type="text" id="mVerifier" placeholder="Вер��фер" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
+            <input type="text" id="mVerifier" placeholder="Верифер" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
             <input type="text" id="mImg" placeholder="Ссылка на картинку" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
             <input type="text" id="mVid" placeholder="Ссылка на YouTube" style="width:100%;padding:10px 12px;margin:4px 0;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
             <input type="text" id="mPoints" placeholder="⚡ Баллы сложности (напр. 0.31)" style="width:100%;padding:10px 12px;margin:4px 0 10px;background:#0a0d1e;border:1px solid rgba(167,139,250,0.2);color:white;border-radius:10px;font-family:Nunito;font-size:0.88rem;outline:none;">
@@ -1095,7 +1342,7 @@
             <div id="fields_victor" style="display:none;">
                 <select id="selectDemon" style="width:100%"></select>
                 <input type="text" id="vicName" placeholder="Ник игрока">
-                <input type="text" id="vicPerc" placeholder="Проценты">
+                <input type="text" id="vicPerc" placeholder="��роценты">
                 <input type="text" id="vicAtt" placeholder="Попытки">
                 <input type="text" id="vicVid" placeholder="Ссылка на YouTube видео (необязательно)">
             </div>
@@ -1119,12 +1366,12 @@
     <div id="editDemonModal" class="edit-modal">
         <div class="edit-modal-content">
             <button class="modal-close-pin" onclick="closeEditModal()"><i class="fas fa-times"></i></button>
-            <h2>✏️ РЕДАКТИРОВАТЬ</h2>
+            <h2>��️ РЕДАКТИРОВАТЬ</h2>
             <input type="hidden" id="editDemonKey">
             <input type="hidden" id="editItemType">
 
             <label class="edit-field-label">Название уровня</label>
-            <input type="text" id="editName" class="edit-field-input" placeholder="Название уро��ня">
+            <input type="text" id="editName" class="edit-field-input" placeholder="Название уровня">
 
             <label class="edit-field-label">Автор</label>
             <input type="text" id="editAuthor" class="edit-field-input" placeholder="Автор">
@@ -1145,7 +1392,7 @@
             <label class="edit-field-label">Ссылка на YouTube</label>
             <input type="text" id="editVid" class="edit-field-input" placeholder="https://youtube.com/...">
 
-            <label class="edit-field-label">Баллы сложнос��и</label>
+            <label class="edit-field-label">Баллы сложности</label>
             <input type="text" id="editPoints" class="edit-field-input" placeholder="напр. 0.31 или 1.50">
             <p style="color:#555;font-size:0.75rem;margin:4px 0 0;line-height:1.4;">Отображается на карточке. Можно оставить пустым.</p>
 
@@ -1167,7 +1414,7 @@
     <div id="editRecordModal" class="edit-modal">
         <div class="edit-modal-content" style="max-width: 400px;">
             <button class="modal-close-pin" onclick="document.getElementById('editRecordModal').style.display='none'"><i class="fas fa-times"></i></button>
-            <h2>✏️ РЕДАКТИРОВА��Ь РЕКОРД</h2>
+            <h2>✏️ РЕДАКТИРОВАТЬ РЕКОРД</h2>
             <input type="hidden" id="editRecDemonKey">
             <input type="hidden" id="editRecKey">
             <input type="hidden" id="editRecType">
@@ -1186,7 +1433,7 @@
             
             <div class="edit-btn-row">
                 <button class="edit-btn-cancel" onclick="document.getElementById('editRecordModal').style.display='none'">Отмена</button>
-                <button class="edit-btn-save" onclick="saveRecordEdit()"><i class="fas fa-save"></i> ��охранить</button>
+                <button class="edit-btn-save" onclick="saveRecordEdit()"><i class="fas fa-save"></i> Сохранить</button>
             </div>
         </div>
     </div>
@@ -1216,9 +1463,9 @@
             <h2>✏️ РЕДАКТИРОВАТЬ СЛЕЕРА</h2>
             <input type="hidden" id="editSlayerOldName">
             
-            <label class="edit-field-label">Новый ни�� игрока</label>
+            <label class="edit-field-label">Новый ник игрока</label>
             <input type="text" id="editSlayerNewName" class="edit-field-input" placeholder="Никнейм">
-            <p style="color:#888; font-size:0.8rem; margin-top:8px; line-height:1.4;">Изменение ника обновит его во всех рекордах. Для удаления используйте кнопку корзины в списке.</p>
+            <p style="color:#888; font-size:0.8rem; margin-top:8px; line-height:1.4;">Изменение ника обнови�� его во всех рекордах. Для удаления используйте кнопку корзины в списке.</p>
             
             <div class="edit-btn-row">
                 <button class="edit-btn-cancel" onclick="document.getElementById('editSlayerModal').style.display='none'">Отмена</button>
@@ -1303,6 +1550,37 @@
     </div>
 
 
+    <!-- Кнопка Наверх -->
+    <button id="backToTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Наверх">
+        <i class="fas fa-chevron-up"></i>
+    </button>
+
+    <!-- Модалка сравнения игроков -->
+    <div id="compareModal">
+        <div class="compare-content">
+            <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+                <button class="modal-close-pin" onclick="document.getElementById('compareModal').style.display='none'"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="compare-header">
+                <h2 id="compareTitleEl">СРАВНЕНИЕ ИГРОКОВ</h2>
+                <p style="color:#6b7280;font-size:0.82rem;margin:0;" id="compareSubEl">Выбери двух игроков для сравнения</p>
+            </div>
+            <div class="compare-selects">
+                <div class="compare-select-box">
+                    <span class="compare-select-tag" id="compareTagA">Игрок 1</span>
+                    <select id="compareSelectA" class="compare-select"></select>
+                </div>
+                <span class="compare-vs">VS</span>
+                <div class="compare-select-box">
+                    <span class="compare-select-tag" id="compareTagB">Игрок 2</span>
+                    <select id="compareSelectB" class="compare-select"></select>
+                </div>
+            </div>
+            <button class="compare-btn" onclick="runCompare()" id="compareBtnRun">Сравнить</button>
+            <div id="compareResult"></div>
+        </div>
+    </div>
+
     <div id="playerProfileModal" class="profile-modal">
         <div class="profile-modal-content">
             <button class="modal-close-pin" onclick="document.getElementById('playerProfileModal').style.display='none'" style="position:absolute;top:14px;right:14px;">
@@ -1323,7 +1601,7 @@
                 <div class="profile-big-stat">
                     <i class="fas fa-trophy" style="color:#fbbf24;font-size:1.2rem;"></i>
                     <div>
-                        <div class="profile-big-val" id="profileRank">���</div>
+                        <div class="profile-big-val" id="profileRank">—</div>
                         <div class="profile-big-label" id="labelRank">Rank</div>
                     </div>
                 </div>
@@ -1363,7 +1641,7 @@
             <label class="mod-login-label">Email</label>
             <input type="email" id="modLoginEmail" class="mod-login-input" placeholder="your@email.com" autocomplete="email">
 
-            <label class="mod-login-label">Пар��ль</label>
+            <label class="mod-login-label">Пароль</label>
             <div style="position:relative;">
                 <input type="password" id="modLoginPass" class="mod-login-input" placeholder="••••••••" autocomplete="current-password" style="padding-right:44px;" onkeydown="if(event.key==='Enter') doModLogin()">
                 <button onclick="toggleModPassVis()" style="position:absolute;right:12px;top:50%;transform:translateY(-60%);background:none;border:none;color:#555;cursor:pointer;font-size:1rem;padding:0;" id="modPassEyeBtn">
@@ -1420,11 +1698,14 @@
         Object.defineProperty(window, 'isAdmin',     { get: () => _auth.isAdmin,     set: () => {} });
         Object.defineProperty(window, 'isModerator', { get: () => _auth.isModerator, set: () => {} });
         let currentUserRole = null;
-        let currentUserPermissions = {}; // Гранулярные права текущего пользователя
+        let currentUserPermissions = {}; // Гранулярные п��ава текущего пользователя
         let isDeleteMode = false;
         let isEditMode = false;
         let isDragDropMode = false;
-        let searchMode = 'main';
+        // Фильтры списка уровней
+        let filterState = { status: 'all', verified: false, newOnly: false, ptsMin: null, ptsMax: null };
+        let filterPtsBounds = { min: 0, max: 1000 };
+        const NEW_LEVEL_MS = 7 * 24 * 60 * 60 * 1000;
         let currentTab = 'demons';
         
         // Массивы данных
@@ -1532,6 +1813,229 @@
         }
 
         // Исправляет битые символы (mojibake) при двойном перекодировании UTF-8 → Latin1 → UTF-8
+        // ── Кнопка Наверх ──────────────────────────────────────────
+        (function() {
+            const btn = document.getElementById('backToTopBtn');
+            window.addEventListener('scroll', () => {
+                btn.classList.toggle('visible', window.scrollY > 320);
+            }, { passive: true });
+        })();
+
+        // ── Сравнение игроков ────────────────────────────────────────
+        function openCompareModal() {
+            const modal = document.getElementById('compareModal');
+            const selA  = document.getElementById('compareSelectA');
+            const selB  = document.getElementById('compareSelectB');
+
+            // Собираем список всех игроков из данных
+            const playerSet = new Set();
+            const collectNames = (level) => getLevelEntries(level).forEach(v => playerSet.add(v.name.trim()));
+            demons.forEach(collectNames); challenges.forEach(collectNames);
+            const sorted = Array.from(playerSet).sort((a,b) => a.localeCompare(b));
+
+            const opts = sorted.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+            selA.innerHTML = opts;
+            selB.innerHTML = opts;
+            if (sorted.length > 1) selB.selectedIndex = 1;
+
+            document.getElementById('compareResult').innerHTML = '';
+            modal.style.display = 'block';
+        }
+
+        function getPlayerStats(playerName) {
+            const allEntries = [];
+            const collect = (level) => getLevelEntries(level).forEach(v => {
+                if (v.name.trim().toLowerCase() === playerName.toLowerCase())
+                    allEntries.push({ demon: level, victor: v });
+            });
+            demons.forEach(collect); challenges.forEach(collect);
+
+            const getPerc = c => parseInt((c.victor.perc || '0').replace('%',''));
+            const completions = allEntries.filter(c => getPerc(c) >= 100);
+            const records     = allEntries.filter(c => { const p = getPerc(c); return p >= MIN_PERC && p < 100; });
+
+            let pts = 0;
+            allEntries.forEach(c => {
+                const perc = getPerc(c);
+                if (perc >= MIN_PERC) pts += calcPts(perc, c.demon.points);
+            });
+
+            // Ранк
+            const playerMap = {};
+            const ca = (level) => getLevelEntries(level).forEach(v => {
+                const n = v.name.trim();
+                if (!playerMap[n]) playerMap[n] = 0;
+                const p = parseInt((v.perc||'0').replace('%',''));
+                if (p >= MIN_PERC) playerMap[n] += calcPts(p, level.points);
+            });
+            demons.forEach(ca); challenges.forEach(ca);
+            const rankSorted = Object.entries(playerMap).sort((a,b) => b[1]-a[1]);
+            const rank = rankSorted.findIndex(([n]) => n.toLowerCase() === playerName.toLowerCase()) + 1;
+
+            // Хардест
+            let hardest = null;
+            if (completions.length > 0) {
+                const allList = [...demons, ...challenges];
+                const withIdx = completions.map(c => ({ c, idx: allList.indexOf(c.demon) }));
+                withIdx.sort((a,b) => a.idx - b.idx);
+                hardest = withIdx[0].c.demon;
+            }
+
+            return { pts, rank, completions: completions.length, records: records.length, hardest };
+        }
+
+        function runCompare() {
+            const nameA = document.getElementById('compareSelectA').value;
+            const nameB = document.getElementById('compareSelectB').value;
+            if (!nameA || !nameB || nameA === nameB) return;
+            const T = currentLang === 'EN';
+            const a = getPlayerStats(nameA);
+            const b = getPlayerStats(nameB);
+
+            const winnerA = a.pts >= b.pts;
+
+            const row = (label, valA, valB, higherIsBetter = true) => {
+                const aBetter = higherIsBetter ? valA > valB : valA < valB;
+                const bBetter = higherIsBetter ? valB > valA : valB < valA;
+                return `
+                <div class="compare-stat-row">
+                    <span class="compare-stat-label">${label}</span>
+                    <span class="compare-stat-val ${aBetter ? 'better' : bBetter ? 'worse' : ''}" style="text-align:right;min-width:60px;">${valA}</span>
+                </div>`;
+            };
+            const rowB = (label, valA, valB, higherIsBetter = true) => {
+                const aBetter = higherIsBetter ? valA > valB : valA < valB;
+                const bBetter = higherIsBetter ? valB > valA : valB < valA;
+                return `
+                <div class="compare-stat-row">
+                    <span class="compare-stat-label">${label}</span>
+                    <span class="compare-stat-val ${bBetter ? 'better' : aBetter ? 'worse' : ''}" style="text-align:right;min-width:60px;">${valB}</span>
+                </div>`;
+            };
+
+            const scoreLabel    = T ? 'Score'       : 'Очки';
+            const rankLabel     = T ? 'Rank'        : 'Ранк';
+            const compLabel     = T ? 'Completions' : 'Прохождений';
+            const recLabel      = T ? 'Records'     : 'Рекордов';
+            const hardestLabel  = T ? 'Hardest'     : 'Хардест';
+
+            document.getElementById('compareResult').innerHTML = `
+            <div class="compare-grid">
+                <div class="compare-col ${winnerA ? 'winner' : ''}">
+                    <div class="compare-col-name">
+                        ${winnerA ? '<i class="fas fa-crown compare-crown"></i>' : ''}
+                        ${escapeHtml(nameA)}
+                    </div>
+                    ${row(scoreLabel, a.pts.toFixed(1), b.pts)}
+                    ${row(rankLabel, a.rank > 0 ? '#'+a.rank : '—', b.rank > 0 ? '#'+b.rank : '—', false)}
+                    ${row(compLabel, a.completions, b.completions)}
+                    ${row(recLabel, a.records, b.records)}
+                    <div class="compare-hardest">
+                        <div class="compare-hardest-label">${hardestLabel}</div>
+                        <div class="compare-hardest-name">${a.hardest ? escapeHtml(a.hardest.name) : '—'}</div>
+                    </div>
+                </div>
+                <div class="compare-col ${!winnerA ? 'winner' : ''}">
+                    <div class="compare-col-name">
+                        ${!winnerA ? '<i class="fas fa-crown compare-crown"></i>' : ''}
+                        ${escapeHtml(nameB)}
+                    </div>
+                    ${rowB(scoreLabel, a.pts.toFixed(1), b.pts.toFixed(1))}
+                    ${rowB(rankLabel, a.rank > 0 ? '#'+a.rank : '—', b.rank > 0 ? '#'+b.rank : '—', false)}
+                    ${rowB(compLabel, a.completions, b.completions)}
+                    ${rowB(recLabel, a.records, b.records)}
+                    <div class="compare-hardest">
+                        <div class="compare-hardest-label">${hardestLabel}</div>
+                        <div class="compare-hardest-name">${b.hardest ? escapeHtml(b.hardest.name) : '—'}</div>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function loadStats() {
+            // Подсчёт демонов и челленджей уже в памяти
+            const T = currentLang === 'EN';
+            document.getElementById('statTotalDemons').textContent      = demons.length;
+            document.getElementById('statTotalChallenges').textContent  = challenges.length;
+            document.getElementById('statHardestDemon').textContent     = demons[0]     ? fixStr(demons[0].name)     : '—';
+            document.getElementById('statHardestChallenge').textContent = challenges[0] ? fixStr(challenges[0].name) : '—';
+            document.getElementById('statsUpdatedAt').textContent = (T ? 'Updated: ' : 'Обновлено: ') + new Date().toLocaleDateString(T ? 'en-GB' : 'ru-RU', { day:'2-digit', month:'long', year:'numeric' });
+
+            // Топ слеер и число игроков — считаем из рекордов уровней (как во вкладке "Топ Слееров")
+            const slayerMap = {};
+            const collectSlayers = (level) => getLevelEntries(level).forEach(v => {
+                const name = v.name ? v.name.trim() : '';
+                if (!name) return;
+                if (!(name in slayerMap)) slayerMap[name] = 0;
+                const perc = parseInt((v.perc || '0').replace('%', ''));
+                if (perc >= MIN_PERC) slayerMap[name] += calcPts(perc, level.points);
+            });
+            demons.forEach(collectSlayers);
+            challenges.forEach(collectSlayers);
+
+            const slayerSorted = Object.entries(slayerMap).sort((a, b) => b[1] - a[1]);
+            document.getElementById('statTotalPlayers').textContent = slayerSorted.length;
+            const slayerEl = document.getElementById('statTopSlayer');
+            const slayerPtsEl = document.getElementById('statTopSlayerPts');
+            if (slayerSorted[0]) {
+                slayerEl.textContent = fixStr(slayerSorted[0][0]);
+                slayerEl.style.color = '#fbbf24';
+                const pts = slayerSorted[0][1] < 0.01 ? '0' : slayerSorted[0][1].toFixed(2);
+                slayerPtsEl.textContent = pts + (T ? ' pts' : ' очков');
+            } else {
+                slayerEl.textContent = '—';
+                slayerPtsEl.textContent = '';
+            }
+
+            db.ref('creators').once('value', snap => {
+                const val = snap.val();
+                if (!val) return;
+                const list = Object.values(val);
+                document.getElementById('statTotalCreators').textContent = list.length;
+                const top = list.filter(c => c.points).sort((a,b) => (b.points||0)-(a.points||0));
+                if (top[0]) {
+                    document.getElementById('statTopCreator').textContent    = fixStr(top[0].name || top[0].nick || '—');
+                    document.getElementById('statTopCreatorPts').textContent = top[0].points + (T ? ' pts' : ' очков');
+                }
+            });
+
+            // Подсчёт всех рекордов
+            let totalRecords = 0;
+            const countRecords = (ref) => db.ref(ref).once('value', snap => {
+                const val = snap.val();
+                if (!val) return;
+                Object.values(val).forEach(lvl => {
+                    if (lvl.victors) totalRecords += Object.keys(lvl.victors).length;
+                });
+                document.getElementById('statTotalRecords').textContent = totalRecords;
+            });
+            countRecords('demons');
+            countRecords('challenges');
+
+            // Recently Added — последние 5 уровней (демоны + челленджи по дате)
+            const allLevels = [
+                ...demons.map(d => ({ ...d, type: 'demon' })),
+                ...challenges.map(c => ({ ...c, type: 'challenge' }))
+            ].filter(l => l.addedAt).sort((a,b) => (b.addedAt||0)-(a.addedAt||0)).slice(0,6);
+
+            const recentEl = document.getElementById('statRecentlyAdded');
+            if (allLevels.length === 0) {
+                recentEl.innerHTML = '<p style="color:#4b5563;font-size:0.82rem;">No data</p>';
+            } else {
+                recentEl.innerHTML = allLevels.map((l, idx) => {
+                    const ownList = l.type === 'challenge' ? challenges : demons;
+                    const pos = ownList.findIndex(x => x.key === l.key) + 1;
+                    const date = l.addedAt ? new Date(l.addedAt).toLocaleDateString('ru-RU', { day:'2-digit', month:'short' }) : '';
+                    return `<div class="stat-recent-item" onclick="openSection('listSection');switchTab('${l.type === 'challenge' ? 'challenges' : 'demons'}');setTimeout(()=>showInfoByKey('${l.key}','${l.type === 'challenge' ? 'challenges' : 'demons'}'),200);">
+                        <span class="stat-recent-type ${l.type}">${l.type === 'challenge' ? (T ? 'Challenge' : 'Челлендж') : (T ? 'Demon' : 'Демон')}</span>
+                        <span style="color:#94a3b8;font-family:'Orbitron';font-size:0.65rem;font-weight:700;flex-shrink:0;">#${pos}</span>
+                        <span style="color:#e2e8f0;font-size:0.85rem;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(l.name)}</span>
+                        <span style="color:#4b5563;font-size:0.72rem;flex-shrink:0;">${date}</span>
+                    </div>`;
+                }).join('');
+            }
+        }
+
         function fixStr(str) {
             if (!str || typeof str !== 'string') return str || '';
             try {
@@ -1668,14 +2172,19 @@
             const btn = document.querySelector('.review-submit-btn');
             if (!note || !btn) return;
             const cooldownLeft = getReviewCooldownLeft();
+            const T = currentLang === 'EN';
             if (cooldownLeft > 0) {
                 const hours = Math.ceil(cooldownLeft / (60 * 60 * 1000));
-                note.textContent = `Ты уже оставлял отзыв. Можно будет написать новый через ~${hours} ч.`;
+                note.textContent = T
+                    ? `You already left a review. You can write a new one in ~${hours}h.`
+                    : `Ты уже оставлял отзыв. Можно будет написать новый через ~${hours} ч.`;
                 btn.disabled = true;
                 btn.style.opacity = '0.5';
                 btn.style.cursor = 'not-allowed';
             } else {
-                note.textContent = 'Отзыв появится на сайте после ��роверки модератором';
+                note.textContent = T
+                    ? 'Your review will appear on the site after moderator approval'
+                    : 'Отзыв появится на сайте после проверки модератором';
                 btn.disabled = false;
                 btn.style.opacity = '1';
                 btn.style.cursor = 'pointer';
@@ -1802,11 +2311,11 @@
             const captchaInput = document.getElementById('captchaAnswer');
             const userCaptchaAnswer = parseInt((captchaInput.value || '').trim());
 
-            if (!name) { showToast('Вв��ди свой ник!'); return; }
+            if (!name) { showToast('Введи свой ник!'); return; }
             if (!text) { showToast('Напиши текст отзыва!'); return; }
             if (!selectedReviewRating) { showToast('Поставь оценку звёздами!'); return; }
             if (isNaN(userCaptchaAnswer) || userCaptchaAnswer !== reviewCaptchaAnswer) {
-                showToast('❌ Невер��ый ответ на пример. Попробуй ещё раз!');
+                showToast('❌ Неверный ответ на пример. Попробуй ещё раз!');
                 generateReviewCaptcha();
                 return;
             }
@@ -1823,7 +2332,7 @@
             });
 
             const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Превыш��но время ожидания. Проверь интернет-соединение.')), 12000)
+                setTimeout(() => reject(new Error('Превышено время ожидания. Проверь интернет-соединение.')), 12000)
             );
 
             Promise.race([reviewPushPromise, timeoutPromise]).then(() => {
@@ -2193,6 +2702,7 @@
             const drops = document.getElementsByClassName("dropdown-content");
             for (let i = 0; i < drops.length; i++) { drops[i].classList.remove('show'); }
             closeBurger();
+            if (id === 'statsSection') loadStats();
         }
 
         function toggleDropdown(id, event) {
@@ -2235,12 +2745,92 @@
         });
 
         // ===== SEARCH =====
-        function setSearchMode(m) {
-            searchMode = m;
-            document.getElementById('searchModeMain').classList.toggle('active', m === 'main');
-            document.getElementById('searchModeTag').classList.toggle('active', m === 'tag');
+        // ===== FILTER PANEL =====
+        function toggleFilterPanel(event) {
+            if (event) event.stopPropagation();
+            const panel = document.getElementById('filterPanel');
+            const btn = document.getElementById('filterToggleBtn');
+            const open = panel.classList.toggle('open');
+            btn.classList.toggle('active', open);
+            if (open) initFilterRange();
+        }
+
+        function initFilterRange() {
+            const list = currentTab === 'demons' ? demons : challenges;
+            const pts = list.map(d => parseFloat(d.points)).filter(n => !isNaN(n));
+            const rMin = document.getElementById('rangeMin');
+            const rMax = document.getElementById('rangeMax');
+            if (pts.length === 0) return;
+            const min = Math.floor(Math.min(...pts));
+            const max = Math.ceil(Math.max(...pts));
+            filterPtsBounds = { min, max: max > min ? max : min + 1 };
+            rMin.min = rMax.min = filterPtsBounds.min;
+            rMin.max = rMax.max = filterPtsBounds.max;
+            rMin.value = filterState.ptsMin !== null ? filterState.ptsMin : filterPtsBounds.min;
+            rMax.value = filterState.ptsMax !== null ? filterState.ptsMax : filterPtsBounds.max;
+            updateRangeUI();
+        }
+
+        function updateRangeUI() {
+            const rMin = document.getElementById('rangeMin');
+            const rMax = document.getElementById('rangeMax');
+            let lo = parseInt(rMin.value), hi = parseInt(rMax.value);
+            if (lo > hi) { const t = lo; lo = hi; hi = t; }
+            const { min, max } = filterPtsBounds;
+            const span = (max - min) || 1;
+            const fill = document.getElementById('rangeFill');
+            fill.style.left = ((lo - min) / span * 100) + '%';
+            fill.style.right = (100 - (hi - min) / span * 100) + '%';
+            document.getElementById('rangeLblMin').textContent = lo;
+            document.getElementById('rangeLblMax').innerHTML = hi >= max ? '&infin;' : hi;
+            filterState.ptsMin = lo <= min ? null : lo;
+            filterState.ptsMax = hi >= max ? null : hi;
+        }
+
+        function onRangeInput() { updateRangeUI(); updateFilterBadge(); debouncedRender(); }
+
+        function setStatusFilter(s) {
+            filterState.status = s;
+            document.querySelectorAll('#filterStatusPills .filter-pill').forEach(p =>
+                p.classList.toggle('active', p.dataset.status === s));
+            updateFilterBadge();
             render();
         }
+
+        function onFilterChange() {
+            filterState.verified = document.getElementById('filterVerified').checked;
+            filterState.newOnly = document.getElementById('filterNew').checked;
+            updateFilterBadge();
+            render();
+        }
+
+        function resetFilters() {
+            filterState = { status: 'all', verified: false, newOnly: false, ptsMin: null, ptsMax: null };
+            document.getElementById('filterVerified').checked = false;
+            document.getElementById('filterNew').checked = false;
+            document.querySelectorAll('#filterStatusPills .filter-pill').forEach(p =>
+                p.classList.toggle('active', p.dataset.status === 'all'));
+            initFilterRange();
+            updateFilterBadge();
+            render();
+        }
+
+        function updateFilterBadge() {
+            const active = filterState.status !== 'all' || filterState.verified || filterState.newOnly
+                || filterState.ptsMin !== null || filterState.ptsMax !== null;
+            document.getElementById('filterToggleBtn').classList.toggle('has-filters', active);
+        }
+
+        // Закрытие панели по клику вне её
+        document.addEventListener('click', (e) => {
+            const panel = document.getElementById('filterPanel');
+            const btn = document.getElementById('filterToggleBtn');
+            if (!panel || !panel.classList.contains('open')) return;
+            if (!panel.contains(e.target) && !btn.contains(e.target)) {
+                panel.classList.remove('open');
+                btn.classList.remove('active');
+            }
+        });
 
         // ===== DRAG & DROP =====
         function handleDragStart(index, event) {
@@ -2391,7 +2981,7 @@
                         <div class="player-top-name">${escapeHtml(p.name)}</div>
                         <div class="player-top-meta" style="display:flex;gap:12px;flex-wrap:wrap;">
                             <span><i class="fas fa-check" style="color:#4ade80;margin-right:4px;font-size:0.65rem;"></i>${p.completions} ${lbl?'compl.':'прохожд.'}</span>
-                            ${p.records > 0 ? `<span><i class="fas fa-chart-line" style="color:#60a5fa;margin-right:4px;font-size:0.65rem;"></i>${p.records} ${lbl?'records':'р���кордов'}</span>` : ''}
+                            ${p.records > 0 ? `<span><i class="fas fa-chart-line" style="color:#60a5fa;margin-right:4px;font-size:0.65rem;"></i>${p.records} ${lbl?'records':'рекордов'}</span>` : ''}
                             ${p.hardest ? `<span style="color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;" title="${p.hardest}"><i class="fas fa-fire" style="color:#fb923c;margin-right:4px;font-size:0.65rem;"></i>${p.hardest}</span>` : ''}
                         </div>
                     </div>
@@ -2487,9 +3077,29 @@
                 const listToRender = isDem ? demons : challenges;
                 const listType = isDem ? 'demons' : 'challenges';
 
+                const now = Date.now();
                 const filtered = listToRender.filter(d => {
-                    if (searchMode === 'tag') { return d.tag && d.tag.toLowerCase().includes(query); }
-                    return d.name.toLowerCase().includes(query) || d.author.toLowerCase().includes(query);
+                    // Поиск по названию, автору и тегу одновременно
+                    if (query) {
+                        const inName   = d.name.toLowerCase().includes(query);
+                        const inAuthor = (d.author || '').toLowerCase().includes(query);
+                        const inTag    = (d.tag || '').toLowerCase().includes(query);
+                        if (!inName && !inAuthor && !inTag) return false;
+                    }
+                    // Статус
+                    if (filterState.status !== 'all') {
+                        if (filterState.status === 'none') { if (d.status) return false; }
+                        else if (d.status !== filterState.status) return false;
+                    }
+                    // Только верифицированные
+                    if (filterState.verified && !(d.verifier && d.verifier.trim())) return false;
+                    // Только новые (добавлены за последние 7 дней)
+                    if (filterState.newOnly && !(d.addedAt && (now - d.addedAt) <= NEW_LEVEL_MS)) return false;
+                    // Диапазон баллов
+                    const p = parseFloat(d.points);
+                    if (filterState.ptsMin !== null && (isNaN(p) || p < filterState.ptsMin)) return false;
+                    if (filterState.ptsMax !== null && (isNaN(p) || p > filterState.ptsMax)) return false;
+                    return true;
                 });
 
                 const fragment = document.createDocumentFragment();
@@ -2728,14 +3338,31 @@
                     dlDescPC: "Скачать .zip архив для игры на компьютере",
                     dlDescAnd: "Скачать .apk файл для игры на телефоне",
                     tabDemons: "Демоны", tabChallenges: "Челленджи", tabPlayers: "Топ Слееров", tabCreators: "Топ Креаторов", tabPlayerSearch: "Поиск игрока",
-                    navDropDemons: "Demon List", navDropChallenges: "Challenge List", navDropCreators: "Топ Креаторов", navDropPlayers: "Топ Слееров",
+                    navDropDemons: "Лист Демонов", navDropChallenges: "Лист Челленджей", navDropCreators: "Топ Креаторов", navDropPlayers: "Топ Слееров",
+                    mNavLists: "Списки",
                     heroTitle: "DEMON LIST", heroBanner: "✦ ТОП 50 ✦",
                     profileCompletions: "Прохождений", profileRecords: "Рекордов",
                     profileBestDemon: "Лучший демон", profileBestPerc: "Макс. %",
                     profileCompTitle: "Прохождения", profileRecordsTitle: "Рекорды",
                     btnMoreLabel: "ПОДРОБНЕЕ", btnDetails: "ПОДРОБНЕЕ",
                     modText: "Модератор", dragActive: "Drag & Drop активен",
-                    detailRecords: "Records"
+                    detailRecords: "Рекорды",
+                    compareScore: "Очки", compareRank: "Ранк", compareComp: "Прохождений", compareRec: "Рекордов", compareHardest: "Хардест",
+                    statsTitle: "СТАТИСТИКА СЕРВЕРА",
+                    statsDemons: "Демоны", statsChallenges: "Челленджи", statsPlayers: "Игроки",
+                    statsRecords: "Рекорды", statsCreators: "Создатели",
+                    statsTopSlayer: "Топ Слеер", statsTopCreator: "Топ Создатель",
+                    statsHardestDemon: "Сложнейший Демон", statsHardestChallenge: "Сложнейший Челлендж",
+                    statsRecent: "Недавно добавленные", statsListPos: "#1 в листе",
+                    statsDemon: "Демон", statsChallenge: "Челлендж", statsUpdated: "Обновлено",
+                    navStats: "Статистика",
+                    compareTitle: "СРАВНЕНИЕ ИГРОКОВ", compareSub: "Выбери двух игроков для сравнения",
+                    compareBtn: "Сравнить", compareBtnNav: "Сравнить игроков",
+                    compareP1: "Игрок 1", compareP2: "Игрок 2",
+                    filterTitle: "Фильтры", filterStatus: "Статус", filterPoints: "Баллы",
+                    filterVerified: "Только верифицированные", filterNew: "Только новые", filterReset: "Сбросить фильтры",
+                    fStatusAll: "Все", fStatusNone: "Активные", fStatusLegacy: "Легасится", fStatusWatch: "Наблюдение", fStatusFrozen: "Заморожен",
+                    searchPlaceholder: "Поиск уровня, автора или тега..."
                 },
                 EN: {
                     welcomeT: "NIGHT GDPS",
@@ -2749,13 +3376,30 @@
                     dlDescAnd: "Download .apk file to play on mobile",
                     tabDemons: "Demons", tabChallenges: "Challenges", tabPlayers: "Top Slayers", tabCreators: "Top Creators", tabPlayerSearch: "Player Search",
                     navDropDemons: "Demon List", navDropChallenges: "Challenge List", navDropCreators: "Top Creators", navDropPlayers: "Top Slayers",
+                    mNavLists: "Lists",
                     heroTitle: "DEMON LIST", heroBanner: "✦ TOP 50 ✦",
                     profileCompletions: "Completions", profileRecords: "Records",
                     profileBestDemon: "Best Demon", profileBestPerc: "Max %",
                     profileCompTitle: "Completions", profileRecordsTitle: "Records",
                     btnMoreLabel: "DETAILS", btnDetails: "DETAILS",
                     modText: "Moderator", dragActive: "Drag & Drop active",
-                    detailRecords: "Records"
+                    detailRecords: "Records",
+                    compareScore: "Score", compareRank: "Rank", compareComp: "Completions", compareRec: "Records", compareHardest: "Hardest",
+                    statsTitle: "SERVER STATISTICS",
+                    statsDemons: "Demons", statsChallenges: "Challenges", statsPlayers: "Players",
+                    statsRecords: "Records", statsCreators: "Creators",
+                    statsTopSlayer: "Top Slayer", statsTopCreator: "Top Creator",
+                    statsHardestDemon: "Hardest Demon", statsHardestChallenge: "Hardest Challenge",
+                    statsRecent: "Recently Added", statsListPos: "#1 on the list",
+                    statsDemon: "Demon", statsChallenge: "Challenge", statsUpdated: "Updated",
+                    navStats: "Statistics",
+                    compareTitle: "PLAYER COMPARISON", compareSub: "Select two players to compare",
+                    compareBtn: "Compare", compareBtnNav: "Compare Players",
+                    compareP1: "Player 1", compareP2: "Player 2",
+                    filterTitle: "Filters", filterStatus: "Status", filterPoints: "Points",
+                    filterVerified: "Verified only", filterNew: "New only", filterReset: "Reset filters",
+                    fStatusAll: "All", fStatusNone: "Active", fStatusLegacy: "Going Legacy", fStatusWatch: "Under Watch", fStatusFrozen: "Frozen",
+                    searchPlaceholder: "Search level, author or tag..."
                 }
             };
             const t = translations[lang];
@@ -2773,6 +3417,26 @@
             // Moderator indicator
             set('modIndicatorText', t.modText);
 
+            // Tab labels (list section)
+            set('tabDemonsLabel', t.tabDemons);
+            set('tabChallengesLabel', t.tabChallenges);
+            set('tabPlayersLabel', t.tabPlayers);
+            set('tabCreatorsLabel', t.tabCreators);
+            set('tabPlayerSearchLabel', t.tabPlayerSearch);
+
+            // Nav dropdown labels
+            set('navDropDemonsLabel', t.navDropDemons);
+            set('navDropChallengesLabel', t.navDropChallenges);
+            set('navDropCreatorsLabel', t.navDropCreators);
+            set('navDropPlayersLabel', t.navDropPlayers);
+
+            // Mobile nav labels
+            set('mNavLists', t.mNavLists);
+            set('mNavDemons', t.navDropDemons);
+            set('mNavChallenges', t.navDropChallenges);
+            set('mNavCreators', t.navDropCreators);
+            set('mNavPlayers', t.navDropPlayers);
+
             // Download section
             set('dlTitle', t.dlTitle);
             set('dlVersion', t.dlVersion);
@@ -2786,6 +3450,43 @@
             set('labelBestPerc', t.profileBestPerc);
             set('profileCompTitle', t.profileCompTitle);
             set('profileRecordsTitle', t.profileRecordsTitle);
+
+            // Stats section
+            set('statsPageTitle', t.statsTitle);
+            set('statLabelDemons', t.statsDemons);
+            set('statLabelChallenges', t.statsChallenges);
+            set('statLabelPlayers', t.statsPlayers);
+            set('statLabelRecords', t.statsRecords);
+            set('statLabelCreators', t.statsCreators);
+            set('statLabelTopSlayer', t.statsTopSlayer);
+            set('statLabelTopCreator', t.statsTopCreator);
+            set('statLabelHardestDemon', t.statsHardestDemon);
+            set('statLabelHardestChallenge', t.statsHardestChallenge);
+            set('statLabelRecent', t.statsRecent);
+            set('statLabelHardestDemonPos', t.statsListPos);
+            set('statLabelHardestChallengePos', t.statsListPos);
+            set('navStats', t.navStats);
+            set('compareTitleEl', t.compareTitle);
+            set('compareSubEl', t.compareSub);
+            set('compareBtnRun', t.compareBtn);
+            set('compareBtnNav', t.compareBtnNav);
+            set('compareTagA', t.compareP1);
+            set('compareTagB', t.compareP2);
+
+            // Filter panel
+            set('filterTitleLbl', t.filterTitle);
+            set('filterStatusLbl', t.filterStatus);
+            set('filterPtsLbl', t.filterPoints);
+            set('filterVerLbl', t.filterVerified);
+            set('filterNewLbl', t.filterNew);
+            set('filterResetBtn', t.filterReset);
+            set('fpStatusAll', t.fStatusAll);
+            set('fpStatusNone', t.fStatusNone);
+            set('fpStatusLegacy', t.fStatusLegacy);
+            set('fpStatusWatch', t.fStatusWatch);
+            set('fpStatusFrozen', t.fStatusFrozen);
+            const searchInputEl = document.getElementById('searchInput');
+            if (searchInputEl) searchInputEl.placeholder = t.searchPlaceholder;
 
             render();
         }
@@ -2833,25 +3534,28 @@
                         ? `<p style="color:#4b5563;font-size:0.78rem;text-align:center;padding:10px 0;">${currentLang==='EN'?'No position history yet':'История позиций пока не записана'}</p>`
                         : '';
                 }
-                const W = 400, H = 80, PAD = 24;
+                const W = 400, H = 100, PAD = 28, LABEL_TOP = 14, LABEL_BOT = 12;
                 const positions = historyData.map(h => h.pos);
                 const minPos = Math.min(...positions);
                 const maxPos = Math.max(...positions);
                 const range = maxPos === minPos ? 1 : maxPos - minPos;
-                const xStep = (W - PAD * 2) / (historyData.length - 1);
-                const toY = p => PAD + ((p - minPos) / range) * (H - PAD * 2);
+                const xStep = (W - PAD * 2) / Math.max(historyData.length - 1, 1);
+                // Позиция Y: меньший номер = выше (топ 1 = верх)
+                const toY = p => LABEL_TOP + ((p - minPos) / range) * (H - LABEL_TOP - LABEL_BOT);
                 const points = historyData.map((h, i) => `${PAD + i * xStep},${toY(h.pos)}`).join(' ');
                 const firstPos = positions[0], lastPos = positions[positions.length - 1];
                 const trend = lastPos < firstPos ? '#4ade80' : lastPos > firstPos ? '#f87171' : '#a78bfa';
                 const dots = historyData.map((h, i) => {
                     const x = PAD + i * xStep, y = toY(h.pos);
-                    const label = h.date ? h.date.slice(5) : '';
-                    return `<circle cx="${x}" cy="${y}" r="4" fill="${trend}" stroke="#111827" stroke-width="2"/>
-                            <text x="${x}" y="${H - 4}" text-anchor="middle" font-size="9" fill="#4b5563">${label}</text>
-                            <title>#${h.pos} — ${h.date||''}</title>`;
+                    const dateLabel = h.date ? h.date.slice(5) : '';
+                    return `
+                        <circle cx="${x}" cy="${y}" r="4.5" fill="${trend}" stroke="#111827" stroke-width="2"/>
+                        <text x="${x}" y="${y - 8}" text-anchor="middle" font-size="10" font-weight="700" fill="${trend}">#${h.pos}</text>
+                        <text x="${x}" y="${H}" text-anchor="middle" font-size="8.5" fill="#4b5563">${dateLabel}</text>
+                        <title>#${h.pos} — ${h.date||''}</title>`;
                 }).join('');
-                return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:80px;overflow:visible;" role="img" aria-label="Position history">
-                    <polyline points="${points}" fill="none" stroke="${trend}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+                return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;overflow:visible;" role="img" aria-label="Position history">
+                    <polyline points="${points}" fill="none" stroke="${trend}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" opacity="0.7"/>
                     ${dots}
                 </svg>`;
             })();
@@ -2977,7 +3681,7 @@
 
         // ===== UTILS =====
         function deleteVictor(dk, vk, type = 'demons') {
-            if(confirm(currentLang==='EN'?"Delete record?":"��далить рекорд?")) {
+            if(confirm(currentLang==='EN'?"Delete record?":"Удалить рекорд?")) {
                 db.ref(`${type}/${dk}/victors/${vk}`).remove().then(() => { 
                     document.getElementById('detailModal').style.display='none'; 
                     showToast('🗑️ Рекорд удален');
@@ -3128,8 +3832,8 @@
         }
 
         // Возвращает все записи игроков для уровня, включая верифера как 100% прохождение.
-        // Если верифер уже записан в victors (например, сам себя верифнул) — запис�� просто помечается меткой "Верифер",
-        // но баллы НЕ начисляются повторно, остаются как есть. Отдельная запис�� создаётся только если верифера ещё нет в списке.
+        // Если верифер уже записан в victors (например, сам себя верифнул) — запись просто помечается меткой "Верифер",
+        // но баллы НЕ начисляются повторно, остаются как есть. Отдельная запись создаётся только если верифера ещё нет в списке.
         function getLevelEntries(level) {
             const vName = (level.verifier || '').trim();
             const entries = level.victors
@@ -3350,23 +4054,29 @@
                 // Иконка, лейбл и бейджик по типу
                 const labelEl = document.getElementById('labelHardest');
                 hardestWrap.classList.remove('is-challenge', 'is-verified');
-                if (isVerifiedHardest) {
-                    hardestIcon.innerHTML = '<i class="fas fa-shield-alt"></i>';
-                    if (labelEl) labelEl.textContent = 'Hardest Verified';
+                if (isChallengeHardest) {
+                    hardestIcon.innerHTML = '<i class="fas fa-bolt"></i>';
+                    if (labelEl) labelEl.textContent = currentLang === 'EN' ? 'Hardest Challenge' : 'Сложнейший Челлендж';
+                    if (isVerifiedHardest) {
+                        // Верифицированный челлендж — синяя карточка + ЗЕЛЁНАЯ галочка "Verified"
+                        hardestBadge.className = 'hardest-badge verified';
+                        hardestBadge.innerHTML = '<i class="fas fa-check-circle"></i> Verified';
+                    } else {
+                        hardestBadge.className = 'hardest-badge challenge';
+                        hardestBadge.innerHTML = '<i class="fas fa-bolt"></i> Challenge';
+                    }
+                    hardestBadge.style.display = 'inline-flex';
+                    hardestWrap.classList.add('is-challenge');
+                } else if (isVerifiedHardest) {
+                    // Верифицированный демон — оранжевая карточка + зелёная галочка
+                    hardestIcon.innerHTML = '<i class="fas fa-fire"></i>';
+                    if (labelEl) labelEl.textContent = currentLang === 'EN' ? 'Hardest Level' : 'Сложнейший Демон';
                     hardestBadge.className = 'hardest-badge verified';
                     hardestBadge.innerHTML = '<i class="fas fa-check-circle"></i> Verified';
                     hardestBadge.style.display = 'inline-flex';
-                    hardestWrap.classList.add('is-verified');
-                } else if (isChallengeHardest) {
-                    hardestIcon.innerHTML = '<i class="fas fa-bolt"></i>';
-                    if (labelEl) labelEl.textContent = 'Hardest Challenge';
-                    hardestBadge.className = 'hardest-badge challenge';
-                    hardestBadge.innerHTML = '<i class="fas fa-fire"></i> Challenge';
-                    hardestBadge.style.display = 'inline-flex';
-                    hardestWrap.classList.add('is-challenge');
                 } else {
                     hardestIcon.innerHTML = '<i class="fas fa-fire"></i>';
-                    if (labelEl) labelEl.textContent = 'Hardest Level';
+                    if (labelEl) labelEl.textContent = currentLang === 'EN' ? 'Hardest Level' : 'Сложнейший Демон';
                     hardestBadge.style.display = 'none';
                 }
 
@@ -3504,7 +4214,7 @@
                 editBtn.style.borderColor = isEditMode ? 'rgba(243,156,18,0.6)' : 'rgba(243,156,18,0.3)';
             }
             render();
-            showToast(isEditMode ? '✏️ Режим ��едактирования включён' : '✏️ Режим редактирования выключён');
+            showToast(isEditMode ? '✏️ Режим редактирования включён' : '✏️ Режим редактирования выключён');
             document.getElementById('modQuickPanel').style.display = 'none';
         }
 
@@ -3620,7 +4330,7 @@
                 document.getElementById('modLoginPage').style.display = 'none';
                 document.body.style.overflow = '';
                 history.replaceState(null, '', window.location.pathname + window.location.search);
-                showToast('✅ Добро пожаловать в кома��ду!');
+                showToast('✅ Добро пожаловать в команду!');
             } catch(e) {
                 let msg = 'Неверный email или пароль';
                 if (e.code === 'auth/too-many-requests') msg = 'Слишком много попыток. Подожди немного.';
