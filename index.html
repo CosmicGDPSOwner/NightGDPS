@@ -671,6 +671,44 @@
         @media (max-width: 600px) {
             .profile-modal { backdrop-filter: none; background: rgba(0,0,0,0.96); }
         }
+
+        /* ===== PERMISSIONS CHECKBOXES ===== */
+        .perm-check-label {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px; margin-bottom: 6px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 10px; cursor: pointer;
+            font-size: 0.85rem; color: #94a3b8;
+            transition: background 0.2s, border-color 0.2s;
+            user-select: none;
+        }
+        .perm-check-label:hover { background: rgba(167,139,250,0.07); border-color: rgba(167,139,250,0.2); }
+        .perm-check-label input[type="checkbox"] {
+            width: 16px; height: 16px; flex-shrink: 0;
+            accent-color: #a78bfa; cursor: pointer;
+        }
+        .perm-check-label span { flex: 1; }
+
+        /* Бейджики разрешений в списке модераторов */
+        .perm-badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            font-size: 0.6rem; font-weight: 700; letter-spacing: 0.5px;
+            padding: 2px 7px; border-radius: 5px;
+            text-transform: uppercase;
+        }
+        .perm-badge.on  { background: rgba(74,222,128,0.1);  border: 1px solid rgba(74,222,128,0.3);  color: #4ade80; }
+        .perm-badge.off { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); color: #444; text-decoration: line-through; }
+
+        /* Кнопка редактирования прав в списке */
+        .mod-perm-btn {
+            width: 30px; height: 30px; border-radius: 7px;
+            background: rgba(167,139,250,0.1); border: 1px solid rgba(167,139,250,0.25);
+            color: #a78bfa; font-size: 0.85rem; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: 0.2s; flex-shrink: 0;
+        }
+        .mod-perm-btn:hover { background: rgba(167,139,250,0.22); border-color: rgba(167,139,250,0.5); transform: scale(1.08); }
     </style>
 </head>
 <body>
@@ -1185,13 +1223,68 @@
             <input type="email" id="newModEmail" placeholder="Email аккаунта Firebase">
             <input type="password" id="newModPass" placeholder="Пароль для нового аккаунта">
             <input type="text" id="newModNick" placeholder="Никнейм (для отображения)">
-            <select id="newModRole">
-                <option value="moderator">Модератор (редактирование, рекорды)</option>
+            <select id="newModRole" onchange="document.getElementById('newModPermsBlock').style.display=this.value==='moderator'?'block':'none'">
+                <option value="moderator">Модератор (гранулярные права)</option>
                 <option value="admin">Администратор (полный доступ)</option>
             </select>
+
+            <!-- Разрешения — только для роли "moderator" -->
+            <div id="newModPermsBlock" style="margin:12px 0 6px;">
+                <p style="color:#a78bfa;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin:0 0 10px;">Разрешения модератора</p>
+                <label class="perm-check-label">
+                    <input type="checkbox" id="permAddDemons" checked>
+                    <span><i class="fas fa-skull-crossbones" style="color:#f472b6;margin-right:6px;"></i>Добавлять демонов в лист</span>
+                </label>
+                <label class="perm-check-label">
+                    <input type="checkbox" id="permAddChallenges" checked>
+                    <span><i class="fas fa-bolt" style="color:#fbbf24;margin-right:6px;"></i>Добавлять челленджи в лист</span>
+                </label>
+                <label class="perm-check-label">
+                    <input type="checkbox" id="permAddRecords" checked>
+                    <span><i class="fas fa-medal" style="color:#60a5fa;margin-right:6px;"></i>Заносить рекорды (слееры, креаторы, викторы)</span>
+                </label>
+                <label class="perm-check-label">
+                    <input type="checkbox" id="permDeleteReviews">
+                    <span><i class="fas fa-trash-alt" style="color:#ff6868;margin-right:6px;"></i>Удалять отзывы</span>
+                </label>
+            </div>
+
             <button class="mod-add-btn" onclick="addModerator()"><i class="fas fa-user-plus"></i> Создать аккаунт модератора</button>
         </div>
-        <p style="color:#555;font-size:0.75rem;text-align:center;margin-top:12px;line-height:1.5;">Модераторы могут редактировать карточки демонов и добавлять рекорды.<br>Администраторы имеют полный доступ.</p>
+        <p style="color:#555;font-size:0.75rem;text-align:center;margin-top:12px;line-height:1.5;">Модераторы получают только те права, которые вы указали.<br>Администраторы имеют полный доступ без ограничений.</p>
+    </div>
+
+    <!-- Модалка редактирования прав существующего мода -->
+    <div id="editPermModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.88);z-index:6000;backdrop-filter:blur(20px);overflow-y:auto;">
+        <div style="background:rgba(10,12,28,0.99);margin:40px auto;padding:28px 22px;max-width:420px;width:calc(100% - 28px);border-radius:20px;border:1px solid rgba(167,139,250,0.3);position:relative;box-shadow:0 20px 50px rgba(0,0,0,0.6);">
+            <button onclick="document.getElementById('editPermModal').style.display='none'" style="position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:8px;background:rgba(255,70,70,0.13);border:1px solid rgba(255,70,70,0.3);color:#ff6868;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;"><i class="fas fa-times"></i></button>
+            <h2 style="font-family:'Orbitron';font-size:1.1rem;margin:0 40px 6px 0;background:linear-gradient(135deg,#7b5ea7,#3d85c8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">ПРАВА МОДЕРАТОРА</h2>
+            <p id="editPermNick" style="color:#94a3b8;font-size:0.85rem;margin:0 0 18px;"></p>
+            <input type="hidden" id="editPermUid">
+
+            <p style="color:#a78bfa;font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin:0 0 10px;">Разрешения</p>
+            <label class="perm-check-label">
+                <input type="checkbox" id="editPermAddDemons">
+                <span><i class="fas fa-skull-crossbones" style="color:#f472b6;margin-right:6px;"></i>Добавлять демонов в лист</span>
+            </label>
+            <label class="perm-check-label">
+                <input type="checkbox" id="editPermAddChallenges">
+                <span><i class="fas fa-bolt" style="color:#fbbf24;margin-right:6px;"></i>Добавлять челленджи в лист</span>
+            </label>
+            <label class="perm-check-label">
+                <input type="checkbox" id="editPermAddRecords">
+                <span><i class="fas fa-medal" style="color:#60a5fa;margin-right:6px;"></i>Заносить рекорды</span>
+            </label>
+            <label class="perm-check-label">
+                <input type="checkbox" id="editPermDeleteReviews">
+                <span><i class="fas fa-trash-alt" style="color:#ff6868;margin-right:6px;"></i>Удалять отзывы</span>
+            </label>
+
+            <div style="display:flex;gap:10px;margin-top:20px;">
+                <button onclick="document.getElementById('editPermModal').style.display='none'" style="flex:1;padding:13px;background:transparent;color:#888;border:1px solid #333;border-radius:12px;font-weight:700;font-size:0.85rem;text-transform:uppercase;cursor:pointer;font-family:Nunito;">Отмена</button>
+                <button onclick="saveModPermissions()" style="flex:1;padding:13px;background:linear-gradient(135deg,#7b5ea7,#3d85c8);color:#fff;border:none;border-radius:12px;font-weight:900;font-size:0.85rem;text-transform:uppercase;cursor:pointer;font-family:Nunito;transition:0.3s;" onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter=''"><i class="fas fa-save"></i> Сохранить</button>
+            </div>
+        </div>
     </div>
 
 
@@ -1278,7 +1371,7 @@
 
     <script>
         const firebaseConfig = {
-            apiKey: "AIzaSyBugYw3fPo4r7Q0e4jDjBUd-JBbCspghE8",
+            apiKey: ********,
             authDomain: "mysterygdps-30547.firebaseapp.com",
             databaseURL: "https://mysterygdps-30547-default-rtdb.firebaseio.com",
             projectId: "mysterygdps-30547",
@@ -1306,7 +1399,8 @@
         // Convenience shorthands used throughout the file — read-only getters
         Object.defineProperty(window, 'isAdmin',     { get: () => _auth.isAdmin,     set: () => {} });
         Object.defineProperty(window, 'isModerator', { get: () => _auth.isModerator, set: () => {} });
-        let currentUserRole = null; 
+        let currentUserRole = null;
+        let currentUserPermissions = {}; // Гранулярные права текущего пользователя
         let isDeleteMode = false;
         let isEditMode = false;
         let isDragDropMode = false;
@@ -1337,6 +1431,10 @@
                         currentUserRole = modData.role || 'moderator';
                         _auth.setMod(true);
                         _auth.setAdmin(currentUserRole === 'admin');
+                        // Загружаем гранулярные права; для admin — полный доступ
+                        currentUserPermissions = currentUserRole === 'admin'
+                            ? { canAddDemons: true, canAddChallenges: true, canAddRecords: true, canDeleteReviews: true }
+                            : (modData.permissions || {});
                     } else {
                         auth.signOut();
                         return;
@@ -1346,6 +1444,7 @@
             } else {
                 _auth.reset();
                 currentUserRole = null;
+                currentUserPermissions = {};
                 isDeleteMode = false;
                 isEditMode = false;
                 isDragDropMode = false;
@@ -1434,7 +1533,7 @@
                         <span class="review-card-name">${escapeHtml(r.name)}</span>
                         <div style="display:flex;align-items:center;gap:8px;">
                             <span class="review-card-stars">${renderStarsHtml(r.rating || 0)}</span>
-                            ${isAdmin ? `<button onclick="deleteReview('${r.key}')" title="Удалить отзыв" style="background:rgba(255,70,70,0.12);border:1px solid rgba(255,70,70,0.3);color:#ff6868;border-radius:7px;width:26px;height:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.75rem;flex-shrink:0;transition:0.2s;" onmouseover="this.style.background='rgba(255,70,70,0.25)'" onmouseout="this.style.background='rgba(255,70,70,0.12)'"><i class="fas fa-trash"></i></button>` : ''}
+                            ${(isAdmin || currentUserPermissions.canDeleteReviews) ? `<button onclick="deleteReview('${r.key}')" title="Удалить отзыв" style="background:rgba(255,70,70,0.12);border:1px solid rgba(255,70,70,0.3);color:#ff6868;border-radius:7px;width:26px;height:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.75rem;flex-shrink:0;transition:0.2s;" onmouseover="this.style.background='rgba(255,70,70,0.25)'" onmouseout="this.style.background='rgba(255,70,70,0.12)'"><i class="fas fa-trash"></i></button>` : ''}
                         </div>
                     </div>
                     <p class="review-card-text">${escapeHtml(r.text)}</p>
@@ -1443,7 +1542,7 @@
         }
 
         function deleteReview(key) {
-            if (!isAdmin) return;
+            if (!isAdmin && !currentUserPermissions.canDeleteReviews) return;
             if (!confirm('Удалить этот отзыв?')) return;
             db.ref('reviews/' + key).remove()
                 .then(() => showToast('🗑️ Отзыв удалён'))
@@ -1715,24 +1814,74 @@
                 container.innerHTML = '<p style="color:#555;text-align:center;font-size:0.85rem;">Модераторов пока нет</p>';
                 return;
             }
-            container.innerHTML = moderators.map(m => `
-                <div class="mod-list-item">
-                    <div class="mod-item-info">
-                        <div class="mod-item-email">${m.email || '—'}</div>
-                        <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
-                            <span class="mod-item-name">${m.nick || 'Без ника'}</span>
-                            <span class="mod-role-badge ${m.role === 'admin' ? 'mod-role-admin' : 'mod-role-mod'}">
-                                ${m.role === 'admin' ? '⭐ Админ' : '🛡️ Мод'}
-                            </span>
+            container.innerHTML = moderators.map(m => {
+                const p = m.permissions || {};
+                const isModRole = m.role !== 'admin';
+                const permBadges = isModRole ? `
+                    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:7px;">
+                        <span class="perm-badge ${p.canAddDemons ? 'on' : 'off'}"><i class="fas fa-skull-crossbones"></i> Демоны</span>
+                        <span class="perm-badge ${p.canAddChallenges ? 'on' : 'off'}"><i class="fas fa-bolt"></i> Челленджи</span>
+                        <span class="perm-badge ${p.canAddRecords ? 'on' : 'off'}"><i class="fas fa-medal"></i> Рекорды</span>
+                        <span class="perm-badge ${p.canDeleteReviews ? 'on' : 'off'}"><i class="fas fa-trash-alt"></i> Отзывы</span>
+                    </div>` : '<div style="margin-top:6px;font-size:0.72rem;color:#666;">Полный доступ ко всем функциям</div>';
+                return `
+                <div style="background:rgba(4,5,13,0.6);border:1px solid rgba(167,139,250,0.1);border-radius:12px;padding:12px 14px;margin-bottom:8px;">
+                    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;">
+                        <div style="flex:1;min-width:0;">
+                            <div style="font-size:0.78rem;color:#555;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.email || '—'}</div>
+                            <div style="display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap;">
+                                <span style="font-weight:700;color:#e2d4f0;font-size:0.88rem;">${m.nick || 'Без ника'}</span>
+                                <span style="display:inline-block;padding:2px 8px;border-radius:5px;font-size:0.62rem;font-weight:900;letter-spacing:0.5px;text-transform:uppercase;${m.role === 'admin' ? 'background:rgba(244,114,182,0.12);border:1px solid rgba(244,114,182,0.3);color:#f472b6;' : 'background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.25);color:#60a5fa;'}">
+                                    ${m.role === 'admin' ? '⭐ Админ' : '🛡️ Мод'}
+                                </span>
+                            </div>
+                            ${permBadges}
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+                            ${isModRole ? `<button class="mod-perm-btn" onclick="openEditPermModal('${m.uid}')" title="Редактировать права"><i class="fas fa-key"></i></button>` : ''}
+                            <button style="width:30px;height:30px;border-radius:7px;background:rgba(255,70,70,0.1);border:1px solid rgba(255,70,70,0.25);color:#ff6868;font-size:0.8rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:0.2s;" onmouseover="this.style.background='rgba(255,70,70,0.22)'" onmouseout="this.style.background='rgba(255,70,70,0.1)'" onclick="removeModerator('${m.uid}', '${m.email || ''}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
                         </div>
                     </div>
-                    <div class="mod-item-actions">
-                        <button class="mod-del-btn" onclick="removeModerator('${m.uid}', '${m.email || ''}')">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            `).join('');
+                </div>`;
+            }).join('');
+        }
+
+        function openEditPermModal(uid) {
+            if (!isAdmin) return;
+            const m = moderators.find(x => x.uid === uid);
+            if (!m) return;
+            const p = m.permissions || {};
+            document.getElementById('editPermUid').value = uid;
+            document.getElementById('editPermNick').textContent = (m.nick || m.email || uid);
+            document.getElementById('editPermAddDemons').checked    = !!p.canAddDemons;
+            document.getElementById('editPermAddChallenges').checked = !!p.canAddChallenges;
+            document.getElementById('editPermAddRecords').checked   = !!p.canAddRecords;
+            document.getElementById('editPermDeleteReviews').checked = !!p.canDeleteReviews;
+            document.getElementById('editPermModal').style.display  = 'flex';
+        }
+
+        async function saveModPermissions() {
+            if (!isAdmin) return;
+            const uid = document.getElementById('editPermUid').value;
+            const permissions = {
+                canAddDemons:    document.getElementById('editPermAddDemons').checked,
+                canAddChallenges: document.getElementById('editPermAddChallenges').checked,
+                canAddRecords:   document.getElementById('editPermAddRecords').checked,
+                canDeleteReviews: document.getElementById('editPermDeleteReviews').checked
+            };
+            try {
+                await db.ref('moderators/' + uid + '/permissions').set(permissions);
+                // Обновить локально если это текущий пользователь
+                if (auth.currentUser && auth.currentUser.uid === uid) {
+                    currentUserPermissions = permissions;
+                }
+                showToast('✅ Права обновлены!');
+                document.getElementById('editPermModal').style.display = 'none';
+            } catch(e) {
+                showToast('Ошибка: ' + e.message);
+            }
         }
 
         function openModPanel() {
@@ -1756,6 +1905,17 @@
                 return;
             }
 
+            // Собираем разрешения (только для роли moderator; admin получает всё)
+            const permissions = role === 'moderator' ? {
+                canAddDemons:     document.getElementById('permAddDemons').checked,
+                canAddChallenges: document.getElementById('permAddChallenges').checked,
+                canAddRecords:    document.getElementById('permAddRecords').checked,
+                canDeleteReviews: document.getElementById('permDeleteReviews').checked
+            } : {
+                canAddDemons: true, canAddChallenges: true,
+                canAddRecords: true, canDeleteReviews: true
+            };
+
             try {
                 const secondaryApp = firebase.initializeApp(firebaseConfig, 'secondary_' + Date.now());
                 const secondaryAuth = secondaryApp.auth();
@@ -1764,11 +1924,16 @@
                 await secondaryAuth.signOut();
                 secondaryApp.delete();
 
-                await db.ref('moderators/' + uid).set({ email, nick, role, createdAt: Date.now() });
+                await db.ref('moderators/' + uid).set({ email, nick, role, permissions, createdAt: Date.now() });
                 showToast('Модератор успешно добавлен!');
                 document.getElementById('newModEmail').value = '';
                 document.getElementById('newModPass').value = '';
                 document.getElementById('newModNick').value = '';
+                // Сбрасываем чекбоксы на дефолт
+                document.getElementById('permAddDemons').checked = true;
+                document.getElementById('permAddChallenges').checked = true;
+                document.getElementById('permAddRecords').checked = true;
+                document.getElementById('permDeleteReviews').checked = false;
             } catch (e) {
                 console.error(e);
                 showToast('Ошибка: ' + (e.message || 'неизвестная ошибка'));
@@ -2387,7 +2552,7 @@
             }
 
             if (act === 'add_victor') {
-                if (!isModerator) { alert('Нет доступа!'); return; }
+                if (!isModerator || (!isAdmin && !currentUserPermissions.canAddRecords)) { alert('Нет прав: добавление рекордов не разрешено!'); return; }
                 const dKey = document.getElementById('selectDemon').value;
                 const vicVidRaw = document.getElementById('vicVid').value.trim();
                 let vicVid = vicVidRaw;
@@ -2404,7 +2569,7 @@
             }
 
             if (act === 'add_victor_challenge') {
-                if (!isModerator) { alert('Нет доступа!'); return; }
+                if (!isModerator || (!isAdmin && !currentUserPermissions.canAddRecords)) { alert('Нет прав: добавление рекордов не разрешено!'); return; }
                 const cKey = document.getElementById('selectChallenge').value;
                 if (!cKey) { showToast('Нет доступных челленджей'); return; }
                 const rawVid = document.getElementById('chalVicVid').value.trim();
@@ -2426,6 +2591,8 @@
                 return;
             }
             if (act === 'add_demon' || act === 'add_challenge') {
+                if (act === 'add_demon'     && !isAdmin && !currentUserPermissions.canAddDemons)     { alert('Нет прав: добавление демонов не разрешено!'); return; }
+                if (act === 'add_challenge' && !isAdmin && !currentUserPermissions.canAddChallenges) { alert('Нет прав: добавление челленджей не разрешено!'); return; }
                 if (!isModerator) { alert('Нет доступа!'); return; }
                 const targetDb = act === 'add_demon' ? 'demons' : 'challenges';
                 const targetList = act === 'add_demon' ? demons : challenges;
