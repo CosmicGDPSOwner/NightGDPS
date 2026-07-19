@@ -1465,7 +1465,7 @@
             
             <label class="edit-field-label">Новый ник игрока</label>
             <input type="text" id="editSlayerNewName" class="edit-field-input" placeholder="Никнейм">
-            <p style="color:#888; font-size:0.8rem; margin-top:8px; line-height:1.4;">Изменение ника обнови�� его во всех рекордах. Для удаления используйте кнопку корзины в списке.</p>
+            <p style="color:#888; font-size:0.8rem; margin-top:8px; line-height:1.4;">Изменение ника обно��и�� его во всех рекордах. Для удаления используйте кнопку корзины в списке.</p>
             
             <div class="edit-btn-row">
                 <button class="edit-btn-cancel" onclick="document.getElementById('editSlayerModal').style.display='none'">Отмена</button>
@@ -1482,8 +1482,14 @@
 
         <div class="mod-add-form">
             <h3>➕ Добавить модератора</h3>
+            <select id="newModMode" onchange="toggleModAddMode()" style="margin-bottom:10px;">
+                <option value="new">Создать новый аккаунт</option>
+                <option value="existing">Выдать права существующему (по UID)</option>
+            </select>
             <input type="email" id="newModEmail" placeholder="Email аккаунта Firebase">
             <input type="password" id="newModPass" placeholder="Пароль для нового аккаунта">
+            <input type="text" id="newModUid" placeholder="Firebase UID (из Firebase Console → Authentication)" style="display:none;">
+            <p id="newModUidHint" style="display:none;color:#60a5fa;font-size:0.72rem;line-height:1.5;margin:-4px 0 8px;">Открой Firebase Console → Authentication → вкладка Users, скопируй <b>User UID</b> нужного аккаунта и вставь сюда.</p>
             <input type="text" id="newModNick" placeholder="Никнейм (для отображения)">
             <select id="newModRole" onchange="document.getElementById('newModPermsBlock').style.display=this.value==='moderator'?'block':'none'">
                 <option value="moderator">Модератор (гранулярные права)</option>
@@ -1511,7 +1517,7 @@
                 </label>
             </div>
 
-            <button class="mod-add-btn" onclick="addModerator()"><i class="fas fa-user-plus"></i> Создать аккаунт модератора</button>
+            <button class="mod-add-btn" id="modAddBtn" onclick="addModerator()"><i class="fas fa-user-plus"></i> Создать аккаунт модератора</button>
         </div>
         <p style="color:#555;font-size:0.75rem;text-align:center;margin-top:12px;line-height:1.5;">Модераторы получают только те права, которые вы указали.<br>Администраторы имеют полный доступ без ограничений.</p>
     </div>
@@ -1737,7 +1743,9 @@
                             ? { canAddDemons: true, canAddChallenges: true, canAddRecords: true, canDeleteReviews: true }
                             : (modData.permissions || {});
                     } else {
+                        // Аккаунт есть в Firebase Auth, но прав модератора ему не выдали
                         auth.signOut();
+                        showToast('⛔ У этого аккаунта нет прав модератора. Обратись к администратору.');
                         return;
                     }
                     updateUIForRole();
@@ -2433,17 +2441,27 @@
             document.getElementById('modPanel').style.display = 'none';
         }
 
+        // Переключение между "создать новый" и "выдать существующему (по UID)"
+        function toggleModAddMode() {
+            const mode = document.getElementById('newModMode').value;
+            const existing = mode === 'existing';
+            document.getElementById('newModPass').style.display    = existing ? 'none' : 'block';
+            document.getElementById('newModUid').style.display     = existing ? 'block' : 'none';
+            document.getElementById('newModUidHint').style.display = existing ? 'block' : 'none';
+            const btn = document.getElementById('modAddBtn');
+            btn.innerHTML = existing
+                ? '<i class="fas fa-user-shield"></i> Выдать права аккаунту'
+                : '<i class="fas fa-user-plus"></i> Создать аккаунт модератора';
+        }
+
         async function addModerator() {
             if (!isAdmin) return;
+            const mode  = document.getElementById('newModMode').value;
             const email = document.getElementById('newModEmail').value.trim();
-            const pass = document.getElementById('newModPass').value;
-            const nick = document.getElementById('newModNick').value.trim();
-            const role = document.getElementById('newModRole').value;
-
-            if (!email || !pass || pass.length < 6) {
-                showToast('Заполни email и пароль (мин. 6 символов)');
-                return;
-            }
+            const pass  = document.getElementById('newModPass').value;
+            const uid   = document.getElementById('newModUid').value.trim();
+            const nick  = document.getElementById('newModNick').value.trim();
+            const role  = document.getElementById('newModRole').value;
 
             // Собираем разрешения (только для роли moderator; admin получает всё)
             const permissions = role === 'moderator' ? {
@@ -2456,27 +2474,56 @@
                 canAddRecords: true, canDeleteReviews: true
             };
 
-            try {
-                const secondaryApp = firebase.initializeApp(firebaseConfig, 'secondary_' + Date.now());
-                const secondaryAuth = secondaryApp.auth();
-                const cred = await secondaryAuth.createUserWithEmailAndPassword(email, pass);
-                const uid = cred.user.uid;
-                await secondaryAuth.signOut();
-                secondaryApp.delete();
-
-                await db.ref('moderators/' + uid).set({ email, nick, role, permissions, createdAt: Date.now() });
-                showToast('Модератор успешно добавлен!');
+            const resetForm = () => {
                 document.getElementById('newModEmail').value = '';
                 document.getElementById('newModPass').value = '';
+                document.getElementById('newModUid').value = '';
                 document.getElementById('newModNick').value = '';
-                // Сбрасываем чекбоксы на дефолт
                 document.getElementById('permAddDemons').checked = true;
                 document.getElementById('permAddChallenges').checked = true;
                 document.getElementById('permAddRecords').checked = true;
                 document.getElementById('permDeleteReviews').checked = false;
+            };
+
+            // === Режим 2: выдать права уже существующему аккаунту по UID ===
+            if (mode === 'existing') {
+                if (!uid) { showToast('Вставь Firebase UID аккаунта'); return; }
+                try {
+                    const existingSnap = await db.ref('moderators/' + uid).once('value');
+                    if (existingSnap.exists()) { showToast('У этого аккаунта уже есть права'); return; }
+                    await db.ref('moderators/' + uid).set({ email: email || '', nick, role, permissions, createdAt: Date.now() });
+                    showToast('✅ Права выданы! Пусть человек перезайдёт на сайт.');
+                    resetForm();
+                } catch (e) {
+                    console.error(e);
+                    showToast('Ошибка: ' + (e.message || 'неизвестная ошибка'));
+                }
+                return;
+            }
+
+            // === Режим 1: создать новый аккаунт ===
+            if (!email || !pass || pass.length < 6) {
+                showToast('Заполни email и пароль (мин. 6 символов)');
+                return;
+            }
+            try {
+                const secondaryApp = firebase.initializeApp(firebaseConfig, 'secondary_' + Date.now());
+                const secondaryAuth = secondaryApp.auth();
+                const cred = await secondaryAuth.createUserWithEmailAndPassword(email, pass);
+                const newUid = cred.user.uid;
+                await secondaryAuth.signOut();
+                secondaryApp.delete();
+
+                await db.ref('moderators/' + newUid).set({ email, nick, role, permissions, createdAt: Date.now() });
+                showToast('Модератор успешно добавлен!');
+                resetForm();
             } catch (e) {
                 console.error(e);
-                showToast('Ошибка: ' + (e.message || 'неизвестная ошибка'));
+                if (e.code === 'auth/email-already-in-use') {
+                    showToast('Этот email уже занят. Выбери режим «Выдать права существующему (по UID)».');
+                } else {
+                    showToast('Ошибка: ' + (e.message || 'неизвестная ошибка'));
+                }
             }
         }
 
@@ -4326,7 +4373,15 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Входим...';
 
             try {
-                await auth.signInWithEmailAndPassword(email, pass);
+                const cred = await auth.signInWithEmailAndPassword(email, pass);
+                // Проверяем, есть ли у аккаунта права модератора, ДО приветствия
+                const modSnap = await db.ref('moderators/' + cred.user.uid).once('value');
+                if (!modSnap.exists()) {
+                    await auth.signOut();
+                    errEl.textContent = 'У этого аккаунта нет прав модератора. Обратись к администратору.';
+                    errEl.style.display = 'block';
+                    return;
+                }
                 document.getElementById('modLoginPage').style.display = 'none';
                 document.body.style.overflow = '';
                 history.replaceState(null, '', window.location.pathname + window.location.search);
