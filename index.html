@@ -295,9 +295,12 @@
 
         .card { background: rgba(15, 19, 42, 0.95); border-radius: 14px; overflow: hidden; border: 1px solid rgba(255,255,255,0.07); position: relative; display: flex; flex-direction: row; align-items: stretch; min-height: 120px; transition: border-color 0.25s, box-shadow 0.25s; box-shadow: 0 4px 16px rgba(0,0,0,0.45); cursor: default; content-visibility: auto; contain-intrinsic-size: 120px; }
         .card:hover { border-color: rgba(167,139,250,0.4); box-shadow: 0 0 0 1px rgba(167,139,250,0.25), 0 8px 28px rgba(0,0,0,0.5); }
-        .card.dragging { opacity: 0.5; border-color: var(--accent); }
-        .card.drag-over { border-color: var(--accent); box-shadow: 0 0 20px rgba(167,139,250,0.4); }
-        .card.drag-over::after { content: '▼'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 2rem; color: var(--accent); opacity: 0.5; pointer-events: none; z-index: 100; }
+        .card.dragging { opacity: 0.45; transform: scale(0.97); border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent) inset; }
+        .card.drag-over { border-color: var(--accent); box-shadow: 0 0 22px rgba(167,139,250,0.45); transform: translateY(2px); transition: transform 0.12s ease, box-shadow 0.12s ease; }
+        .card.drag-over::before { content: ''; position: absolute; left: 8px; right: 8px; height: 4px; border-radius: 4px; background: var(--accent); box-shadow: 0 0 12px var(--accent); z-index: 120; pointer-events: none; }
+        .card.drag-over-before::before { top: -3px; }
+        .card.drag-over-after::before { bottom: -3px; }
+        .card.drag-over::after { content: '\f0dc'; font-family: 'Font Awesome 6 Free'; font-weight: 900; position: absolute; top: 8px; left: 8px; font-size: 0.9rem; color: var(--accent); opacity: 0.85; pointer-events: none; z-index: 120; }
         .card[draggable="true"] { cursor: grab; }
         .card[draggable="true"]:active { cursor: grabbing; }
 
@@ -1085,7 +1088,7 @@
 
             <!-- Последние добавленные -->
                 <div class="stat-detail-card" style="margin-bottom:14px;">
-                    <div class="stat-detail-title" style="margin-bottom:12px;"><i class="fas fa-clock" style="color:#60a5fa;"></i> <span id="statLabelRecent">Недавно добавленные</span></div>
+                    <div class="stat-detail-title" style="margin-bottom:12px;"><i class="fas fa-clock" style="color:#60a5fa;"></i> <span id="statLabelRecent">Недавние изменения</span></div>
                 <div id="statRecentlyAdded" style="display:flex;flex-direction:column;gap:8px;"></div>
             </div>
         </div>
@@ -1325,6 +1328,7 @@
                 <option value="delete_all_demons">🗑️ Удалить ВСЕХ демонов</option>
                 <option value="maintenance">🔧 Техперерыв вкл/выкл</option>
                 <option value="drag_drop">🖱️ Drag & Drop режим</option>
+                <option value="clear_history">🧹 Очистить историю позиций</option>
                 <option value="set_country">Страна игрока</option>
             </select>
             <div id="fields_main">
@@ -1465,7 +1469,7 @@
             
             <label class="edit-field-label">Новый ник игрока</label>
             <input type="text" id="editSlayerNewName" class="edit-field-input" placeholder="Никнейм">
-            <p style="color:#888; font-size:0.8rem; margin-top:8px; line-height:1.4;">Изменение ника обно��и�� его во всех рекордах. Для удаления используйте кнопку корзины в списке.</p>
+            <p style="color:#888; font-size:0.8rem; margin-top:8px; line-height:1.4;">Изменение ника обно����и�� его во всех рекордах. Для удаления используйте кнопку корзины в списке.</p>
             
             <div class="edit-btn-row">
                 <button class="edit-btn-cancel" onclick="document.getElementById('editSlayerModal').style.display='none'">Отмена</button>
@@ -1724,6 +1728,21 @@
         let selectedReviewRating = 0;
         let draggedItem = null;
         let draggedIndex = -1;
+
+        // ===== Недавние изменения (в памяти, с момента загрузки страницы) =====
+        let recentChanges = [];                       // [{kind:'add'|'move', type, key, name, pos, from, to, ts}]
+        const _prevOrder = { demons: null, challenges: null };
+        const RECENT_MAX = 40;
+
+        // ===== Права на редактирование/перестановку по вкладке =====
+        function canEditTab(tab) {
+            if (isAdmin) return true;
+            if (!isModerator) return false;
+            if (tab === 'challenges') return !!currentUserPermissions.canAddChallenges;
+            return !!currentUserPermissions.canAddDemons; // демоны
+        }
+        function canReorderCurrent() { return canEditTab(currentTab); }
+
 
         if (localStorage.getItem('mxAdmin') === '1') {
             document.getElementById('admin-trigger').style.display = 'block';
@@ -2020,28 +2039,8 @@
             countRecords('demons');
             countRecords('challenges');
 
-            // Recently Added — последние 5 уровней (демоны + челленджи по дате)
-            const allLevels = [
-                ...demons.map(d => ({ ...d, type: 'demon' })),
-                ...challenges.map(c => ({ ...c, type: 'challenge' }))
-            ].filter(l => l.addedAt).sort((a,b) => (b.addedAt||0)-(a.addedAt||0)).slice(0,6);
-
-            const recentEl = document.getElementById('statRecentlyAdded');
-            if (allLevels.length === 0) {
-                recentEl.innerHTML = '<p style="color:#4b5563;font-size:0.82rem;">No data</p>';
-            } else {
-                recentEl.innerHTML = allLevels.map((l, idx) => {
-                    const ownList = l.type === 'challenge' ? challenges : demons;
-                    const pos = ownList.findIndex(x => x.key === l.key) + 1;
-                    const date = l.addedAt ? new Date(l.addedAt).toLocaleDateString('ru-RU', { day:'2-digit', month:'short' }) : '';
-                    return `<div class="stat-recent-item" onclick="openSection('listSection');switchTab('${l.type === 'challenge' ? 'challenges' : 'demons'}');setTimeout(()=>showInfoByKey('${l.key}','${l.type === 'challenge' ? 'challenges' : 'demons'}'),200);">
-                        <span class="stat-recent-type ${l.type}">${l.type === 'challenge' ? (T ? 'Challenge' : 'Челлендж') : (T ? 'Demon' : 'Демон')}</span>
-                        <span style="color:#94a3b8;font-family:'Orbitron';font-size:0.65rem;font-weight:700;flex-shrink:0;">#${pos}</span>
-                        <span style="color:#e2e8f0;font-size:0.85rem;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(l.name)}</span>
-                        <span style="color:#4b5563;font-size:0.72rem;flex-shrink:0;">${date}</span>
-                    </div>`;
-                }).join('');
-            }
+            // Недавние изменения — рендерится живой лентой (обновляется с момента загрузки)
+            renderRecentChanges();
         }
 
         function fixStr(str) {
@@ -2053,6 +2052,103 @@
                 }
             } catch(e) {}
             return str;
+        }
+
+        // Сравнивает новый порядок списка с предыдущим и записывает недавние изменения.
+        // Первый вызов только запоминает состояние (изменения считаем с момента загрузки).
+        function detectListChanges(type, newList) {
+            const prev = _prevOrder[type];
+            const nextMap = {};
+            newList.forEach((it, idx) => { nextMap[it.key] = { pos: idx, name: it.name }; });
+
+            if (prev) {
+                const adds = newList.filter(it => !(it.key in prev));
+                adds.forEach((a, i) => {
+                    const idx = newList.findIndex(x => x.key === a.key);
+                    pushChange({ kind: 'add', type, key: a.key, name: a.name, pos: idx + 1, ts: Date.now() });
+                });
+                // Перестановки записываем только если не было добавлений (иначе это сдвиг из-за вставки)
+                if (adds.length === 0) {
+                    const moves = [];
+                    newList.forEach((it, idx) => {
+                        if ((it.key in prev) && prev[it.key].pos !== idx) {
+                            moves.push({ key: it.key, name: it.name, from: prev[it.key].pos, to: idx });
+                        }
+                    });
+                    if (moves.length) {
+                        // Берём тот уровень, который поднялся выше всех (самый значимый переезд)
+                        moves.sort((a, b) => (a.to - a.from) - (b.to - b.from));
+                        const m = moves[0];
+                        pushChange({ kind: 'move', type, key: m.key, name: m.name, from: m.from + 1, to: m.to + 1, ts: Date.now() });
+                    }
+                }
+            }
+            _prevOrder[type] = nextMap;
+        }
+
+        function pushChange(ev) {
+            // Защита от дубля одного и того же события подряд
+            const last = recentChanges[0];
+            if (last && last.kind === ev.kind && last.key === ev.key && last.to === ev.to && last.pos === ev.pos && (ev.ts - last.ts) < 1500) return;
+            recentChanges.unshift(ev);
+            if (recentChanges.length > RECENT_MAX) recentChanges.length = RECENT_MAX;
+            renderRecentChanges();
+        }
+
+        function renderRecentChanges() {
+            const el = document.getElementById('statRecentlyAdded');
+            if (!el) return;
+            const T = currentLang === 'EN';
+            const openArgs = (ev) => {
+                const tab = ev.type === 'challenge' || ev.type === 'challenges' ? 'challenges' : 'demons';
+                return `openSection('listSection');switchTab('${tab}');setTimeout(()=>showInfoByKey('${ev.key}','${tab}'),200);`;
+            };
+            const typeBadge = (ev) => {
+                const isChal = ev.type === 'challenge' || ev.type === 'challenges';
+                return `<span class="stat-recent-type ${isChal ? 'challenge' : 'demon'}">${isChal ? (T ? 'Challenge' : 'Челлендж') : (T ? 'Demon' : 'Демон')}</span>`;
+            };
+
+            if (recentChanges.length) {
+                el.innerHTML = recentChanges.map(ev => {
+                    const time = new Date(ev.ts).toLocaleTimeString(T ? 'en-US' : 'ru-RU', { hour: '2-digit', minute: '2-digit' });
+                    let action;
+                    if (ev.kind === 'add') {
+                        action = `<span style="color:#34d399;font-size:0.7rem;font-weight:800;flex-shrink:0;"><i class="fas fa-plus"></i> ${T ? 'added' : 'добавлен'} #${ev.pos}</span>`;
+                    } else {
+                        const up = ev.to < ev.from;
+                        action = `<span style="color:${up ? '#34d399' : '#f472b6'};font-size:0.7rem;font-weight:800;flex-shrink:0;"><i class="fas fa-arrow-${up ? 'up' : 'down'}"></i> #${ev.from}&rarr;#${ev.to}</span>`;
+                    }
+                    return `<div class="stat-recent-item" onclick="${openArgs(ev)}">
+                        ${typeBadge(ev)}
+                        <span style="color:#e2e8f0;font-size:0.85rem;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(ev.name)}</span>
+                        ${action}
+                        <span style="color:#4b5563;font-size:0.7rem;flex-shrink:0;">${time}</span>
+                    </div>`;
+                }).join('');
+                return;
+            }
+
+            // Фолбэк: пока изменений с загрузки не было — показываем недавно добавленные по дате
+            const allLevels = [
+                ...demons.map(d => ({ ...d, type: 'demon' })),
+                ...challenges.map(c => ({ ...c, type: 'challenge' }))
+            ].filter(l => l.addedAt).sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0)).slice(0, 6);
+
+            if (allLevels.length === 0) {
+                el.innerHTML = `<p style="color:#4b5563;font-size:0.82rem;">${T ? 'No changes since page load' : 'Пока нет изменений с момента загрузки'}</p>`;
+                return;
+            }
+            el.innerHTML = allLevels.map(l => {
+                const ownList = l.type === 'challenge' ? challenges : demons;
+                const pos = ownList.findIndex(x => x.key === l.key) + 1;
+                const date = l.addedAt ? new Date(l.addedAt).toLocaleDateString(T ? 'en-US' : 'ru-RU', { day: '2-digit', month: 'short' }) : '';
+                return `<div class="stat-recent-item" onclick="openSection('listSection');switchTab('${l.type === 'challenge' ? 'challenges' : 'demons'}');setTimeout(()=>showInfoByKey('${l.key}','${l.type === 'challenge' ? 'challenges' : 'demons'}'),200);">
+                    <span class="stat-recent-type ${l.type}">${l.type === 'challenge' ? (T ? 'Challenge' : 'Челлендж') : (T ? 'Demon' : 'Демон')}</span>
+                    <span style="color:#94a3b8;font-family:'Orbitron';font-size:0.65rem;font-weight:700;flex-shrink:0;">#${pos}</span>
+                    <span style="color:#e2e8f0;font-size:0.85rem;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(l.name)}</span>
+                    <span style="color:#4b5563;font-size:0.72rem;flex-shrink:0;">${date}</span>
+                </div>`;
+            }).join('');
         }
 
         function renderStarsHtml(rating) {
@@ -2557,10 +2653,26 @@
             document.getElementById('adminPanel').style.display = 'block';
             const sel = document.getElementById('admAction');
             if (sel) {
+                const canReorder = isAdmin || currentUserPermissions.canAddDemons || currentUserPermissions.canAddChallenges;
                 Array.from(sel.options).forEach(opt => {
-                    if (['delete_all_demons','manage_mods','maintenance','drag_drop','delete_mode'].includes(opt.value)) {
+                    // Действия только для админа
+                    if (['delete_all_demons','manage_mods','maintenance','delete_mode','clear_history','add_creator'].includes(opt.value)) {
                         opt.disabled = !isAdmin;
                         opt.style.color = isAdmin ? '' : '#555';
+                    }
+                    // Drag & Drop — админ или модератор с правом на демонов/челленджи
+                    if (opt.value === 'drag_drop') {
+                        opt.disabled = !canReorder;
+                        opt.style.color = canReorder ? '' : '#555';
+                    }
+                    // Добавление демонов/челленджей — по гранулярным правам
+                    if (opt.value === 'add_demon') {
+                        const ok = isAdmin || currentUserPermissions.canAddDemons;
+                        opt.disabled = !ok; opt.style.color = ok ? '' : '#555';
+                    }
+                    if (opt.value === 'add_challenge') {
+                        const ok = isAdmin || currentUserPermissions.canAddChallenges;
+                        opt.disabled = !ok; opt.style.color = ok ? '' : '#555';
                     }
                 });
             }
@@ -2770,6 +2882,7 @@
         db.ref('demons').on('value', s => {
             const val = s.val();
             demons = val ? Object.entries(val).map(([k, d]) => ({ key: k, ...d, name: fixStr(d.name), creator: fixStr(d.creator) })).sort((a,b)=>(a.order||0)-(b.order||0)) : [];
+            detectListChanges('demons', demons);
             const sel = document.getElementById('selectDemon');
             if(sel) sel.innerHTML = demons.map(d => `<option value="${escapeHtml(d.key)}">${escapeHtml(d.name)}</option>`).join('');
             if (currentTab === 'demons') render();
@@ -2779,6 +2892,7 @@
         db.ref('challenges').on('value', s => {
             const val = s.val();
             challenges = val ? Object.entries(val).map(([k, d]) => ({ key: k, ...d, name: fixStr(d.name), creator: fixStr(d.creator) })).sort((a,b)=>(a.order||0)-(b.order||0)) : [];
+            detectListChanges('challenges', challenges);
             const selC = document.getElementById('selectChallenge');
             if (selC) selC.innerHTML = challenges.map(c => `<option value="${escapeHtml(c.key)}">${escapeHtml(c.name)}</option>`).join('');
             if (currentTab === 'challenges') render();
@@ -2881,25 +2995,30 @@
 
         // ===== DRAG & DROP =====
         function handleDragStart(index, event) {
-            if (!isDragDropMode) { event.preventDefault(); return; }
+            if (!isDragDropMode || !canReorderCurrent()) { event.preventDefault(); return; }
             draggedIndex = index; 
             draggedItem = currentTab === 'demons' ? demons[index] : challenges[index];
             event.dataTransfer.setData('text/plain', index);
+            event.dataTransfer.effectAllowed = 'move';
             event.currentTarget.classList.add('dragging');
         }
         function handleDragOver(index, event) {
             if (!isDragDropMode || draggedIndex === -1) return;
             event.preventDefault();
-            document.querySelectorAll('.card').forEach(c => c.classList.remove('drag-over'));
-            event.currentTarget.classList.add('drag-over');
+            event.dataTransfer.dropEffect = 'move';
+            if (index === draggedIndex) return;
+            document.querySelectorAll('.card').forEach(c => c.classList.remove('drag-over','drag-over-before','drag-over-after'));
+            event.currentTarget.classList.add('drag-over', index < draggedIndex ? 'drag-over-before' : 'drag-over-after');
         }
-        function handleDragLeave(event) { event.currentTarget.classList.remove('drag-over'); }
+        function handleDragLeave(event) { event.currentTarget.classList.remove('drag-over','drag-over-before','drag-over-after'); }
         function handleDrop(targetIndex, event) {
-            event.preventDefault(); event.currentTarget.classList.remove('drag-over');
-            if (!isDragDropMode || draggedIndex === -1 || draggedIndex === targetIndex) return;
+            event.preventDefault();
+            document.querySelectorAll('.card').forEach(c => c.classList.remove('drag-over','drag-over-before','drag-over-after'));
+            if (!isDragDropMode || !canReorderCurrent() || draggedIndex === -1 || draggedIndex === targetIndex) return;
             
             const list = currentTab === 'demons' ? demons : challenges;
             const dbRef = currentTab === 'demons' ? '/demons/' : '/challenges/';
+            const today = new Date().toISOString().slice(0,10);
             
             const newList = [...list];
             const dragged = newList[draggedIndex];
@@ -2907,8 +3026,15 @@
             newList.splice(targetIndex, 0, dragged);
             
             const updates = {};
-            newList.forEach((item, idx) => { if (item.order !== idx) { updates[`${dbRef}${item.key}/order`] = idx; } });
-            db.ref().update(updates).then(() => { showToast('Порядок обновлён!'); });
+            newList.forEach((item, idx) => {
+                if (item.order !== idx) {
+                    updates[`${dbRef}${item.key}/order`] = idx;
+                    // Записываем снимок позиции в историю (для графика позиций)
+                    const hKey = db.ref(`${dbRef}${item.key}/history`).push().key;
+                    updates[`${dbRef}${item.key}/history/${hKey}`] = { pos: idx + 1, date: today };
+                }
+            });
+            db.ref().update(updates).then(() => { showToast('✅ Порядок обновлён!'); });
             
             draggedIndex = -1; draggedItem = null;
         }
@@ -3101,6 +3227,18 @@
             showToast(isDragDropMode ? 'Drag & Drop режим включён' : 'Drag & Drop режим выключён');
         }
 
+        // Очистка истории позиций (только админ) — удаляет узлы /history у всех уровней
+        function clearPositionHistory() {
+            if (!isAdmin) { alert('Только администратор!'); return; }
+            if (!confirm('⚠️ Очистить историю позиций у ВСЕХ демонов и челленджей? Графики позиций будут сброшены. Действие необратимо!')) return;
+            const updates = {};
+            demons.forEach(d => { updates[`/demons/${d.key}/history`] = null; });
+            challenges.forEach(c => { updates[`/challenges/${c.key}/history`] = null; });
+            db.ref().update(updates)
+                .then(() => { showToast('🧹 История позиций очищена!'); closeAdmin(); })
+                .catch(e => showToast('Ошибка: ' + e.message));
+        }
+
         // ===== RENDER =====
         function render() {
             if (currentTab === 'players') { renderPlayerTop(); return; }
@@ -3117,7 +3255,7 @@
             container.style.display = 'grid';
             topBanner.style.display = isDem ? 'block' : 'none';
 
-            const canEdit = isModerator;
+            const canEdit = canEditTab(currentTab);
             const canDelete = isAdmin;
 
             if(isDem || isChal) {
@@ -3155,7 +3293,7 @@
                     const card = document.createElement('div');
                     card.className = 'card';
                     
-                    if (isDragDropMode && isAdmin) {
+                    if (isDragDropMode && canEdit) {
                         card.setAttribute('draggable', 'true');
                         card.setAttribute('data-index', i);
                         card.ondragstart = (e) => handleDragStart(i, e);
@@ -3190,7 +3328,7 @@
                     card.innerHTML = `
                         ${adminHtml}
                         <div class="card-img-wrap">
-                            ${isDragDropMode && isAdmin ? `<div style="position:absolute;top:6px;right:6px;background:rgba(167,139,250,0.2);padding:3px 7px;border-radius:5px;font-size:0.65rem;color:var(--accent);z-index:50;"><i class="fas fa-grip-vertical"></i></div>` : ''}
+                            ${isDragDropMode && canEdit ? `<div style="position:absolute;top:6px;right:6px;background:rgba(167,139,250,0.2);padding:3px 7px;border-radius:5px;font-size:0.65rem;color:var(--accent);z-index:50;"><i class="fas fa-grip-vertical"></i></div>` : ''}
                             ${d.tag ? `<div class="demon-tag">${d.tag}</div>` : ''}
                             <img src="${d.img}" class="card-img" loading="lazy" decoding="async" alt="${escapeHtml(d.name)}" onerror="this.onerror=null;this.style.background='rgba(12,16,38,0.9)';this.style.display='flex';this.removeAttribute('src')">
                             ${verifierName ? `<div class="card-verified-stamp">VERIFIED</div>` : ''}
@@ -3296,7 +3434,8 @@
                     img: document.getElementById('itemImgURL').value, 
                     vid: v, 
                     points: document.getElementById('itemPoints').value.trim(), 
-                    order: targetList.length 
+                    order: targetList.length,
+                    addedAt: Date.now()
                 });
                 closeAdmin();
                 return;
@@ -3307,6 +3446,15 @@
                 if (isEditMode) isDeleteMode = false;
                 render();
                 showToast(isEditMode ? '✏️ Режим редактирования включён' : '✏️ Режим редактирования выключён');
+                closeAdmin();
+                return;
+            }
+            if (act === 'drag_drop') {
+                if (!isModerator) { alert('Нет доступа!'); return; }
+                if (!isAdmin && !currentUserPermissions.canAddDemons && !currentUserPermissions.canAddChallenges) {
+                    alert('Нет прав: перестановка уровней не разрешена!'); return;
+                }
+                toggleDragDropMode();
                 closeAdmin();
                 return;
             }
@@ -3333,8 +3481,9 @@
                     db.ref('maintenance').set(!current);
                     alert(!current ? '🔧 Техперерыв ВКЛЮЧЁН — сайт закрыт для посетителей' : '✅ Техперерыв ВЫКЛЮЧЕН — сайт открыт');
                 });
-            } else if(act === 'drag_drop') {
-                toggleDragDropMode();
+            } else if(act === 'clear_history') {
+                clearPositionHistory();
+                return;
             }
             closeAdmin();
         }
@@ -3400,7 +3549,7 @@
                     statsRecords: "Рекорды", statsCreators: "Создатели",
                     statsTopSlayer: "Топ Слеер", statsTopCreator: "Топ Создатель",
                     statsHardestDemon: "Сложнейший Демон", statsHardestChallenge: "Сложнейший Челлендж",
-                    statsRecent: "Недавно добавленные", statsListPos: "#1 в листе",
+                    statsRecent: "Недавние изменения", statsListPos: "#1 в листе",
                     statsDemon: "Демон", statsChallenge: "Челлендж", statsUpdated: "Обновлено",
                     navStats: "Статистика",
                     compareTitle: "СРАВНЕНИЕ ИГРОКОВ", compareSub: "Выбери двух игроков для сравнения",
@@ -3437,7 +3586,7 @@
                     statsRecords: "Records", statsCreators: "Creators",
                     statsTopSlayer: "Top Slayer", statsTopCreator: "Top Creator",
                     statsHardestDemon: "Hardest Demon", statsHardestChallenge: "Hardest Challenge",
-                    statsRecent: "Recently Added", statsListPos: "#1 on the list",
+                    statsRecent: "Recent Changes", statsListPos: "#1 on the list",
                     statsDemon: "Demon", statsChallenge: "Challenge", statsUpdated: "Updated",
                     navStats: "Statistics",
                     compareTitle: "PLAYER COMPARISON", compareSub: "Select two players to compare",
@@ -4296,7 +4445,8 @@
                 img: document.getElementById('mImg').value.trim(),
                 vid: v,
                 points: document.getElementById('mPoints').value.trim(),
-                order: demons.length
+                order: demons.length,
+                addedAt: Date.now()
             }).then(() => {
                 showToast('✅ Демон добавлен!');
                 ['mName','mAuthor','mID','mTag','mVerifier','mImg','mVid'].forEach(id => document.getElementById(id).value = '');
